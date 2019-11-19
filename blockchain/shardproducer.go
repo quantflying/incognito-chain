@@ -500,7 +500,7 @@ func (blockGenerator *BlockGenerator) buildResponseTxsFromBeaconInstructions(bea
 					data, _ := json.Marshal(newTx)
 					Logger.log.Error("Double tx from instruction", l, string(data))
 					errorInstructions = append(errorInstructions, l)
-					//continue
+					continue
 				}
 				responsedTxs = append(responsedTxs, newTx)
 				responsedHashTxs = append(responsedHashTxs, newTxHash)
