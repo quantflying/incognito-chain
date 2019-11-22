@@ -537,3 +537,7 @@ func (engine *Engine) updateUserState(keySet *incognitokey.CommitteePublicKey, l
 		engine.config.Node.DropAllConnections()
 	}
 }
+
+func (engine *Engine) GetMiningPublicKeys() map[string]incognitokey.CommitteePublicKey {
+	return engine.userMiningPublicKeys
+}
