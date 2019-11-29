@@ -2,7 +2,6 @@ package peerv2
 
 import (
 	"context"
-	"log"
 	"time"
 
 	p2pgrpc "github.com/incognitochain/go-libp2p-grpc"
@@ -37,13 +36,13 @@ func (c *BlockRequester) keepConnection() {
 			continue
 		}
 
-		log.Println("BlockRequester is not ready, dialing")
+		Logger.Warn("BlockRequester is not ready, dialing")
 		if conn, err := c.prtc.Dial(
 			context.Background(),
 			c.highwayPID,
 			grpc.WithInsecure(),
 		); err != nil {
-			log.Println("Could not dial to highway grpc server:", err, c.highwayPID)
+			Logger.Error("Could not dial to highway grpc server:", err, c.highwayPID)
 		} else {
 			c.conn = conn
 		}
@@ -90,7 +89,7 @@ func (c *BlockRequester) GetBlockShardByHeight(
 		return nil, errors.New("requester not ready")
 	}
 
-	log.Printf("Requesting shard block by height: shard = %v from = %v to = %v", shardID, from, to)
+	Logger.Infof("Requesting shard block by height: shard = %v from = %v to = %v", shardID, from, to)
 	client := NewHighwayServiceClient(c.conn)
 	reply, err := client.GetBlockShardByHeight(
 		context.Background(),
@@ -103,7 +102,7 @@ func (c *BlockRequester) GetBlockShardByHeight(
 			FromPool:   false,
 		},
 	)
-	log.Printf("Received block shard data %v", reply)
+	Logger.Infof("Received block shard data %v", reply)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +117,7 @@ func (c *BlockRequester) GetBlockBeaconByHeight(
 		return nil, errors.New("requester not ready")
 	}
 
-	log.Printf("Requesting beaconblock by height: from = %v to = %v", from, to)
+	Logger.Infof("Requesting beaconblock by height: from = %v to = %v", from, to)
 	client := NewHighwayServiceClient(c.conn)
 	reply, err := client.GetBlockBeaconByHeight(
 		context.Background(),
@@ -133,37 +132,40 @@ func (c *BlockRequester) GetBlockBeaconByHeight(
 	if err != nil {
 		return nil, err
 	} else if reply != nil {
-		log.Printf("Received block beacon data len: %v", len(reply.Data))
+		Logger.Infof("Received block beacon data len: %v", len(reply.Data))
 	}
 	return reply.Data, nil
 }
 
 func (c *BlockRequester) GetBlockShardToBeaconByHeight(
 	shardID int32,
+	bySpecific bool,
 	from uint64,
+	heights []uint64,
 	to uint64,
 ) ([][]byte, error) {
 	if !c.Ready() {
 		return nil, errors.New("requester not ready")
 	}
 
-	log.Printf("Requesting blkshdtobcn by height: from = %v to = %v", from, to)
+	Logger.Infof("[sync] Requesting blkshdtobcn by specific height %v: from = %v to = %v; Heights: %v", bySpecific, from, to, heights)
 	client := NewHighwayServiceClient(c.conn)
 	reply, err := client.GetBlockShardToBeaconByHeight(
 		context.Background(),
 		&GetBlockShardToBeaconByHeightRequest{
 			FromShard:  shardID,
-			Specific:   false,
+			Specific:   bySpecific,
 			FromHeight: from,
 			ToHeight:   to,
-			Heights:    nil,
+			Heights:    heights,
 			FromPool:   false,
 		},
 	)
 	if err != nil {
+		Logger.Infof("[sync] Received err: %v from = %v to = %v; Heights: %v", err, from, to, heights)
 		return nil, err
 	} else if reply != nil {
-		log.Printf("Received block s2b data len: %v", len(reply.Data))
+		Logger.Infof("[sync] Received block s2b data len: %v from = %v to = %v; Heights: %v ", len(reply.Data), from, to, heights)
 	}
 	return reply.Data, nil
 }
@@ -178,7 +180,7 @@ func (c *BlockRequester) GetBlockCrossShardByHeight(
 		return nil, errors.New("requester not ready")
 	}
 
-	log.Printf("Requesting block crossshard by height: shard %v to %v, height %v", fromShard, toShard, heights)
+	Logger.Infof("Requesting block crossshard by height: shard %v to %v, height %v", fromShard, toShard, heights)
 	client := NewHighwayServiceClient(c.conn)
 	reply, err := client.GetBlockCrossShardByHeight(
 		context.Background(),
@@ -195,7 +197,7 @@ func (c *BlockRequester) GetBlockCrossShardByHeight(
 	if err != nil {
 		return nil, err
 	} else if reply != nil {
-		log.Printf("Received block s2b data len: %v", len(reply.Data))
+		Logger.Infof("Received block s2b data len: %v", len(reply.Data))
 	}
 	return reply.Data, nil
 }
