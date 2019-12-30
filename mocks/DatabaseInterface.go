@@ -40,6 +40,20 @@ func (_m *DatabaseInterface) AddShardRewardRequest(epoch uint64, shardID byte, a
 	return r0
 }
 
+// AddTradeFeeUp provides a mock function with given fields: beaconHeight, token1IDStr, token2IDStr, tokenIDToBuyStr, amt
+func (_m *DatabaseInterface) AddTradeFeeUp(beaconHeight uint64, token1IDStr string, token2IDStr string, tokenIDToBuyStr string, amt uint64) error {
+	ret := _m.Called(beaconHeight, token1IDStr, token2IDStr, tokenIDToBuyStr, amt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(uint64, string, string, string, uint64) error); ok {
+		r0 = rf(beaconHeight, token1IDStr, token2IDStr, tokenIDToBuyStr, amt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // BackupBridgedTokenByTokenID provides a mock function with given fields: tokenID
 func (_m *DatabaseInterface) BackupBridgedTokenByTokenID(tokenID common.Hash) error {
 	ret := _m.Called(tokenID)
@@ -264,6 +278,48 @@ func (_m *DatabaseInterface) Close() error {
 	return r0
 }
 
+// ContributeToPDE provides a mock function with given fields: beaconHeight, pairID, contributorAddressStr, tokenIDStr, contributedAmount
+func (_m *DatabaseInterface) ContributeToPDE(beaconHeight uint64, pairID string, contributorAddressStr string, tokenIDStr string, contributedAmount uint64) error {
+	ret := _m.Called(beaconHeight, pairID, contributorAddressStr, tokenIDStr, contributedAmount)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(uint64, string, string, string, uint64) error); ok {
+		r0 = rf(beaconHeight, pairID, contributorAddressStr, tokenIDStr, contributedAmount)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeductSharesForWithdrawal provides a mock function with given fields: beaconHeight, token1IDStr, token2IDStr, targetingTokenIDStr, withdrawerAddressStr, amt
+func (_m *DatabaseInterface) DeductSharesForWithdrawal(beaconHeight uint64, token1IDStr string, token2IDStr string, targetingTokenIDStr string, withdrawerAddressStr string, amt uint64) error {
+	ret := _m.Called(beaconHeight, token1IDStr, token2IDStr, targetingTokenIDStr, withdrawerAddressStr, amt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(uint64, string, string, string, string, uint64) error); ok {
+		r0 = rf(beaconHeight, token1IDStr, token2IDStr, targetingTokenIDStr, withdrawerAddressStr, amt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeductTradeFee provides a mock function with given fields: beaconHeight, token1IDStr, token2IDStr, tokenIDToBuyStr, amt
+func (_m *DatabaseInterface) DeductTradeFee(beaconHeight uint64, token1IDStr string, token2IDStr string, tokenIDToBuyStr string, amt uint64) error {
+	ret := _m.Called(beaconHeight, token1IDStr, token2IDStr, tokenIDToBuyStr, amt)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(uint64, string, string, string, uint64) error); ok {
+		r0 = rf(beaconHeight, token1IDStr, token2IDStr, tokenIDToBuyStr, amt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Delete provides a mock function with given fields: key
 func (_m *DatabaseInterface) Delete(key []byte) error {
 	ret := _m.Called(key)
@@ -439,6 +495,20 @@ func (_m *DatabaseInterface) DeleteTransactionIndex(txId common.Hash) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(common.Hash) error); ok {
 		r0 = rf(txId)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteWaitingPDEContributionByPairID provides a mock function with given fields: beaconHeight, pairID
+func (_m *DatabaseInterface) DeleteWaitingPDEContributionByPairID(beaconHeight uint64, pairID string) error {
+	ret := _m.Called(beaconHeight, pairID)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(uint64, string) error); ok {
+		r0 = rf(beaconHeight, pairID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -741,6 +811,38 @@ func (_m *DatabaseInterface) GetAllBridgeTokens() ([]byte, error) {
 	return r0, r1
 }
 
+// GetAllRecordsByPrefix provides a mock function with given fields: beaconHeight, prefix
+func (_m *DatabaseInterface) GetAllRecordsByPrefix(beaconHeight uint64, prefix []byte) ([][]byte, [][]byte, error) {
+	ret := _m.Called(beaconHeight, prefix)
+
+	var r0 [][]byte
+	if rf, ok := ret.Get(0).(func(uint64, []byte) [][]byte); ok {
+		r0 = rf(beaconHeight, prefix)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([][]byte)
+		}
+	}
+
+	var r1 [][]byte
+	if rf, ok := ret.Get(1).(func(uint64, []byte) [][]byte); ok {
+		r1 = rf(beaconHeight, prefix)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).([][]byte)
+		}
+	}
+
+	var r2 error
+	if rf, ok := ret.Get(2).(func(uint64, []byte) error); ok {
+		r2 = rf(beaconHeight, prefix)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
 // GetBeaconBlockHashByIndex provides a mock function with given fields: idx
 func (_m *DatabaseInterface) GetBeaconBlockHashByIndex(idx uint64) (common.Hash, error) {
 	ret := _m.Called(idx)
@@ -1012,6 +1114,29 @@ func (_m *DatabaseInterface) GetIndexOfBlock(hash common.Hash) (uint64, byte, er
 	return r0, r1, r2
 }
 
+// GetLatestPDEPoolForPair provides a mock function with given fields: tokenIDToBuyStr, tokenIDToSellStr
+func (_m *DatabaseInterface) GetLatestPDEPoolForPair(tokenIDToBuyStr string, tokenIDToSellStr string) ([]byte, error) {
+	ret := _m.Called(tokenIDToBuyStr, tokenIDToSellStr)
+
+	var r0 []byte
+	if rf, ok := ret.Get(0).(func(string, string) []byte); ok {
+		r0 = rf(tokenIDToBuyStr, tokenIDToSellStr)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(tokenIDToBuyStr, tokenIDToSellStr)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetNormalTokenPaymentAddressUTXO provides a mock function with given fields: tokenID, paymentAddress
 func (_m *DatabaseInterface) GetNormalTokenPaymentAddressUTXO(tokenID common.Hash, paymentAddress []byte) (map[string]string, error) {
 	ret := _m.Called(tokenID, paymentAddress)
@@ -1081,6 +1206,73 @@ func (_m *DatabaseInterface) GetOutcoinsByPubkey(tokenID common.Hash, pubkey []b
 	return r0, r1
 }
 
+// GetPDEContributionStatus provides a mock function with given fields: prefix, suffix
+func (_m *DatabaseInterface) GetPDEContributionStatus(prefix []byte, suffix []byte) ([]byte, error) {
+	ret := _m.Called(prefix, suffix)
+
+	var r0 []byte
+	if rf, ok := ret.Get(0).(func([]byte, []byte) []byte); ok {
+		r0 = rf(prefix, suffix)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]byte, []byte) error); ok {
+		r1 = rf(prefix, suffix)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetPDEPoolForPair provides a mock function with given fields: beaconHeight, tokenIDToBuyStr, tokenIDToSellStr
+func (_m *DatabaseInterface) GetPDEPoolForPair(beaconHeight uint64, tokenIDToBuyStr string, tokenIDToSellStr string) ([]byte, error) {
+	ret := _m.Called(beaconHeight, tokenIDToBuyStr, tokenIDToSellStr)
+
+	var r0 []byte
+	if rf, ok := ret.Get(0).(func(uint64, string, string) []byte); ok {
+		r0 = rf(beaconHeight, tokenIDToBuyStr, tokenIDToSellStr)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(uint64, string, string) error); ok {
+		r1 = rf(beaconHeight, tokenIDToBuyStr, tokenIDToSellStr)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetPDEStatus provides a mock function with given fields: prefix, suffix
+func (_m *DatabaseInterface) GetPDEStatus(prefix []byte, suffix []byte) (byte, error) {
+	ret := _m.Called(prefix, suffix)
+
+	var r0 byte
+	if rf, ok := ret.Get(0).(func([]byte, []byte) byte); ok {
+		r0 = rf(prefix, suffix)
+	} else {
+		r0 = ret.Get(0).(byte)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]byte, []byte) error); ok {
+		r1 = rf(prefix, suffix)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetProducersBlackList provides a mock function with given fields: beaconHeight
 func (_m *DatabaseInterface) GetProducersBlackList(beaconHeight uint64) (map[string]uint8, error) {
 	ret := _m.Called(beaconHeight)
@@ -1118,6 +1310,48 @@ func (_m *DatabaseInterface) GetRewardOfShardByEpoch(epoch uint64, shardID byte,
 	var r1 error
 	if rf, ok := ret.Get(1).(func(uint64, byte, common.Hash) error); ok {
 		r1 = rf(epoch, shardID, tokenID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetSharesOfContributorForTokenIDOnAPair provides a mock function with given fields: token1IDStr, token2IDStr, contributedTokenIDStr, contributorAddrStr
+func (_m *DatabaseInterface) GetSharesOfContributorForTokenIDOnAPair(token1IDStr string, token2IDStr string, contributedTokenIDStr string, contributorAddrStr string) (uint64, error) {
+	ret := _m.Called(token1IDStr, token2IDStr, contributedTokenIDStr, contributorAddrStr)
+
+	var r0 uint64
+	if rf, ok := ret.Get(0).(func(string, string, string, string) uint64); ok {
+		r0 = rf(token1IDStr, token2IDStr, contributedTokenIDStr, contributorAddrStr)
+	} else {
+		r0 = ret.Get(0).(uint64)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, string, string) error); ok {
+		r1 = rf(token1IDStr, token2IDStr, contributedTokenIDStr, contributorAddrStr)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetTotalSharesForTokenIDOnAPair provides a mock function with given fields: token1IDStr, token2IDStr, contributedTokenIDStr
+func (_m *DatabaseInterface) GetTotalSharesForTokenIDOnAPair(token1IDStr string, token2IDStr string, contributedTokenIDStr string) (uint64, error) {
+	ret := _m.Called(token1IDStr, token2IDStr, contributedTokenIDStr)
+
+	var r0 uint64
+	if rf, ok := ret.Get(0).(func(string, string, string) uint64); ok {
+		r0 = rf(token1IDStr, token2IDStr, contributedTokenIDStr)
+	} else {
+		r0 = ret.Get(0).(uint64)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
+		r1 = rf(token1IDStr, token2IDStr, contributedTokenIDStr)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2227,6 +2461,34 @@ func (_m *DatabaseInterface) TrackBridgeReqWithStatus(txReqID common.Hash, statu
 	return r0
 }
 
+// TrackPDEContributionStatus provides a mock function with given fields: prefix, suffix, statusContent
+func (_m *DatabaseInterface) TrackPDEContributionStatus(prefix []byte, suffix []byte, statusContent []byte) error {
+	ret := _m.Called(prefix, suffix, statusContent)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]byte, []byte, []byte) error); ok {
+		r0 = rf(prefix, suffix, statusContent)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// TrackPDEStatus provides a mock function with given fields: prefix, suffix, status
+func (_m *DatabaseInterface) TrackPDEStatus(prefix []byte, suffix []byte, status byte) error {
+	ret := _m.Called(prefix, suffix, status)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func([]byte, []byte, byte) error); ok {
+		r0 = rf(prefix, suffix, status)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateBridgeTokenInfo provides a mock function with given fields: incTokenID, externalTokenID, isCentralized, updatingAmt, updateType, bd
 func (_m *DatabaseInterface) UpdateBridgeTokenInfo(incTokenID common.Hash, externalTokenID []byte, isCentralized bool, updatingAmt uint64, updateType string, bd *[]database.BatchData) error {
 	ret := _m.Called(incTokenID, externalTokenID, isCentralized, updatingAmt, updateType, bd)
@@ -2234,6 +2496,20 @@ func (_m *DatabaseInterface) UpdateBridgeTokenInfo(incTokenID common.Hash, exter
 	var r0 error
 	if rf, ok := ret.Get(0).(func(common.Hash, []byte, bool, uint64, string, *[]database.BatchData) error); ok {
 		r0 = rf(incTokenID, externalTokenID, isCentralized, updatingAmt, updateType, bd)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdatePDEPoolForPair provides a mock function with given fields: beaconHeight, token1IDStr, token2IDStr, pdePoolForPairBytes
+func (_m *DatabaseInterface) UpdatePDEPoolForPair(beaconHeight uint64, token1IDStr string, token2IDStr string, pdePoolForPairBytes []byte) error {
+	ret := _m.Called(beaconHeight, token1IDStr, token2IDStr, pdePoolForPairBytes)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(uint64, string, string, []byte) error); ok {
+		r0 = rf(beaconHeight, token1IDStr, token2IDStr, pdePoolForPairBytes)
 	} else {
 		r0 = ret.Error(0)
 	}
