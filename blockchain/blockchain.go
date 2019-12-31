@@ -129,6 +129,10 @@ func NewBlockChain(config *Config, isTest bool) *BlockChain {
 	return bc
 }
 
+func (blockchain *BlockChain) GetConfig() Config {
+	return blockchain.config
+}
+
 /*
 Init - init a blockchain view from config
 */

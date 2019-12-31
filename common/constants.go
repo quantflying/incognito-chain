@@ -83,6 +83,7 @@ const (
 	MaxShardNumber = 8
 
 	BlsConsensus    = "bls"
+	BlsConsensus2   = "bls2"
 	BridgeConsensus = "dsa"
 	IncKeyType      = "inc"
 )

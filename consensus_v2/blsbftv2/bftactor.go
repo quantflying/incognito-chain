@@ -408,7 +408,7 @@ func (e *BLSBFT) proposeBlock(block consensus.BlockInterface) (consensus.BlockIn
 	return block, nil
 }
 
-func (e *BLSBFT) ProcessBFTMsg(msg consensus.ConsensusMsgInterface, sender consensus.NodeSender) {
+func (e *BLSBFT) ProcessBFTMsg(msg interface{}, sender consensus.NodeSender) {
 	msgBFT := msg.(*wire.MessageBFT)
 	switch msgBFT.Type {
 	case MSG_PROPOSE:

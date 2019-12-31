@@ -65,7 +65,7 @@ type ConsensusInterface interface {
 	// IsOngoing - check whether consensus is currently voting on a block
 	// IsOngoing() bool //TO_BE_DELETE
 	// ProcessBFTMsg - process incoming BFT message
-	ProcessBFTMsg(msg ConsensusMsgInterface, sender NodeSender)
+	ProcessBFTMsg(msg interface{}, sender NodeSender)
 	// ValidateProducerSig - validate a block producer signature
 	ValidateProducerSig(block BlockInterface) error
 	// ValidateCommitteeSig - validate a block committee signature

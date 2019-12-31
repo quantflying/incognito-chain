@@ -9,7 +9,6 @@ import (
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
-	"github.com/incognitochain/incognito-chain/transaction"
 )
 
 type ShardBlock struct {
@@ -53,8 +52,6 @@ type CrossShardBlock struct {
 	MerklePathShard []common.Hash
 	// Cross Shard data for PRV
 	CrossOutputCoin []privacy.OutputCoin
-	// Cross Shard Data for Custom Token Tx
-	CrossTxTokenData []transaction.TxNormalTokenData
 	// Cross Shard For Custom token privacy
 	CrossTxTokenPrivacyData []blockchain.ContentCrossShardTokenPrivacyData
 }
@@ -374,9 +371,9 @@ func (shardBlock *ShardBlock) CreateAllCrossShardBlock(activeShards int) map[byt
 
 func (shardBlock *ShardBlock) CreateCrossShardBlock(shardID byte) (*CrossShardBlock, error) {
 	crossShard := &CrossShardBlock{}
-	crossOutputCoin, crossTxTokenData, crossCustomTokenPrivacyData := blockchain.GetCrossShardData(shardBlock.Body.Transactions, shardID)
+	crossOutputCoin, crossCustomTokenPrivacyData := blockchain.GetCrossShardData(shardBlock.Body.Transactions, shardID)
 	// Return nothing if nothing to cross
-	if len(crossOutputCoin) == 0 && len(crossTxTokenData) == 0 && len(crossCustomTokenPrivacyData) == 0 {
+	if len(crossOutputCoin) == 0 && len(crossCustomTokenPrivacyData) == 0 {
 		return nil, blockchain.NewBlockChainError(blockchain.CreateCrossShardBlockError, errors.New("No cross Outputcoin, Cross Custom Token, Cross Custom Token Privacy"))
 	}
 	merklePathShard, merkleShardRoot := blockchain.GetMerklePathCrossShard2(shardBlock.Body.Transactions, shardID)
@@ -395,7 +392,6 @@ func (shardBlock *ShardBlock) CreateCrossShardBlock(shardID byte) (*CrossShardBl
 	crossShard.Header = shardBlock.Header
 	crossShard.MerklePathShard = merklePathShard
 	crossShard.CrossOutputCoin = crossOutputCoin
-	crossShard.CrossTxTokenData = crossTxTokenData
 	crossShard.CrossTxTokenPrivacyData = crossCustomTokenPrivacyData
 	crossShard.ToShardID = shardID
 	return crossShard, nil

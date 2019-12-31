@@ -157,9 +157,8 @@ func (state *CreateNewBlockState) buildingShardBody() error {
 	tempPrivateKey := createTempKeyset()
 
 	//TODO: get cross shard data from crossshard block and build crossshard tx from these data
-	var crossTxTokenData map[byte][]blockchain.CrossTxTokenData
-	state.crossTransaction, crossTxTokenData = state.getCrossShardData(shardID)
-	if err := state.buildCrossShardTx(&tempPrivateKey, crossTxTokenData, shardID); err != nil {
+	state.crossTransaction = state.getCrossShardData(shardID)
+	if err := state.buildCrossShardTx(&tempPrivateKey, shardID); err != nil {
 		return err
 	}
 
@@ -193,13 +192,12 @@ func (state *CreateNewBlockState) postProcessForCreatingNewShardBlock() error {
 	return nil
 }
 
-func (state *CreateNewBlockState) getCrossShardData(toShard byte) (map[byte][]blockchain.CrossTransaction, map[byte][]blockchain.CrossTxTokenData) {
+func (state *CreateNewBlockState) getCrossShardData(toShard byte) map[byte][]blockchain.CrossTransaction {
 	crossTransactions := make(map[byte][]blockchain.CrossTransaction)
-	crossTxTokenData := make(map[byte][]blockchain.CrossTxTokenData)
-	return crossTransactions, crossTxTokenData
+	return crossTransactions
 }
 
-func (state *CreateNewBlockState) buildCrossShardTx(privatekey *privacy.PrivateKey, crossTxTokenDataMap map[byte][]blockchain.CrossTxTokenData, shardID byte) error {
+func (state *CreateNewBlockState) buildCrossShardTx(privatekey *privacy.PrivateKey, shardID byte) error {
 	return nil
 }
 

@@ -659,7 +659,7 @@ func (blockchain *BlockChain) generateInstruction(shardID byte, beaconHeight uin
 }
 
 /*
-	getCrossShardData get cross shard data from cross shard block
+	GetCrossShardData get cross shard data from cross shard block
 		1. Get Cross Shard Block and Validate
 			a. Get Valid Cross Shard Block from Cross Shard Pool
 			b. Get Current Cross Shard State: Last Cross Shard Block From other Shard (FS) to this shard (TS) (Ex: last cross shard block from Shard 0 to Shard 1)
