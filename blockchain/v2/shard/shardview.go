@@ -3,7 +3,6 @@ package shard
 import (
 	"encoding/json"
 	"fmt"
-	v2 "github.com/incognitochain/incognito-chain/blockchain/v2"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
@@ -13,12 +12,12 @@ import (
 )
 
 type ShardView struct {
-	BC                    v2.BlockChain
+	BC                    BlockChain
 	ShardID               byte
 	Block                 *ShardBlock                       `json:"BestBlock"` // block data
 	ShardCommittee        []incognitokey.CommitteePublicKey `json:"ShardCommittee"`
 	ShardPendingValidator []incognitokey.CommitteePublicKey `json:"ShardPendingValidator"`
-	DB                    v2.DB                             `json:"-"`
+	DB                    DB                                `json:"-"`
 	Lock                  *sync.RWMutex
 	Logger                common.Logger
 }

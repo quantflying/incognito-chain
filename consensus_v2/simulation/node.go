@@ -59,7 +59,7 @@ func NewNode(committeePkStruct []incognitokey.CommitteePublicKey, committee []st
 	db := &FakeDB{}
 	db.genesisBlock = shardv2.CreateShardGenesisBlock(1, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.TestnetInitPRV)
 	node.chain = blockchainv2.InitNewChainViewManager(fmt.Sprintf("shard0_%d", index), &shardv2.ShardView{
-		BC:             blockchainv2.FakeBC{},
+		BC:             &shardv2.FakeBC{},
 		Block:          db.genesisBlock.(*shardv2.ShardBlock),
 		ShardCommittee: committeePkStruct,
 		DB:             db,

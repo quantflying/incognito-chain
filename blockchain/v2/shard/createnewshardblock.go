@@ -3,7 +3,7 @@ package shard
 import (
 	"context"
 	"github.com/incognitochain/incognito-chain/blockchain"
-	v2 "github.com/incognitochain/incognito-chain/blockchain/v2"
+	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
@@ -13,12 +13,23 @@ import (
 
 type CreateNewBlockState struct {
 	ctx          context.Context
-	bc           v2.BlockChain
+	bc           BlockChain
 	oldShardView *ShardView
 
 	//tmp
 	newShardView           *ShardView
 	newConfirmBeaconHeight uint64
+	newBeaconBlocks        []common.BlockInterface
+	//app
+	app                      []App
+	txToRemove               []metadata.Transaction
+	txsToAdd                 []metadata.Transaction
+	txsFromMetadataTx        []metadata.Transaction
+	txsFromBeaconInstruction []metadata.Transaction
+	errInstruction           [][]string
+	stakingTx                map[string]string
+	newShardPendingValidator []string
+
 	//body
 	instructions     [][]string
 	crossTransaction map[byte][]blockchain.CrossTransaction
@@ -34,55 +45,10 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 		oldShardView: s,
 		newShardView: s.CloneNewView().(*ShardView),
 		ctx:          ctx,
+		app:          []App{},
 	}
-
-	if err := state.preProcessForCreatingNewShardBlock(); err != nil {
-		return nil, err
-	}
-
-	if err := state.buildingShardBody(); err != nil {
-		return nil, err
-	}
-
-	if err := state.buildingShardHeader(); err != nil {
-		return nil, err
-	}
-
-	if err := state.postProcessForCreatingNewShardBlock(); err != nil {
-		return nil, err
-	}
-
-	block := &ShardBlock{
-		Body: ShardBody{
-			Transactions:      state.transactions,
-			Instructions:      state.instructions,
-			CrossTransactions: state.crossTransaction,
-		},
-		Header: ShardHeader{
-			Timestamp:         time.Now().Unix(),
-			Version:           1,
-			BeaconHeight:      1,
-			Epoch:             1,
-			Round:             1,
-			Height:            s.Block.GetHeight() + 1,
-			PreviousBlockHash: *s.Block.Hash(),
-		},
-		ConsensusHeader: ConsensusHeader{
-			TimeSlot: timeslot,
-			Proposer: proposer,
-		},
-	}
-	return block, nil
-}
-
-func (s *ShardView) CreateNewBlockAndView(ctx context.Context, timeslot uint64, proposer string) (consensus.BlockInterface, error) {
-	s.Logger.Criticalf("Creating Shard Block %+v at timeslot %v", s.GetHeight()+1, timeslot)
-	state := &CreateNewBlockState{
-		bc:           s.BC,
-		oldShardView: s,
-		newShardView: s.CloneNewView().(*ShardView),
-		ctx:          ctx,
-	}
+	//ADD YOUR APP HERE
+	state.app = append(state.app, &CoreApp{AppData{Logger: s.Logger}})
 
 	if err := state.preProcessForCreatingNewShardBlock(); err != nil {
 		return nil, err
@@ -153,34 +119,36 @@ func (state *CreateNewBlockState) preProcessForCreatingNewShardBlock() error {
 }
 
 func (state *CreateNewBlockState) buildingShardBody() error {
-	shardID := state.oldShardView.ShardID
-	tempPrivateKey := createTempKeyset()
-
-	//TODO: get cross shard data from crossshard block and build crossshard tx from these data
-	state.crossTransaction = state.getCrossShardData(shardID)
-	if err := state.buildCrossShardTx(&tempPrivateKey, shardID); err != nil {
-		return err
+	for _, app := range state.app {
+		if err := app.buildTxFromCrossShard(state); err != nil {
+			return err
+		}
 	}
 
-	//TODO: build tx from mempool
-	if err := state.buildTxFromMemPool(&tempPrivateKey); err != nil {
-		return err
+	for _, app := range state.app {
+		if err := app.buildTxFromMemPool(state); err != nil {
+			return err
+		}
 	}
 
-	//TODO: build reponse tx from metadata tx
-	if err := state.buildResponseTxFromTxWithMetadata(&tempPrivateKey); err != nil {
-		return err
+	for _, app := range state.app {
+		if err := app.buildResponseTxFromTxWithMetadata(state); err != nil {
+			return err
+		}
 	}
 
-	//TODO: process instruction from
-	if err := state.processInstructionFromBeacon(); err != nil {
-		return err
+	for _, app := range state.app {
+		if err := app.processBeaconInstruction(state); err != nil {
+			return err
+		}
 	}
 
-	//TODO: build instruction to beacon
-	if err := state.generateInstruction(); err != nil {
-		return err
+	for _, app := range state.app {
+		if err := app.generateInstruction(state); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
@@ -189,27 +157,6 @@ func (state *CreateNewBlockState) buildingShardHeader() error {
 }
 
 func (state *CreateNewBlockState) postProcessForCreatingNewShardBlock() error {
-	return nil
-}
-
-func (state *CreateNewBlockState) getCrossShardData(toShard byte) map[byte][]blockchain.CrossTransaction {
-	crossTransactions := make(map[byte][]blockchain.CrossTransaction)
-	return crossTransactions
-}
-
-func (state *CreateNewBlockState) buildCrossShardTx(privatekey *privacy.PrivateKey, shardID byte) error {
-	return nil
-}
-
-func (state *CreateNewBlockState) buildTxFromMemPool(privatekey *privacy.PrivateKey) error {
-	return nil
-}
-
-func (state *CreateNewBlockState) buildResponseTxFromTxWithMetadata(privatekey *privacy.PrivateKey) error {
-	return nil
-}
-
-func (state *CreateNewBlockState) processInstructionFromBeacon() error {
 	return nil
 }
 

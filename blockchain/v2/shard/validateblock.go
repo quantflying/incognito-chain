@@ -3,13 +3,12 @@ package shard
 import (
 	"context"
 	"errors"
-	v2 "github.com/incognitochain/incognito-chain/blockchain/v2"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 )
 
 type ValidateBlockState struct {
 	ctx     context.Context
-	bc      v2.BlockChain
+	bc      BlockChain
 	curView *ShardView
 	//tmp
 	validateProposedBlock bool
