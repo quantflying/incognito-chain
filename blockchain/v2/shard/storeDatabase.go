@@ -6,7 +6,7 @@ type StoreDatabaseState struct {
 	curView *ShardView
 	newView *ShardView
 	//app
-	app []App
+	app []ShardApp
 }
 
 func (s *ShardView) StoreDatabase(block *ShardBlock, newView *ShardView) error {
@@ -14,7 +14,7 @@ func (s *ShardView) StoreDatabase(block *ShardBlock, newView *ShardView) error {
 		bc:      s.BC,
 		curView: s,
 		newView: newView,
-		app:     []App{},
+		app:     []ShardApp{},
 	}
 	//ADD YOUR APP HERE
 	state.app = append(state.app, &CoreApp{AppData{Logger: s.Logger}})

@@ -10,7 +10,7 @@ import (
 	"github.com/incognitochain/incognito-chain/metadata"
 )
 
-type App interface {
+type ShardApp interface {
 	//create block
 	preProcess(state *CreateNewBlockState) error
 	buildTxFromCrossShard(state *CreateNewBlockState) error             // build tx from crossshard
@@ -19,9 +19,13 @@ type App interface {
 	processBeaconInstruction(state *CreateNewBlockState) error          // execute beacon instruction & build tx if any
 	generateInstruction(state *CreateNewBlockState) error               //create block instruction
 	buildHeader(state *CreateNewBlockState) error
-	postProcess(state *CreateNewBlockState) error
+	postProcessAndCompile(state *CreateNewBlockState) error
 
 	//validate block
+	preValidate(state *ValidateBlockState) error
+	validateWithCurrentView(state *ValidateBlockState) error
+	validateWithNewView(state *ValidateBlockState) error
+
 	//store block
 	storeDatabase(state *StoreDatabaseState) error
 }

@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"errors"
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
@@ -16,32 +17,33 @@ type CoreApp struct {
 	AppData
 }
 
+//==============================Create Block Logic===========================
 func (s *CoreApp) preProcess(state *CreateNewBlockState) error {
 	bc := state.bc
 	beaconHeight, err := state.bc.GetCurrentBeaconHeight()
 	if err != nil {
 		return err
 	}
-	oldShardView := state.oldShardView
+	curView := state.curView
 
 	// limit number of beacon block confirmed in a shard block
-	if beaconHeight-oldShardView.GetHeight() > blockchain.MAX_BEACON_BLOCK {
-		beaconHeight = oldShardView.GetHeight() + blockchain.MAX_BEACON_BLOCK
+	if beaconHeight-curView.GetHeight() > blockchain.MAX_BEACON_BLOCK {
+		beaconHeight = curView.GetHeight() + blockchain.MAX_BEACON_BLOCK
 	}
 
 	// we only confirm shard blocks within an epoch
 	epoch := beaconHeight / bc.GetChainParams().Epoch
 
-	if epoch > oldShardView.GetEpoch() { // if current epoch > oldShardView 1 epoch, we only confirm beacon block within an epoch
-		beaconHeight = oldShardView.GetEpoch() * bc.GetChainParams().Epoch
-		epoch = oldShardView.GetEpoch() + 1
+	if epoch > curView.GetEpoch() { // if current epoch > curView 1 epoch, we only confirm beacon block within an epoch
+		beaconHeight = curView.GetEpoch() * bc.GetChainParams().Epoch
+		epoch = curView.GetEpoch() + 1
 	}
 	state.newConfirmBeaconHeight = beaconHeight
 	return nil
 }
 
 func (s *CoreApp) buildTxFromCrossShard(state *CreateNewBlockState) error {
-	toShard := state.oldShardView.ShardID
+	toShard := state.curView.ShardID
 	crossTransactions := make(map[byte][]blockchain.CrossTransaction)
 	// get cross shard block
 	allCrossShardBlock := state.bc.GetAllValidCrossShardBlockFromPool(toShard)
@@ -95,7 +97,7 @@ func (s *CoreApp) buildTxFromCrossShard(state *CreateNewBlockState) error {
 }
 
 func (s *CoreApp) buildTxFromMemPool(state *CreateNewBlockState) error {
-	txsToAdd, txToRemove, _ := state.bc.GetPendingTransaction(state.oldShardView.ShardID)
+	txsToAdd, txToRemove, _ := state.bc.GetPendingTransaction(state.curView.ShardID)
 	if len(txsToAdd) == 0 {
 		s.Logger.Info("Creating empty block...")
 	}
@@ -130,10 +132,10 @@ func (s *CoreApp) buildResponseTxFromTxWithMetadata(state *CreateNewBlockState) 
 }
 
 func (s *CoreApp) processBeaconInstruction(state *CreateNewBlockState) error {
-	shardID := state.oldShardView.ShardID
+	shardID := state.curView.ShardID
 	producerPrivateKey := createTempKeyset()
 	responsedTxs := []metadata.Transaction{}
-	shardPendingValidator, err := incognitokey.CommitteeKeyListToString(state.bc.GetShardPendingCommittee(state.oldShardView.ShardID))
+	shardPendingValidator, err := incognitokey.CommitteeKeyListToString(state.bc.GetShardPendingCommittee(state.curView.ShardID))
 	if err != nil {
 		panic(err)
 	}
@@ -224,15 +226,15 @@ func (s *CoreApp) processBeaconInstruction(state *CreateNewBlockState) error {
 
 func (s *CoreApp) generateInstruction(state *CreateNewBlockState) error {
 	beaconHeight := state.newConfirmBeaconHeight
-	shardCommittee, _ := incognitokey.CommitteeKeyListToString(state.oldShardView.ShardCommittee)
-	shardID := state.oldShardView.ShardID
+	shardCommittee, _ := incognitokey.CommitteeKeyListToString(state.curView.ShardCommittee)
+	shardID := state.curView.ShardID
 	var (
 		instructions          = [][]string{}
 		swapInstruction       = []string{}
 		shardPendingValidator = state.newShardPendingValidator
 		err                   error
 	)
-	if beaconHeight%state.bc.GetChainParams().Epoch == 0 && state.oldShardView.Block.Header.BeaconHeight == beaconHeight {
+	if beaconHeight%state.bc.GetChainParams().Epoch == 0 && state.curView.Block.Header.BeaconHeight == beaconHeight {
 		maxShardCommitteeSize := state.bc.GetChainParams().MaxShardCommitteeSize
 		minShardCommitteeSize := state.bc.GetChainParams().MinShardCommitteeSize
 
@@ -265,10 +267,79 @@ func (CoreApp) buildReturnStakingAmountTx(s string, pkey *privacy.PrivateKey) (m
 func (s *CoreApp) buildHeader(state *CreateNewBlockState) error {
 	return nil
 }
-func (s *CoreApp) postProcess(state *CreateNewBlockState) error {
+func (s *CoreApp) postProcessAndCompile(state *CreateNewBlockState) error {
 	return nil
 }
 
+//==============================Validate Logic===============================
+func (s *CoreApp) preValidate(state *ValidateBlockState) error {
+	shardID := state.curView.ShardID
+	// check valid block height
+	if state.newView.GetHeight() != state.curView.GetHeight()+1 {
+		return errors.New("Not valid next block")
+	}
+
+	if state.validateProposedBlock {
+		// check we have enough beacon blocks from pools
+		newBlock := state.newView.GetBlock().(*ShardBlock)
+		oldBlock := state.curView.GetBlock().(*ShardBlock)
+
+		if newBlock.Header.BeaconHeight < oldBlock.Header.BeaconHeight {
+			return errors.New("Beaconheight is not valid")
+		}
+		if newBlock.Header.BeaconHeight > oldBlock.Header.BeaconHeight {
+			state.isOldBeaconHeight = true
+		}
+		if newBlock.Header.BeaconHeight > oldBlock.Header.BeaconHeight {
+			state.isOldBeaconHeight = false
+			beaconBlocks := state.bc.GetValidBeaconBlockFromPool()
+			if len(beaconBlocks) == int(newBlock.Header.BeaconHeight-oldBlock.Header.BeaconHeight) {
+				state.beaconBlocks = beaconBlocks
+			} else {
+				return errors.New("Not enough beacon to validate")
+			}
+		}
+
+		// check we have enough crossshard blocks from pools
+		allConfirmCrossShard := make(map[byte][]interface{})
+		for _, beaconBlk := range state.beaconBlocks {
+			confirmCrossShard := beaconBlk.GetConfirmedCrossShardBlockToShard()
+			for fromShardID, v := range confirmCrossShard[shardID] {
+				for _, crossShard := range v {
+					allConfirmCrossShard[fromShardID] = append(allConfirmCrossShard[fromShardID], crossShard)
+				}
+			}
+		}
+		//TODO: get crossshard from pool and check if we have enough to validate
+	} else {
+		//check if block has enough valid signature
+
+	}
+	return nil
+}
+
+func (s *CoreApp) validateWithCurrentView(state *ValidateBlockState) error {
+	// verify proposer in timeslot
+
+	// verify parent hash
+
+	// Verify timestamp
+
+	// Verify transaction root
+
+	// Verify ShardTx Root
+
+	// Verify crossTransaction coin
+
+	// Verify Action
+	return nil
+}
+
+func (s *CoreApp) validateWithNewView(state *ValidateBlockState) error {
+	return nil
+}
+
+//==============================Save Database Logic===========================
 func (s *CoreApp) storeDatabase(state *StoreDatabaseState) error {
 
 	return nil

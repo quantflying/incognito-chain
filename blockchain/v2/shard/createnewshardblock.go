@@ -12,16 +12,17 @@ import (
 )
 
 type CreateNewBlockState struct {
-	ctx          context.Context
-	bc           BlockChain
-	oldShardView *ShardView
-
+	ctx      context.Context
+	bc       BlockChain
+	curView  *ShardView
+	newBlock *ShardBlock
 	//tmp
-	newShardView           *ShardView
+	newView                *ShardView
 	newConfirmBeaconHeight uint64
 	newBeaconBlocks        []common.BlockInterface
+
 	//app
-	app                      []App
+	app                      []ShardApp
 	txToRemove               []metadata.Transaction
 	txsToAdd                 []metadata.Transaction
 	txsFromMetadataTx        []metadata.Transaction
@@ -40,38 +41,8 @@ type CreateNewBlockState struct {
 
 func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (consensus.BlockInterface, error) {
 	s.Logger.Criticalf("Creating Shard Block %+v at timeslot %v", s.GetHeight()+1, timeslot)
-	state := &CreateNewBlockState{
-		bc:           s.BC,
-		oldShardView: s,
-		newShardView: s.CloneNewView().(*ShardView),
-		ctx:          ctx,
-		app:          []App{},
-	}
-	//ADD YOUR APP HERE
-	state.app = append(state.app, &CoreApp{AppData{Logger: s.Logger}})
-
-	if err := state.preProcessForCreatingNewShardBlock(); err != nil {
-		return nil, err
-	}
-
-	if err := state.buildingShardBody(); err != nil {
-		return nil, err
-	}
-
-	if err := state.buildingShardHeader(); err != nil {
-		return nil, err
-	}
-
-	if err := state.postProcessForCreatingNewShardBlock(); err != nil {
-		return nil, err
-	}
-
 	block := &ShardBlock{
-		Body: ShardBody{
-			Transactions:      state.transactions,
-			Instructions:      state.instructions,
-			CrossTransactions: state.crossTransaction,
-		},
+		Body: ShardBody{},
 		Header: ShardHeader{
 			Timestamp:         time.Now().Unix(),
 			Version:           1,
@@ -86,73 +57,70 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 			Proposer: proposer,
 		},
 	}
-	return block, nil
-}
+	state := &CreateNewBlockState{
+		bc:       s.BC,
+		curView:  s,
+		newView:  s.CloneNewView().(*ShardView),
+		ctx:      ctx,
+		app:      []ShardApp{},
+		newBlock: block,
+	}
+	//ADD YOUR APP HERE
+	state.app = append(state.app, &CoreApp{AppData{Logger: s.Logger}})
 
-func (state *CreateNewBlockState) preProcessForCreatingNewShardBlock() error {
+	//pre processing
 	for _, app := range state.app {
 		if err := app.preProcess(state); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
-}
-
-func (state *CreateNewBlockState) buildingShardBody() error {
+	//build shardbody
 	for _, app := range state.app {
 		if err := app.buildTxFromCrossShard(state); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	for _, app := range state.app {
 		if err := app.buildTxFromMemPool(state); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	for _, app := range state.app {
 		if err := app.buildResponseTxFromTxWithMetadata(state); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	for _, app := range state.app {
 		if err := app.processBeaconInstruction(state); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	for _, app := range state.app {
 		if err := app.generateInstruction(state); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
-}
-
-func (state *CreateNewBlockState) buildingShardHeader() error {
+	//build shard header
 	for _, app := range state.app {
 		if err := app.buildHeader(state); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
-}
 
-func (state *CreateNewBlockState) postProcessForCreatingNewShardBlock() error {
+	//post processing
 	for _, app := range state.app {
-		if err := app.postProcess(state); err != nil {
-			return err
+		if err := app.postProcessAndCompile(state); err != nil {
+			return nil, err
 		}
 	}
-	return nil
-}
 
-func (state *CreateNewBlockState) generateInstruction() error {
-	return nil
+	return block, nil
 }
 
 func createTempKeyset() privacy.PrivateKey {
