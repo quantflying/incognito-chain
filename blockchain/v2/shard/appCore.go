@@ -16,6 +16,30 @@ type CoreApp struct {
 	AppData
 }
 
+func (s *CoreApp) preProcess(state *CreateNewBlockState) error {
+	bc := state.bc
+	beaconHeight, err := state.bc.GetCurrentBeaconHeight()
+	if err != nil {
+		return err
+	}
+	oldShardView := state.oldShardView
+
+	// limit number of beacon block confirmed in a shard block
+	if beaconHeight-oldShardView.GetHeight() > blockchain.MAX_BEACON_BLOCK {
+		beaconHeight = oldShardView.GetHeight() + blockchain.MAX_BEACON_BLOCK
+	}
+
+	// we only confirm shard blocks within an epoch
+	epoch := beaconHeight / bc.GetChainParams().Epoch
+
+	if epoch > oldShardView.GetEpoch() { // if current epoch > oldShardView 1 epoch, we only confirm beacon block within an epoch
+		beaconHeight = oldShardView.GetEpoch() * bc.GetChainParams().Epoch
+		epoch = oldShardView.GetEpoch() + 1
+	}
+	state.newConfirmBeaconHeight = beaconHeight
+	return nil
+}
+
 func (s *CoreApp) buildTxFromCrossShard(state *CreateNewBlockState) error {
 	toShard := state.oldShardView.ShardID
 	crossTransactions := make(map[byte][]blockchain.CrossTransaction)
@@ -236,4 +260,16 @@ func (CoreApp) buildWithDrawTransactionResponse(transaction *metadata.Transactio
 
 func (CoreApp) buildReturnStakingAmountTx(s string, pkey *privacy.PrivateKey) (metadata.Transaction, error) {
 	return nil, nil
+}
+
+func (s *CoreApp) buildHeader(state *CreateNewBlockState) error {
+	return nil
+}
+func (s *CoreApp) postProcess(state *CreateNewBlockState) error {
+	return nil
+}
+
+func (s *CoreApp) storeDatabase(state *StoreDatabaseState) error {
+
+	return nil
 }

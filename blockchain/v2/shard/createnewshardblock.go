@@ -89,32 +89,13 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 	return block, nil
 }
 
-/*
-	Preprocessing for create new shard block:
-	- Get number of beacon blocks to confirm
-*/
 func (state *CreateNewBlockState) preProcessForCreatingNewShardBlock() error {
-
-	bc := state.bc
-	beaconHeight, err := state.bc.GetCurrentBeaconHeight()
-	if err != nil {
-		return err
-	}
-	oldShardView := state.oldShardView
-
-	// limit number of beacon block confirmed in a shard block
-	if beaconHeight-oldShardView.GetHeight() > blockchain.MAX_BEACON_BLOCK {
-		beaconHeight = oldShardView.GetHeight() + blockchain.MAX_BEACON_BLOCK
+	for _, app := range state.app {
+		if err := app.preProcess(state); err != nil {
+			return err
+		}
 	}
 
-	// we only confirm shard blocks within an epoch
-	epoch := beaconHeight / bc.GetChainParams().Epoch
-
-	if epoch > oldShardView.GetEpoch() { // if current epoch > oldShardView 1 epoch, we only confirm beacon block within an epoch
-		beaconHeight = oldShardView.GetEpoch() * bc.GetChainParams().Epoch
-		epoch = oldShardView.GetEpoch() + 1
-	}
-	state.newConfirmBeaconHeight = beaconHeight
 	return nil
 }
 
@@ -153,10 +134,20 @@ func (state *CreateNewBlockState) buildingShardBody() error {
 }
 
 func (state *CreateNewBlockState) buildingShardHeader() error {
+	for _, app := range state.app {
+		if err := app.buildHeader(state); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (state *CreateNewBlockState) postProcessForCreatingNewShardBlock() error {
+	for _, app := range state.app {
+		if err := app.postProcess(state); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

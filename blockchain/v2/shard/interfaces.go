@@ -12,13 +12,18 @@ import (
 
 type App interface {
 	//create block
+	preProcess(state *CreateNewBlockState) error
 	buildTxFromCrossShard(state *CreateNewBlockState) error             // build tx from crossshard
 	buildTxFromMemPool(state *CreateNewBlockState) error                // build tx from mempool
 	buildResponseTxFromTxWithMetadata(state *CreateNewBlockState) error // build tx from metadata tx
 	processBeaconInstruction(state *CreateNewBlockState) error          // execute beacon instruction & build tx if any
 	generateInstruction(state *CreateNewBlockState) error               //create block instruction
-	//validate block
+	buildHeader(state *CreateNewBlockState) error
+	postProcess(state *CreateNewBlockState) error
 
+	//validate block
+	//store block
+	storeDatabase(state *StoreDatabaseState) error
 }
 
 type AppData struct {
