@@ -2,6 +2,7 @@ package shard
 
 import (
 	"github.com/incognitochain/incognito-chain/blockchain"
+	v2 "github.com/incognitochain/incognito-chain/blockchain/v2"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -54,6 +55,7 @@ type BlockChain interface {
 	GetNextCrossShard(from byte, to byte, startHeight uint64) uint64
 
 	GetAllValidCrossShardBlockFromPool(toShard byte) map[byte][]*CrossShardBlock
+	GetValidBeaconBlockFromPool() []v2.BeaconBlockInterface
 	GetPendingTransaction(shardID byte) (txsToAdd []metadata.Transaction, txToRemove []metadata.Transaction, totalFee uint64)
 
 	GetShardPendingCommittee(shardID byte) []incognitokey.CommitteePublicKey
@@ -63,6 +65,10 @@ type BlockChain interface {
 }
 
 type FakeBC struct {
+}
+
+func (FakeBC) GetValidBeaconBlockFromPool() []v2.BeaconBlockInterface {
+	panic("implement me")
 }
 
 func (FakeBC) GetShardPendingCommittee(shardID byte) []incognitokey.CommitteePublicKey {

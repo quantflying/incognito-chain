@@ -3,6 +3,7 @@ package shard
 import (
 	"context"
 	"errors"
+	v2 "github.com/incognitochain/incognito-chain/blockchain/v2"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 )
 
@@ -13,6 +14,8 @@ type ValidateBlockState struct {
 	//tmp
 	validateProposedBlock bool
 	newView               *ShardView
+	beaconBlocks          []v2.BeaconBlockInterface
+	isOldBeaconHeight     bool
 }
 
 func (s *ShardView) ValidateBlock(ctx context.Context, block consensus.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
@@ -20,10 +23,9 @@ func (s *ShardView) ValidateBlock(ctx context.Context, block consensus.BlockInte
 		ctx:                   ctx,
 		bc:                    s.BC,
 		curView:               s,
-		newView:               s.CloneNewView().(*ShardView),
+		newView:               s.CreateNewViewFromBlock(block).(*ShardView),
 		validateProposedBlock: isPreSign,
 	}
-	state.newView.Block = block.(*ShardBlock)
 
 	if err := state.preValidateBlock(); err != nil {
 		return nil, err
@@ -42,6 +44,7 @@ func (s *ShardView) ValidateBlock(ctx context.Context, block consensus.BlockInte
 
 // Pre-Verify: check block agg signature (if already commit) or we have enough data to validate this block (not commit, just propose block)
 func (s *ValidateBlockState) preValidateBlock() error {
+	shardID := s.curView.ShardID
 	// check valid block height
 	if s.newView.GetHeight() != s.curView.GetHeight()+1 {
 		return errors.New("Not valid next block")
@@ -49,10 +52,39 @@ func (s *ValidateBlockState) preValidateBlock() error {
 
 	if s.validateProposedBlock {
 		// check we have enough beacon blocks from pools
+		newBlock := s.newView.GetBlock().(*ShardBlock)
+		oldBlock := s.curView.GetBlock().(*ShardBlock)
+
+		if newBlock.Header.BeaconHeight < oldBlock.Header.BeaconHeight {
+			return errors.New("Beaconheight is not valid")
+		}
+		if newBlock.Header.BeaconHeight > oldBlock.Header.BeaconHeight {
+			s.isOldBeaconHeight = true
+		}
+		if newBlock.Header.BeaconHeight > oldBlock.Header.BeaconHeight {
+			s.isOldBeaconHeight = false
+			beaconBlocks := s.bc.GetValidBeaconBlockFromPool()
+			if len(beaconBlocks) == int(newBlock.Header.BeaconHeight-oldBlock.Header.BeaconHeight) {
+				s.beaconBlocks = beaconBlocks
+			} else {
+				return errors.New("Not enough beacon to validate")
+			}
+		}
 
 		// check we have enough crossshard blocks from pools
+		allConfirmCrossShard := make(map[byte][]interface{})
+		for _, beaconBlk := range s.beaconBlocks {
+			confirmCrossShard := beaconBlk.GetConfirmedCrossShardBlockToShard()
+			for fromShardID, v := range confirmCrossShard[shardID] {
+				for _, crossShard := range v {
+					allConfirmCrossShard[fromShardID] = append(allConfirmCrossShard[fromShardID], crossShard)
+				}
+			}
+		}
+		//TODO: get crossshard from pool and check if we have enough to validate
 	} else {
 		//check if block has enough valid signature
+
 	}
 	return nil
 }

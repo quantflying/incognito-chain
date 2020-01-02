@@ -145,6 +145,12 @@ func (s *ShardView) CloneNewView() consensus.ChainViewInterface {
 	return newView
 }
 
+func (s *ShardView) CreateNewViewFromBlock(block consensus.BlockInterface) consensus.ChainViewInterface {
+	newView := s.CloneNewView().(*ShardView)
+	newView.Block = block.(*ShardBlock)
+	return newView
+}
+
 func (s *ShardView) MarshalJSON() ([]byte, error) {
 	type Alias ShardView
 	b, err := json.Marshal(&struct {
