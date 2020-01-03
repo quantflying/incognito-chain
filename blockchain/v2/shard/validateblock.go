@@ -2,8 +2,8 @@ package shard
 
 import (
 	"context"
-	v2 "github.com/incognitochain/incognito-chain/blockchain/v2"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
+	"github.com/incognitochain/incognito-chain/metadata"
 )
 
 type ValidateBlockState struct {
@@ -16,49 +16,84 @@ type ValidateBlockState struct {
 	//tmp
 	validateProposedBlock bool
 	newView               *ShardView
-	beaconBlocks          []v2.BeaconBlockInterface
-	isOldBeaconHeight     bool
+	beaconBlocks          []BeaconBlockInterface
+	crossShardBlocks      map[byte][]*CrossShardBlock
+	txsToAdd              []metadata.Transaction
+
+	isOldBeaconHeight bool
 }
 
-func (s *ShardView) ValidateBlock(ctx context.Context, block consensus.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
-	state := &ValidateBlockState{
+func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block consensus.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
+	validateState := &ValidateBlockState{
 		ctx:                   ctx,
 		bc:                    s.BC,
 		curView:               s,
-		newView:               s.CreateNewViewFromBlock(block).(*ShardView),
+		newView:               s.CloneNewView().(*ShardView),
 		validateProposedBlock: isPreSign,
-
-		app: []ShardApp{},
+		app:                   []ShardApp{},
 	}
+	validateState.newView.Block = block.(*ShardBlock)
 	//ADD YOUR APP HERE
-	state.app = append(state.app, &CoreApp{AppData{Logger: s.Logger}})
+	validateState.app = append(validateState.app, &CoreApp{AppData{Logger: s.Logger}})
 
-	// Pre-Verify: check block agg signature (if already commit) or we have enough data to validate this block (not commit, just propose block)
-	for _, app := range state.app {
-		err := app.preValidate(state)
+	// Pre-Verify: check block agg signature (if already commit)
+	// or we have enough data to validate this block and get beaconblocks, crossshardblock, txToAdd confirm by proposed block (not commit, just propose block)
+	for _, app := range validateState.app {
+
+		err := app.preValidate(validateState)
 		if err != nil {
-			//TODO: revert db state if get error
 			return nil, err
 		}
 	}
 
-	//Verify with current view: any block data that generate in this view
-	for _, app := range state.app {
-		err := app.validateWithCurrentView(state)
-		if err != nil {
-			//TODO: revert db state if get error
-			return nil, err
+	if isPreSign {
+		createState := &CreateNewBlockState{
+			bc:       s.BC,
+			curView:  s,
+			newView:  s.CloneNewView().(*ShardView),
+			ctx:      ctx,
+			app:      []ShardApp{},
+			newBlock: nil,
 		}
+		//ADD YOUR APP HERE
+		createState.app = append(createState.app, &CoreApp{AppData{Logger: s.Logger}})
+
+		//build shardbody and check content is same
+		for _, app := range createState.app {
+			if err := app.buildTxFromCrossShard(createState); err != nil {
+				return nil, err
+			}
+		}
+
+		for _, app := range createState.app {
+			if err := app.buildResponseTxFromTxWithMetadata(createState); err != nil {
+				return nil, err
+			}
+		}
+
+		for _, app := range createState.app {
+			if err := app.processBeaconInstruction(createState); err != nil {
+				return nil, err
+			}
+		}
+
+		for _, app := range createState.app {
+			if err := app.generateInstruction(createState); err != nil {
+				return nil, err
+			}
+		}
+		//TODO: compare crossshard field
+		//TODO: compare tx field
+		//TODO: compare instruction field
+
+		//build shard header and check content is same
+		for _, app := range createState.app {
+			if err := app.buildHeader(createState); err != nil {
+				return nil, err
+			}
+		}
+		//TODO: compare header field
 	}
 
-	//Verify with new view: any block info that describe new view state (ie. committee root hash)
-	for _, app := range state.app {
-		err := app.validateWithNewView(state)
-		if err != nil {
-			//TODO: revert db state if get error
-			return nil, err
-		}
-	}
-
-	return state.newView, nil
+	return validateState.newView, nil
 }

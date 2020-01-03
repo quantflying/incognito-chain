@@ -2,7 +2,6 @@ package shard
 
 import (
 	"github.com/incognitochain/incognito-chain/blockchain"
-	v2 "github.com/incognitochain/incognito-chain/blockchain/v2"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -12,22 +11,24 @@ import (
 
 type ShardApp interface {
 	//create block
-	preProcess(state *CreateNewBlockState) error
+	preCreateBlock(state *CreateNewBlockState) error
 	buildTxFromCrossShard(state *CreateNewBlockState) error             // build tx from crossshard
 	buildTxFromMemPool(state *CreateNewBlockState) error                // build tx from mempool
 	buildResponseTxFromTxWithMetadata(state *CreateNewBlockState) error // build tx from metadata tx
 	processBeaconInstruction(state *CreateNewBlockState) error          // execute beacon instruction & build tx if any
 	generateInstruction(state *CreateNewBlockState) error               //create block instruction
 	buildHeader(state *CreateNewBlockState) error
-	postProcessAndCompile(state *CreateNewBlockState) error
+	compileBlockAndUpdateNewView(state *CreateNewBlockState) error
 
 	//validate block
 	preValidate(state *ValidateBlockState) error
-	validateWithCurrentView(state *ValidateBlockState) error
-	validateWithNewView(state *ValidateBlockState) error
 
 	//store block
 	storeDatabase(state *StoreDatabaseState) error
+}
+
+type BeaconBlockInterface interface {
+	GetConfirmedCrossShardBlockToShard() map[byte]map[byte][]*CrossShardBlock
 }
 
 type AppData struct {
@@ -64,7 +65,7 @@ type BlockChain interface {
 	GetNextCrossShard(from byte, to byte, startHeight uint64) uint64
 
 	GetAllValidCrossShardBlockFromPool(toShard byte) map[byte][]*CrossShardBlock
-	GetValidBeaconBlockFromPool() []v2.BeaconBlockInterface
+	GetValidBeaconBlockFromPool() []BeaconBlockInterface
 	GetPendingTransaction(shardID byte) (txsToAdd []metadata.Transaction, txToRemove []metadata.Transaction, totalFee uint64)
 
 	GetShardPendingCommittee(shardID byte) []incognitokey.CommitteePublicKey
@@ -76,7 +77,7 @@ type BlockChain interface {
 type FakeBC struct {
 }
 
-func (FakeBC) GetValidBeaconBlockFromPool() []v2.BeaconBlockInterface {
+func (FakeBC) GetValidBeaconBlockFromPool() []BeaconBlockInterface {
 	panic("implement me")
 }
 

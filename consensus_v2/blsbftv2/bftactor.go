@@ -332,7 +332,7 @@ func (e *BLSBFT) validateAndVote(v *ProposeBlockInfo, proposerID uint64) error {
 	//check block valid,
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	if _, err := view.ValidateBlock(ctx, v.block, true); err != nil {
+	if _, err := view.ValidateBlockAndCreateNewView(ctx, v.block, true); err != nil {
 		e.Logger.Error(err)
 		return err
 	}

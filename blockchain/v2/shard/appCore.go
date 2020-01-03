@@ -2,12 +2,14 @@ package shard
 
 import (
 	"errors"
+	"fmt"
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
+	"github.com/incognitochain/incognito-chain/transaction"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,7 +20,7 @@ type CoreApp struct {
 }
 
 //==============================Create Block Logic===========================
-func (s *CoreApp) preProcess(state *CreateNewBlockState) error {
+func (s *CoreApp) preCreateBlock(state *CreateNewBlockState) error {
 	bc := state.bc
 	beaconHeight, err := state.bc.GetCurrentBeaconHeight()
 	if err != nil {
@@ -39,16 +41,16 @@ func (s *CoreApp) preProcess(state *CreateNewBlockState) error {
 		epoch = curView.GetEpoch() + 1
 	}
 	state.newConfirmBeaconHeight = beaconHeight
+	toShard := state.curView.ShardID
+	state.crossShardBlocks = state.bc.GetAllValidCrossShardBlockFromPool(toShard)
 	return nil
 }
 
 func (s *CoreApp) buildTxFromCrossShard(state *CreateNewBlockState) error {
 	toShard := state.curView.ShardID
 	crossTransactions := make(map[byte][]blockchain.CrossTransaction)
-	// get cross shard block
-	allCrossShardBlock := state.bc.GetAllValidCrossShardBlockFromPool(toShard)
 	// Get Cross Shard Block
-	for fromShard, crossShardBlock := range allCrossShardBlock {
+	for fromShard, crossShardBlock := range state.crossShardBlocks {
 		sort.SliceStable(crossShardBlock[:], func(i, j int) bool {
 			return crossShardBlock[i].Header.Height < crossShardBlock[j].Header.Height
 		})
@@ -76,6 +78,7 @@ func (s *CoreApp) buildTxFromCrossShard(state *CreateNewBlockState) error {
 			}
 			indexs = append(indexs, index)
 		}
+
 		for _, index := range indexs {
 			blk := crossShardBlock[index]
 			crossTransaction := blockchain.CrossTransaction{
@@ -87,6 +90,7 @@ func (s *CoreApp) buildTxFromCrossShard(state *CreateNewBlockState) error {
 			crossTransactions[blk.Header.ShardID] = append(crossTransactions[blk.Header.ShardID], crossTransaction)
 		}
 	}
+
 	for _, crossTransaction := range crossTransactions {
 		sort.SliceStable(crossTransaction[:], func(i, j int) bool {
 			return crossTransaction[i].BlockHeight < crossTransaction[j].BlockHeight
@@ -141,7 +145,7 @@ func (s *CoreApp) processBeaconInstruction(state *CreateNewBlockState) error {
 	}
 	assignInstructions := [][]string{}
 	stakingTx := make(map[string]string)
-	for _, beaconBlock := range state.newBeaconBlocks {
+	for _, beaconBlock := range state.beaconBlocks {
 		for _, l := range beaconBlock.GetInstructions() {
 
 			if l[0] == blockchain.SwapAction {
@@ -267,23 +271,24 @@ func (CoreApp) buildReturnStakingAmountTx(s string, pkey *privacy.PrivateKey) (m
 func (s *CoreApp) buildHeader(state *CreateNewBlockState) error {
 	return nil
 }
-func (s *CoreApp) postProcessAndCompile(state *CreateNewBlockState) error {
+
+func (s *CoreApp) compileBlockAndUpdateNewView(state *CreateNewBlockState) error {
 	return nil
 }
 
 //==============================Validate Logic===============================
 func (s *CoreApp) preValidate(state *ValidateBlockState) error {
 	shardID := state.curView.ShardID
-	// check valid block height
-	if state.newView.GetHeight() != state.curView.GetHeight()+1 {
-		return errors.New("Not valid next block")
+	newBlock := state.newView.GetBlock().(*ShardBlock)
+	oldBlock := state.curView.GetBlock().(*ShardBlock)
+	// TODO: verify proposer in timeslot
+	// TODO: check block version, should be function which return version base on block height
+	if newBlock.Header.Version != blockchain.SHARD_BLOCK_VERSION {
+		return blockchain.NewBlockChainError(blockchain.WrongVersionError, fmt.Errorf("Expect newBlock version %+v but get %+v", 1, newBlock.Header.Version))
 	}
 
 	if state.validateProposedBlock {
-		// check we have enough beacon blocks from pools
-		newBlock := state.newView.GetBlock().(*ShardBlock)
-		oldBlock := state.curView.GetBlock().(*ShardBlock)
-
+		// get beacon blocks confirmed by proposed block
 		if newBlock.Header.BeaconHeight < oldBlock.Header.BeaconHeight {
 			return errors.New("Beaconheight is not valid")
 		}
@@ -300,8 +305,8 @@ func (s *CoreApp) preValidate(state *ValidateBlockState) error {
 			}
 		}
 
-		// check we have enough crossshard blocks from pools
-		allConfirmCrossShard := make(map[byte][]interface{})
+		// get crossshard blocks confirmed by proposed block
+		allConfirmCrossShard := make(map[byte][]*CrossShardBlock)
 		for _, beaconBlk := range state.beaconBlocks {
 			confirmCrossShard := beaconBlk.GetConfirmedCrossShardBlockToShard()
 			for fromShardID, v := range confirmCrossShard[shardID] {
@@ -310,32 +315,21 @@ func (s *CoreApp) preValidate(state *ValidateBlockState) error {
 				}
 			}
 		}
+		state.crossShardBlocks = allConfirmCrossShard
 		//TODO: get crossshard from pool and check if we have enough to validate
+
+		// get transaction confirmed by proposed block
+		for _, tx := range newBlock.Body.Transactions {
+			txType := tx.GetType()
+			if txType == common.TxCustomTokenPrivacyType {
+				state.txsToAdd = append(state.txsToAdd, tx.(*transaction.TxCustomTokenPrivacy))
+			}
+		}
+
 	} else {
 		//check if block has enough valid signature
 
 	}
-	return nil
-}
-
-func (s *CoreApp) validateWithCurrentView(state *ValidateBlockState) error {
-	// verify proposer in timeslot
-
-	// verify parent hash
-
-	// Verify timestamp
-
-	// Verify transaction root
-
-	// Verify ShardTx Root
-
-	// Verify crossTransaction coin
-
-	// Verify Action
-	return nil
-}
-
-func (s *CoreApp) validateWithNewView(state *ValidateBlockState) error {
 	return nil
 }
 

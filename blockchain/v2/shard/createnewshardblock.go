@@ -19,10 +19,12 @@ type CreateNewBlockState struct {
 	//tmp
 	newView                *ShardView
 	newConfirmBeaconHeight uint64
-	newBeaconBlocks        []common.BlockInterface
+	beaconBlocks           []common.BlockInterface
+	crossShardBlocks       map[byte][]*CrossShardBlock
 
 	//app
-	app                      []ShardApp
+	app []ShardApp
+
 	txToRemove               []metadata.Transaction
 	txsToAdd                 []metadata.Transaction
 	txsFromMetadataTx        []metadata.Transaction
@@ -70,7 +72,7 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 
 	//pre processing
 	for _, app := range state.app {
-		if err := app.preProcess(state); err != nil {
+		if err := app.preCreateBlock(state); err != nil {
 			return nil, err
 		}
 	}
@@ -115,7 +117,7 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 
 	//post processing
 	for _, app := range state.app {
-		if err := app.postProcessAndCompile(state); err != nil {
+		if err := app.compileBlockAndUpdateNewView(state); err != nil {
 			return nil, err
 		}
 	}

@@ -26,7 +26,7 @@ type ChainViewManager struct {
 	lock    *sync.RWMutex
 }
 
-func (s *ChainViewManager) CommitDB() error {
+func (s *ChainViewManager) CommitView(view consensus.ChainViewInterface) error {
 	return nil
 }
 
@@ -37,7 +37,7 @@ func (s *ChainViewManager) ConnectBlockAndAddView(block consensus.BlockInterface
 		return err
 	}
 
-	newView, err := view.ValidateBlock(context.Background(), block, false)
+	newView, err := view.ValidateBlockAndCreateNewView(context.Background(), block, false)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (s *ChainViewManager) ConnectBlockAndAddView(block consensus.BlockInterface
 	s.manager.Print()
 
 	//persist view, block, related block data to disk
-	if err := s.CommitDB(); err != nil {
+	if err := s.CommitView(newView); err != nil {
 		panic(err)
 	}
 

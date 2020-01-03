@@ -127,7 +127,7 @@ type ChainViewManagerInterface interface {
 	GetAllTipBlocksHash() []*common.Hash
 	AddView(view ChainViewInterface) error
 	ConnectBlockAndAddView(block BlockInterface) error
-	CommitDB() error
+	CommitView(view ChainViewInterface) error
 }
 
 type ChainViewInterface interface {
@@ -157,8 +157,8 @@ type ChainViewInterface interface {
 	UpdateViewWithBlock(block BlockInterface) error
 	CloneViewFrom(view ChainViewInterface) error
 	CloneNewView() ChainViewInterface
-	CreateNewViewFromBlock(BlockInterface) ChainViewInterface
-	ValidateBlock(ctx context.Context, block BlockInterface, isPreSign bool) (ChainViewInterface, error)
+	//CreateNewViewFromBlock(BlockInterface) ChainViewInterface
+	ValidateBlockAndCreateNewView(ctx context.Context, block BlockInterface, isPreSign bool) (ChainViewInterface, error)
 	CreateNewBlock(context.Context, uint64, string) (BlockInterface, error)
 	UnmarshalBlock(blockString []byte) (BlockInterface, error)
 	GetRootTimeSlot() uint64
