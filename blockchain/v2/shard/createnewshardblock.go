@@ -2,7 +2,6 @@ package shard
 
 import (
 	"context"
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -16,8 +15,9 @@ type CreateNewBlockState struct {
 	bc       BlockChain
 	curView  *ShardView
 	newBlock *ShardBlock
+	newView  *ShardView
+
 	//tmp
-	newView                *ShardView
 	newConfirmBeaconHeight uint64
 	beaconBlocks           []common.BlockInterface
 	crossShardBlocks       map[byte][]*CrossShardBlock
@@ -33,12 +33,25 @@ type CreateNewBlockState struct {
 	stakingTx                map[string]string
 	newShardPendingValidator []string
 
-	//body
-	instructions     [][]string
-	crossTransaction map[byte][]blockchain.CrossTransaction
-	transactions     []metadata.Transaction
+	//body data
+	body *ShardBody
 	//header
+	header *ShardHeader
+}
 
+func (s *ShardView) NewCreateState(ctx context.Context) *CreateNewBlockState {
+	createState := &CreateNewBlockState{
+		bc:       s.BC,
+		curView:  s,
+		newView:  s.CloneNewView().(*ShardView),
+		ctx:      ctx,
+		app:      []ShardApp{},
+		newBlock: nil,
+	}
+
+	//ADD YOUR APP HERE
+	createState.app = append(createState.app, &CoreApp{AppData{Logger: s.Logger}})
+	return createState
 }
 
 func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (consensus.BlockInterface, error) {
@@ -59,65 +72,56 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 			Proposer: proposer,
 		},
 	}
-	state := &CreateNewBlockState{
-		bc:       s.BC,
-		curView:  s,
-		newView:  s.CloneNewView().(*ShardView),
-		ctx:      ctx,
-		app:      []ShardApp{},
-		newBlock: block,
-	}
-	//ADD YOUR APP HERE
-	state.app = append(state.app, &CoreApp{AppData{Logger: s.Logger}})
+	createState := s.NewCreateState(ctx)
 
 	//pre processing
-	for _, app := range state.app {
-		if err := app.preCreateBlock(state); err != nil {
+	for _, app := range createState.app {
+		if err := app.preCreateBlock(createState); err != nil {
 			return nil, err
 		}
 	}
 
 	//build shardbody
-	for _, app := range state.app {
-		if err := app.buildTxFromCrossShard(state); err != nil {
+	for _, app := range createState.app {
+		if err := app.buildTxFromCrossShard(createState); err != nil {
 			return nil, err
 		}
 	}
 
-	for _, app := range state.app {
-		if err := app.buildTxFromMemPool(state); err != nil {
+	for _, app := range createState.app {
+		if err := app.buildTxFromMemPool(createState); err != nil {
 			return nil, err
 		}
 	}
 
-	for _, app := range state.app {
-		if err := app.buildResponseTxFromTxWithMetadata(state); err != nil {
+	for _, app := range createState.app {
+		if err := app.buildResponseTxFromTxWithMetadata(createState); err != nil {
 			return nil, err
 		}
 	}
 
-	for _, app := range state.app {
-		if err := app.processBeaconInstruction(state); err != nil {
+	for _, app := range createState.app {
+		if err := app.processBeaconInstruction(createState); err != nil {
 			return nil, err
 		}
 	}
 
-	for _, app := range state.app {
-		if err := app.generateInstruction(state); err != nil {
+	for _, app := range createState.app {
+		if err := app.generateInstruction(createState); err != nil {
 			return nil, err
 		}
 	}
 
 	//build shard header
-	for _, app := range state.app {
-		if err := app.buildHeader(state); err != nil {
+	for _, app := range createState.app {
+		if err := app.buildHeader(createState); err != nil {
 			return nil, err
 		}
 	}
 
 	//post processing
-	for _, app := range state.app {
-		if err := app.compileBlockAndUpdateNewView(state); err != nil {
+	for _, app := range createState.app {
+		if err := app.compileBlockAndUpdateNewView(createState); err != nil {
 			return nil, err
 		}
 	}

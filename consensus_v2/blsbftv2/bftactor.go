@@ -313,6 +313,7 @@ func (e *BLSBFT) processIfBlockGetEnoughVote(k string, v *ProposeBlockInfo) {
 	v.hasNewVote = false
 	if validVote > 2*len(view.GetCommittee())/3 {
 		e.Logger.Debug("Commit block", v.block.GetHeight())
+		//TODO: add validation field to block
 		err := e.Chain.ConnectBlockAndAddView(v.block)
 		if err != nil {
 			e.Logger.Error("Cannot add block to view")

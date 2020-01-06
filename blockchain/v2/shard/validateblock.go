@@ -37,26 +37,15 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 	validateState.app = append(validateState.app, &CoreApp{AppData{Logger: s.Logger}})
 
 	// Pre-Verify: check block agg signature (if already commit)
-	// or we have enough data to validate this block and get beaconblocks, crossshardblock, txToAdd confirm by proposed block (not commit, just propose block)
+	// or we have enough data to validate this block and get beaconblocks, crossshardblock, txToAdd confirm by proposed block (not commit, = isPresign)
 	for _, app := range validateState.app {
-
 		err := app.preValidate(validateState)
 		if err != nil {
 			return nil, err
 		}
 	}
-
+	createState := s.NewCreateState(ctx)
 	if isPreSign {
-		createState := &CreateNewBlockState{
-			bc:       s.BC,
-			curView:  s,
-			newView:  s.CloneNewView().(*ShardView),
-			ctx:      ctx,
-			app:      []ShardApp{},
-			newBlock: nil,
-		}
-		//ADD YOUR APP HERE
-		createState.app = append(createState.app, &CoreApp{AppData{Logger: s.Logger}})
 
 		//build shardbody and check content is same
 		for _, app := range createState.app {
@@ -86,13 +75,31 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 		//TODO: compare tx field
 		//TODO: compare instruction field
 
-		//build shard header and check content is same
+		//build shard header
 		for _, app := range createState.app {
 			if err := app.buildHeader(createState); err != nil {
 				return nil, err
 			}
 		}
-		//TODO: compare header field
+		//TODO: compare header content
+		for _, app := range createState.app {
+			if err := app.compileBlockAndUpdateNewView(createState); err != nil {
+				return nil, err
+			}
+		}
+		//TODO: compare header content,  with newview
+	} else {
+		createState.body = &block.(*ShardBlock).Body
+		createState.header = &block.(*ShardBlock).Header
+		for _, app := range createState.app {
+			if err := app.compileBlockAndUpdateNewView(createState); err != nil {
+				return nil, err
+			}
+		}
+		//TODO: compare header content,  with newview
+
+		validateState.newView = createState.newView
+
 	}
 
 	return validateState.newView, nil
