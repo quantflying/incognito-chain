@@ -1,6 +1,9 @@
 package shard
 
+import "context"
+
 type StoreDatabaseState struct {
+	ctx     context.Context
 	block   *ShardBlock
 	bc      BlockChain
 	curView *ShardView
@@ -9,15 +12,23 @@ type StoreDatabaseState struct {
 	app []ShardApp
 }
 
-func (s *ShardView) StoreDatabase(block *ShardBlock, newView *ShardView) error {
-	state := &StoreDatabaseState{
+func (s *ShardView) NewStoreDBState(ctx context.Context) *StoreDatabaseState {
+	storeDBState := &StoreDatabaseState{
+		ctx:     ctx,
 		bc:      s.BC,
 		curView: s,
-		newView: newView,
+		newView: s.CloneNewView().(*ShardView),
 		app:     []ShardApp{},
 	}
+
 	//ADD YOUR APP HERE
-	state.app = append(state.app, &CoreApp{AppData{Logger: s.Logger}})
+	storeDBState.app = append(storeDBState.app, &CoreApp{AppData{Logger: s.Logger}})
+
+	return storeDBState
+}
+
+func (s *ShardView) StoreDatabase(block *ShardBlock, newView *ShardView) error {
+	state := s.NewStoreDBState(context.Background())
 
 	for _, app := range state.app {
 		err := app.storeDatabase(state)

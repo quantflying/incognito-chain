@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/incognitochain/incognito-chain/blockchain"
+	v2 "github.com/incognitochain/incognito-chain/blockchain/v2"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -40,6 +41,8 @@ func (s *CoreApp) preCreateBlock(state *CreateNewBlockState) error {
 		beaconHeight = curView.GetEpoch() * bc.GetChainParams().Epoch
 		epoch = curView.GetEpoch() + 1
 	}
+
+	state.newBlockEpoch = epoch
 	state.newConfirmBeaconHeight = beaconHeight
 	toShard := state.curView.ShardID
 	state.crossShardBlocks = state.bc.GetAllValidCrossShardBlockFromPool(toShard)
@@ -269,6 +272,104 @@ func (CoreApp) buildReturnStakingAmountTx(s string, pkey *privacy.PrivateKey) (m
 }
 
 func (s *CoreApp) buildHeader(state *CreateNewBlockState) error {
+	shardID := state.curView.ShardID
+
+	totalTxsFee := make(map[common.Hash]uint64)
+	for _, tx := range state.newBlock.Body.Transactions {
+		totalTxsFee[*tx.GetTokenID()] += tx.GetTxFee()
+		txType := tx.GetType()
+		if txType == common.TxCustomTokenPrivacyType {
+			txCustomPrivacy := tx.(*transaction.TxCustomTokenPrivacy)
+			totalTxsFee[*txCustomPrivacy.GetTokenID()] = txCustomPrivacy.GetTxFeeToken()
+		}
+	}
+	state.totalTxFee = totalTxsFee
+
+	newBlock := state.newBlock
+	merkleRoots := blockchain.Merkle{}.BuildMerkleTreeStore(newBlock.Body.Transactions)
+	merkleRoot := &common.Hash{}
+	if len(merkleRoots) > 0 {
+		merkleRoot = merkleRoots[len(merkleRoots)-1]
+	}
+	crossTransactionRoot, err := blockchain.CreateMerkleCrossTransaction(newBlock.Body.CrossTransactions)
+	if err != nil {
+		return err
+	}
+
+	s2b := newBlock.CreateShardToBeaconBlock(nil)
+
+	totalInstructions := []string{}
+	for _, value := range s2b.Instructions {
+		totalInstructions = append(totalInstructions, value...)
+	}
+	instructionsHash, err := v2.GenerateHashFromStringArray(totalInstructions)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.InstructionsHashError, err)
+	}
+
+	tempShardCommitteePubKeys, err := incognitokey.CommitteeKeyListToString(state.newView.ShardCommittee)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+	}
+	committeeRoot, err := v2.GenerateHashFromStringArray(tempShardCommitteePubKeys)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.CommitteeHashError, err)
+	}
+	tempShardPendintValidator, err := incognitokey.CommitteeKeyListToString(state.newView.ShardPendingValidator)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+	}
+	pendingValidatorRoot, err := v2.GenerateHashFromStringArray(tempShardPendintValidator)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.PendingValidatorRootError, err)
+	}
+	stakingTxRoot, err := v2.GenerateHashFromMapStringString(state.stakingTx)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.StakingTxHashError, err)
+	}
+
+	flattenInsts, err := blockchain.FlattenAndConvertStringInst(s2b.Instructions)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.FlattenAndConvertStringInstError, fmt.Errorf("Instruction from block body: %+v", err))
+	}
+	// TODO: check Order of instructions must be preserved in shardprocess
+	instMerkleRoot := blockchain.GetKeccak256MerkleRoot(flattenInsts)
+	// shard tx root
+	_, shardTxMerkleData := blockchain.CreateShardTxRoot2(newBlock.Body.Transactions)
+
+	state.newBlock.Header = ShardHeader{
+		Producer:          state.proposer,
+		ProducerPubKeyStr: state.proposer,
+
+		ShardID:              shardID,
+		Version:              blockchain.SHARD_BLOCK_VERSION,
+		PreviousBlockHash:    *state.curView.Block.Hash(),
+		Height:               state.curView.Block.GetHeight() + 1,
+		Round:                1,
+		TimeSlot:             state.createTimeSlot,
+		Epoch:                state.newBlockEpoch,
+		CrossShardBitMap:     blockchain.CreateCrossShardByteArray(state.newBlock.Body.Transactions, shardID),
+		BeaconHeight:         state.newConfirmBeaconHeight,
+		BeaconHash:           state.newConfirmBeaconHash,
+		TotalTxsFee:          state.totalTxFee,
+		ConsensusType:        common.BlsConsensus2,
+		Timestamp:            state.createTimeStamp,
+		TxRoot:               *merkleRoot,
+		ShardTxRoot:          shardTxMerkleData[len(shardTxMerkleData)-1],
+		CrossTransactionRoot: *crossTransactionRoot,
+		InstructionsRoot:     instructionsHash,
+		CommitteeRoot:        committeeRoot,
+		PendingValidatorRoot: pendingValidatorRoot,
+		StakingTxRoot:        stakingTxRoot,
+	}
+	copy(newBlock.Header.InstructionMerkleRoot[:], instMerkleRoot)
+
+	state.newBlock.ConsensusHeader = ConsensusHeader{
+		TimeSlot:       state.createTimeSlot,
+		Proposer:       state.proposer,
+		ValidationData: "",
+	}
+
 	return nil
 }
 
@@ -287,7 +388,7 @@ func (s *CoreApp) preValidate(state *ValidateBlockState) error {
 		return blockchain.NewBlockChainError(blockchain.WrongVersionError, fmt.Errorf("Expect newBlock version %+v but get %+v", 1, newBlock.Header.Version))
 	}
 
-	if state.validateProposedBlock {
+	if state.isPreSign {
 		// get beacon blocks confirmed by proposed block
 		if newBlock.Header.BeaconHeight < oldBlock.Header.BeaconHeight {
 			return errors.New("Beaconheight is not valid")

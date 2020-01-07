@@ -19,9 +19,14 @@ type CreateNewBlockState struct {
 
 	//tmp
 	newConfirmBeaconHeight uint64
+	newConfirmBeaconHash   common.Hash
+	totalTxFee             map[common.Hash]uint64
 	beaconBlocks           []common.BlockInterface
 	crossShardBlocks       map[byte][]*CrossShardBlock
-
+	createTimeStamp        int64
+	createTimeSlot         uint64
+	proposer               string
+	newBlockEpoch          uint64
 	//app
 	app []ShardApp
 
@@ -32,14 +37,10 @@ type CreateNewBlockState struct {
 	errInstruction           [][]string
 	stakingTx                map[string]string
 	newShardPendingValidator []string
-
-	//body data
-	body *ShardBody
-	//header
-	header *ShardHeader
 }
 
 func (s *ShardView) NewCreateState(ctx context.Context) *CreateNewBlockState {
+
 	createState := &CreateNewBlockState{
 		bc:       s.BC,
 		curView:  s,
@@ -56,24 +57,11 @@ func (s *ShardView) NewCreateState(ctx context.Context) *CreateNewBlockState {
 
 func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (consensus.BlockInterface, error) {
 	s.Logger.Criticalf("Creating Shard Block %+v at timeslot %v", s.GetHeight()+1, timeslot)
-	block := &ShardBlock{
-		Body: ShardBody{},
-		Header: ShardHeader{
-			Timestamp:         time.Now().Unix(),
-			Version:           1,
-			BeaconHeight:      1,
-			Epoch:             1,
-			Round:             1,
-			Height:            s.Block.GetHeight() + 1,
-			PreviousBlockHash: *s.Block.Hash(),
-		},
-		ConsensusHeader: ConsensusHeader{
-			TimeSlot: timeslot,
-			Proposer: proposer,
-		},
-	}
 	createState := s.NewCreateState(ctx)
-
+	createState.createTimeStamp = time.Now().Unix()
+	createState.createTimeSlot = timeslot
+	createState.proposer = proposer
+	createState.newBlock = &ShardBlock{}
 	//pre processing
 	for _, app := range createState.app {
 		if err := app.preCreateBlock(createState); err != nil {
@@ -126,7 +114,7 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 		}
 	}
 
-	return block, nil
+	return createState.newBlock, nil
 }
 
 func createTempKeyset() privacy.PrivateKey {

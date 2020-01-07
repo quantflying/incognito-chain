@@ -15,10 +15,11 @@ import (
 type ShardHeader struct {
 	Producer              string                 `json:"Producer"`
 	ProducerPubKeyStr     string                 `json:"ProducerPubKeyStr"`
-	ShardID               byte                   `json:"ShardID"`               // shard ID which block belong to
-	Version               int                    `json:"Version"`               // version of block structure
-	PreviousBlockHash     common.Hash            `json:"PreviousBlockHash"`     // previous block hash or Parent block hash
-	Height                uint64                 `json:"Height"`                // block height
+	ShardID               byte                   `json:"ShardID"`           // shard ID which block belong to
+	Version               int                    `json:"Version"`           // version of block structure
+	PreviousBlockHash     common.Hash            `json:"PreviousBlockHash"` // previous block hash or Parent block hash
+	Height                uint64                 `json:"Height"`            // block height
+	TimeSlot              uint64                 `json:"TimeSlot"`
 	Round                 int                    `json:"Round"`                 // bpft consensus round
 	Epoch                 uint64                 `json:"Epoch"`                 // epoch of block (according to current beacon height)
 	CrossShardBitMap      []byte                 `json:"CrossShardBitMap"`      // crossShards bitmap for beacon
