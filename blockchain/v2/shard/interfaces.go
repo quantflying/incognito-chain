@@ -18,7 +18,9 @@ type ShardApp interface {
 	processBeaconInstruction(state *CreateNewBlockState) error          // execute beacon instruction & build tx if any
 	generateInstruction(state *CreateNewBlockState) error               //create block instruction
 	buildHeader(state *CreateNewBlockState) error
-	compileBlockAndUpdateNewView(state *CreateNewBlockState) error
+
+	//crete view from block
+	createNewViewFromBlock(state *CreateNewBlockState) error
 
 	//validate block
 	preValidate(state *ValidateBlockState) error

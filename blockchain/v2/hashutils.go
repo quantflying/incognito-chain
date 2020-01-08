@@ -193,7 +193,7 @@ func VerifyLastCrossShardStateHash(lastCrossShardState map[byte]map[byte]uint64,
 	return hash, hash.IsEqual(&targetHash)
 }
 func VerifyHashFromMapStringString(maps1 map[string]string, targetHash common.Hash) (common.Hash, bool) {
-	hash, err := generateHashFromMapStringString(maps1)
+	hash, err := GenerateHashFromMapStringString(maps1)
 	if err != nil {
 		return hash, false
 	}

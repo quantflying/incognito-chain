@@ -50,14 +50,14 @@ func (e BLSBFT) CreateValidationData(block consensus2.BlockInterface) Validation
 	return valData
 }
 
-func validateProducerSig(block consensus2.BlockInterface) error {
+func (e BLSBFT) ValidateProducerSig(block consensus2.BlockInterface) error {
 	valData, err := DecodeValidationData(block.GetValidationField())
 	if err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 
 	producerKey := incognitokey.CommitteePublicKey{}
-	err = producerKey.FromBase58(block.GetProducer())
+	err = producerKey.FromBase58(block.GetBlockProposer())
 	if err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
@@ -70,10 +70,7 @@ func validateProducerSig(block consensus2.BlockInterface) error {
 	return nil
 }
 
-func (e BLSBFT) ValidateProducerSig(block consensus2.BlockInterface) error {
-	return validateProducerSig(block)
-}
-func validateCommitteeSig(block consensus2.BlockInterface, committee []incognitokey.CommitteePublicKey) error {
+func (e BLSBFT) ValidateCommitteeSig(block consensus2.BlockInterface, committee []incognitokey.CommitteePublicKey) error {
 	valData, err := DecodeValidationData(block.GetValidationField())
 	if err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
@@ -87,10 +84,6 @@ func validateCommitteeSig(block consensus2.BlockInterface, committee []incognito
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 	return nil
-}
-
-func (e BLSBFT) ValidateCommitteeSig(block consensus2.BlockInterface, committee []incognitokey.CommitteePublicKey) error {
-	return validateCommitteeSig(block, committee)
 }
 
 func (e BLSBFT) ValidateData(data []byte, sig string, publicKey string) error {

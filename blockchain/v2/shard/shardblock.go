@@ -417,6 +417,10 @@ func (block ShardBlock) GetCurrentEpoch() uint64 {
 	return block.Header.Epoch
 }
 
+func (block ShardBlock) GetBlockProposer() string {
+	return block.ConsensusHeader.Proposer
+}
+
 func (block ShardBlock) GetProducer() string {
 	return block.Header.Producer
 }
@@ -518,6 +522,10 @@ func (block ShardToBeaconBlock) GetPreviousBlockHash() common.Hash {
 
 func (shardBlock *ShardBlock) GetTimeslot() uint64 {
 	return shardBlock.ConsensusHeader.TimeSlot
+}
+
+func (shardBlock *ShardBlock) GetCreateTimeslot() uint64 {
+	return shardBlock.Header.TimeSlot
 }
 
 func (shardBlock *ShardBlock) GetBlockTimestamp() int64 {

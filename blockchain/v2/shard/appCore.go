@@ -296,6 +296,7 @@ func (s *CoreApp) buildHeader(state *CreateNewBlockState) error {
 		return err
 	}
 
+	//TODO: build total instruction from block
 	s2b := newBlock.CreateShardToBeaconBlock(nil)
 
 	totalInstructions := []string{}
@@ -426,10 +427,6 @@ func (s *CoreApp) preValidate(state *ValidateBlockState) error {
 				state.txsToAdd = append(state.txsToAdd, tx.(*transaction.TxCustomTokenPrivacy))
 			}
 		}
-
-	} else {
-		//check if block has enough valid signature
-
 	}
 	return nil
 }
@@ -437,5 +434,9 @@ func (s *CoreApp) preValidate(state *ValidateBlockState) error {
 //==============================Save Database Logic===========================
 func (s *CoreApp) storeDatabase(state *StoreDatabaseState) error {
 
+	return nil
+}
+
+func (s *CoreApp) createNewViewFromBlock(state *CreateNewBlockState) error {
 	return nil
 }

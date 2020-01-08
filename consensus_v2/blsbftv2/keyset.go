@@ -115,7 +115,7 @@ func (e BLSBFT) SignData(data []byte) (string, error) {
 	return base58.Base58Check{}.Encode(result, common.Base58Version), nil
 }
 
-func combineVotes(votes map[string]*BFTVote, committee []string) (aggSig []byte, brigSigs [][]byte, validatorIdx []int, err error) {
+func combineVotes(votes map[string]BFTVote, committee []string) (aggSig []byte, brigSigs [][]byte, validatorIdx []int, err error) {
 	var blsSigList [][]byte
 	for validator, _ := range votes {
 		validatorIdx = append(validatorIdx, common.IndexOfStr(validator, committee))

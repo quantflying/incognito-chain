@@ -9,9 +9,9 @@ import (
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/signatureschemes/blsmultisig"
+	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/wire"
-	"github.com/patrickmn/go-cache"
 	"sort"
 	"sync"
 	"time"
@@ -29,21 +29,13 @@ type BLSBFT struct {
 	StopCh       chan struct{}
 	Logger       common.Logger
 
-	currentTimeslotOfViews map[string]uint64
-	bestProposeBlockOfView map[string]string
-	lockOnGoingBlocks      sync.RWMutex
+	lockOnGoingBlocks sync.RWMutex
 
-	proposedBlockOnView struct {
-		ViewHash  string
-		BlockHash string
-	}
+	currentTimeSlot  uint64
+	proposeHistory   *lru.Cache
+	ProposeMessageCh chan BFTPropose
+	VoteMessageCh    chan BFTVote
 
-	viewCommitteesCache *cache.Cache // [committeeHash]:committeeDecodeStruct
-
-	currentTimeSlot      uint64
-	proposeHistory       *lru.Cache
-	ProposeMessageCh     chan BFTPropose
-	VoteMessageCh        chan BFTVote
 	receiveBlockByHeight map[uint64][]*ProposeBlockInfo      //blockHeight -> blockInfo
 	receiveBlockByHash   map[string]*ProposeBlockInfo        //blockHash -> blockInfo
 	voteHistory          map[uint64]consensus.BlockInterface // bestview height (previsous height )-> block
@@ -79,8 +71,6 @@ func (e *BLSBFT) Start() error {
 	}
 	e.isStarted = true
 	e.StopCh = make(chan struct{})
-	e.currentTimeslotOfViews = make(map[string]uint64)
-	e.bestProposeBlockOfView = make(map[string]string)
 	e.ProposeMessageCh = make(chan BFTPropose)
 	e.VoteMessageCh = make(chan BFTVote)
 	e.receiveBlockByHash = make(map[string]*ProposeBlockInfo)
@@ -200,7 +190,7 @@ func (e *BLSBFT) Start() error {
 					Check for valid block to vote
 				*/
 				validProposeBlock := []*ProposeBlockInfo{}
-				//get all block that has height > bestview height (rule 2 & rule 3) (
+				//get all block that has height = bestview height  + 1(rule 2 & rule 3) (
 				for h, proposeBlockInfo := range e.receiveBlockByHash {
 					if proposeBlockInfo.block == nil {
 						continue
@@ -220,14 +210,14 @@ func (e *BLSBFT) Start() error {
 					return validProposeBlock[i].block.GetRound() < validProposeBlock[j].block.GetRound()
 				})
 				for _, v := range validProposeBlock {
-					blkRound := v.block.GetRound()
+					blkCreateTimeSlot := v.block.GetCreateTimeslot()
 					bestViewHeight := bestView.GetHeight()
-					if lastVotedBlk, ok := e.voteHistory[bestViewHeight]; ok {
-						if blkRound < lastVotedBlk.GetRound() { //blkRound is smaller than voted block => vote for this blk
+					if lastVotedBlk, ok := e.voteHistory[bestViewHeight+1]; ok {
+						if blkCreateTimeSlot < lastVotedBlk.GetCreateTimeslot() { //blkCreateTimeSlot is smaller than voted block => vote for this blk
 							e.validateAndVote(v, currentProposerIndex)
-						} else if blkRound == lastVotedBlk.GetRound() && v.block.GetTimeslot() > lastVotedBlk.GetTimeslot() { //blk is old block (same round), but new proposer(larger timeslot) => vote again
+						} else if blkCreateTimeSlot == lastVotedBlk.GetCreateTimeslot() && v.block.GetTimeslot() > lastVotedBlk.GetTimeslot() { //blk is old block (same round), but new proposer(larger timeslot) => vote again
 							e.validateAndVote(v, currentProposerIndex)
-						} //blkRound is larger or equal than voted block => do nothing
+						} //blkCreateTimeSlot is larger or equal than voted block => do nothing
 					} else { //there is no vote for this height yet
 						e.validateAndVote(v, currentProposerIndex)
 					}
@@ -313,12 +303,39 @@ func (e *BLSBFT) processIfBlockGetEnoughVote(k string, v *ProposeBlockInfo) {
 	v.hasNewVote = false
 	if validVote > 2*len(view.GetCommittee())/3 {
 		e.Logger.Debug("Commit block", v.block.GetHeight())
-		//TODO: add validation field to block
-		err := e.Chain.ConnectBlockAndAddView(v.block)
+
+		committeeBLSString, err := incognitokey.ExtractPublickeysFromCommitteeKeyList(view.GetCommittee(), "bls")
 		if err != nil {
+			e.Logger.Error(err)
+			return
+		}
+
+		aggSig, brigSigs, validatorIdx, err := combineVotes(v.votes, committeeBLSString)
+		if err != nil {
+			e.Logger.Error(err)
+			return
+		}
+
+		valData, err := DecodeValidationData(v.block.GetValidationField())
+		if err != nil {
+			e.Logger.Error(err)
+			return
+		}
+
+		valData.AggSig = aggSig
+		valData.BridgeSig = brigSigs
+		valData.ValidatiorsIdx = validatorIdx
+		validationDataString, _ := EncodeValidationData(*valData)
+		if err := v.block.(blockValidation).AddValidationField(validationDataString); err != nil {
+			e.Logger.Error(err)
+			return
+		}
+
+		if err := e.Chain.ConnectBlockAndAddView(v.block); err != nil {
 			e.Logger.Error("Cannot add block to view")
 		}
 		go e.Node.BroadCastBlock(v.block)
+
 		delete(e.receiveBlockByHash, k)
 	}
 }
@@ -376,7 +393,7 @@ func (e *BLSBFT) validateAndVote(v *ProposeBlockInfo, proposerID uint64) error {
 		e.VoteMessageCh <- *Vote
 	}()
 	v.isValid = true
-	e.voteHistory[e.Chain.GetBestView().GetHeight()] = v.block
+	e.voteHistory[e.Chain.GetBestView().GetHeight()+1] = v.block
 	return nil
 }
 

@@ -3,6 +3,7 @@ package shard
 import (
 	"context"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
+	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/metadata"
 )
 
@@ -34,7 +35,6 @@ func (s *ShardView) NewValidateState(ctx context.Context) *ValidateBlockState {
 
 	//ADD YOUR APP HERE
 	validateState.app = append(validateState.app, &CoreApp{AppData{Logger: s.Logger}})
-
 	return validateState
 }
 
@@ -43,8 +43,9 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 	validateState.newView.Block = block.(*ShardBlock)
 	validateState.isPreSign = isPreSign
 
-	// Pre-Verify: check block agg signature (if already commit)
-	// or we have enough data to validate this block and get beaconblocks, crossshardblock, txToAdd confirm by proposed block (not commit, = isPresign)
+	createState := s.NewCreateState(ctx)
+	//block has correct basic header
+	//we have enough data to validate this block and get beaconblocks, crossshardblock, txToAdd confirm by proposed block
 	for _, app := range validateState.app {
 		err := app.preValidate(validateState)
 		if err != nil {
@@ -52,8 +53,8 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 		}
 	}
 
-	createState := s.NewCreateState(ctx)
 	if isPreSign {
+
 		//build shardbody and check content is same
 		for _, app := range createState.app {
 			if err := app.buildTxFromCrossShard(createState); err != nil {
@@ -88,19 +89,28 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 				return nil, err
 			}
 		}
-		//TODO: compare header content
+		//TODO: compare new view related content in header
 
 	} else {
-		createState.newBlock.Body = block.(*ShardBlock).Body
-		createState.newBlock.Header = block.(*ShardBlock).Header
-	}
-
-	for _, app := range createState.app {
-		if err := app.compileBlockAndUpdateNewView(createState); err != nil {
+		//validate producer signature
+		if err := (blsbftv2.BLSBFT{}.ValidateProducerSig(block)); err != nil {
 			return nil, err
 		}
+		//validate committeee signature
+		if err := (blsbftv2.BLSBFT{}.ValidateCommitteeSig(block, s.GetCommittee())); err != nil {
+			return nil, err
+		}
+
+		//TODO: check block ehader content => not necessary at this time
+		//createState.newBlock.Body = block.(*ShardBlock).Body
+		//createState.newBlock.Header = block.(*ShardBlock).Header
+		//for _, app := range createState.app {
+		//	if err := app.createNewViewFromBlock(createState); err != nil {
+		//		return nil, err
+		//	}
+		//}
+		//compare header content, with newview
 	}
-	//TODO: compare header content,  with newview
 
 	validateState.newView = createState.newView
 	return validateState.newView, nil

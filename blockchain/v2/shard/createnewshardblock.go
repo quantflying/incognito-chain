@@ -107,13 +107,6 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 		}
 	}
 
-	//post processing
-	for _, app := range createState.app {
-		if err := app.compileBlockAndUpdateNewView(createState); err != nil {
-			return nil, err
-		}
-	}
-
 	return createState.newBlock, nil
 }
 

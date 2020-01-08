@@ -17,6 +17,7 @@ type BlockInterface interface {
 	GetHeight() uint64
 	Hash() *common.Hash
 	// AddValidationField(validateData string) error
+	GetBlockProposer() string
 	GetProducer() string
 	GetValidationField() string
 	GetRound() int
@@ -26,6 +27,7 @@ type BlockInterface interface {
 	GetCurrentEpoch() uint64
 	GetPreviousBlockHash() common.Hash
 	GetTimeslot() uint64
+	GetCreateTimeslot() uint64
 	GetBlockTimestamp() int64
 }
 
