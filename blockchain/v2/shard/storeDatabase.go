@@ -22,7 +22,7 @@ func (s *ShardView) NewStoreDBState(ctx context.Context) *StoreDatabaseState {
 	}
 
 	//ADD YOUR APP HERE
-	storeDBState.app = append(storeDBState.app, &CoreApp{AppData{Logger: s.Logger}})
+	storeDBState.app = append(storeDBState.app, &CoreApp{Logger: s.Logger})
 
 	return storeDBState
 }

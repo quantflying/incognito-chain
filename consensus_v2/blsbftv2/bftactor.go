@@ -153,8 +153,8 @@ func (e *BLSBFT) Start() error {
 				currentCommittee := bestView.GetCommittee()
 				currentProposerIndex := e.currentTimeSlot % uint64(len(currentCommittee))
 				proposer := currentCommittee[currentProposerIndex]
-				proposerPk := proposer.GetMiningKeyBase58("bls")
-				userPk := e.GetUserPublicKey().GetMiningKeyBase58("bls")
+				proposerPk := proposer.GetMiningKeyBase58(common.BlsConsensus2)
+				userPk := e.GetUserPublicKey().GetMiningKeyBase58(common.BlsConsensus2)
 
 				if proposerPk == userPk && bestView.GetTimeslot() != e.currentTimeSlot { // current timeslot is not add to view, and this user is proposer of this timeslot
 					//using block hash as key of best view -> check if this best view we propose or not
@@ -280,8 +280,8 @@ func (e *BLSBFT) processIfBlockGetEnoughVote(k string, v *ProposeBlockInfo) {
 		dsaKey := []byte{}
 		if vote.isValid == 0 {
 			for _, c := range view.GetCommittee() {
-				//e.Logger.Error(vote.Validator, c.GetMiningKeyBase58("bls"))
-				if vote.Validator == c.GetMiningKeyBase58("bls") {
+				//e.Logger.Error(vote.Validator, c.GetMiningKeyBase58(common.BlsConsensus2))
+				if vote.Validator == c.GetMiningKeyBase58(common.BlsConsensus2) {
 					dsaKey = c.MiningPubKey[common.BridgeConsensus]
 				}
 			}
@@ -290,7 +290,9 @@ func (e *BLSBFT) processIfBlockGetEnoughVote(k string, v *ProposeBlockInfo) {
 			}
 			err := vote.validateVoteOwner(dsaKey)
 			if err != nil {
+				e.Logger.Error(dsaKey)
 				e.Logger.Error(err)
+				panic(1)
 				vote.isValid = -1
 				errVote++
 			} else {
@@ -304,12 +306,12 @@ func (e *BLSBFT) processIfBlockGetEnoughVote(k string, v *ProposeBlockInfo) {
 	if validVote > 2*len(view.GetCommittee())/3 {
 		e.Logger.Debug("Commit block", v.block.GetHeight())
 
-		committeeBLSString, err := incognitokey.ExtractPublickeysFromCommitteeKeyList(view.GetCommittee(), "bls")
+		committeeBLSString, err := incognitokey.ExtractPublickeysFromCommitteeKeyList(view.GetCommittee(), common.BlsConsensus2)
+		//fmt.Println(committeeBLSString)
 		if err != nil {
 			e.Logger.Error(err)
 			return
 		}
-
 		aggSig, brigSigs, validatorIdx, err := combineVotes(v.votes, committeeBLSString)
 		if err != nil {
 			e.Logger.Error(err)
@@ -358,10 +360,16 @@ func (e *BLSBFT) validateAndVote(v *ProposeBlockInfo, proposerID uint64) error {
 	//if valid then vote
 	var Vote = new(BFTVote)
 	bytelist := []blsmultisig.PublicKey{}
-	for _, v := range e.Chain.GetBestView().GetCommittee() {
-		bytelist = append(bytelist, v.MiningPubKey["bls"])
+	selfIdx := 0
+	userBLSPk := e.GetUserPublicKey().GetMiningKeyBase58(common.BlsConsensus2)
+	for i, v := range e.Chain.GetBestView().GetCommittee() {
+		if v.GetMiningKeyBase58(common.BlsConsensus2) == userBLSPk {
+			selfIdx = i
+		}
+		bytelist = append(bytelist, v.MiningPubKey[common.BlsConsensus2])
 	}
-	blsSig, err := e.UserKeySet.BLSSignData(v.block.Hash().GetBytes(), int(proposerID), bytelist)
+
+	blsSig, err := e.UserKeySet.BLSSignData(v.block.Hash().GetBytes(), selfIdx, bytelist)
 	if err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
@@ -375,8 +383,9 @@ func (e *BLSBFT) validateAndVote(v *ProposeBlockInfo, proposerID uint64) error {
 	Vote.BLS = blsSig
 	Vote.BRI = bridgeSig
 	Vote.BlockHash = v.block.Hash().String()
+
 	userPk := e.UserKeySet.GetPublicKey()
-	Vote.Validator = userPk.GetMiningKeyBase58("bls")
+	Vote.Validator = userPk.GetMiningKeyBase58(common.BlsConsensus2)
 	Vote.PrevBlockHash = v.block.GetPreviousBlockHash().String()
 	err = Vote.signVote(e.UserKeySet)
 	if err != nil {

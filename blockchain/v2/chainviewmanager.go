@@ -34,11 +34,13 @@ func (s *ChainViewManager) ConnectBlockAndAddView(block consensus.BlockInterface
 	preBlkHash := block.GetPreviousBlockHash()
 	view, err := s.GetViewByHash(preBlkHash)
 	if err != nil {
+		panic(err)
 		return err
 	}
 
 	newView, err := view.ValidateBlockAndCreateNewView(context.Background(), block, false)
 	if err != nil {
+		panic(err)
 		return err
 	}
 	s.manager.AddView(newView)

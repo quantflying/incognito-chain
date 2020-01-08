@@ -84,8 +84,8 @@ func newMiningKey(privateSeed string) (*MiningKey, error) {
 	// publicKeyBytes := blsmultisig.PKBytes(blsmultisig.PKGen(privateKey))
 	miningKey.PriKey = map[string][]byte{}
 	miningKey.PubKey = map[string][]byte{}
-	miningKey.PriKey[common.BlsConsensus] = blsmultisig.SKBytes(blsPriKey)
-	miningKey.PubKey[common.BlsConsensus] = blsmultisig.PKBytes(blsPubKey)
+	miningKey.PriKey[common.BlsConsensus2] = blsmultisig.SKBytes(blsPriKey)
+	miningKey.PubKey[common.BlsConsensus2] = blsmultisig.PKBytes(blsPubKey)
 	bridgePriKey, bridgePubKey := bridgesig.KeyGen(privateSeedBytes)
 	miningKey.PriKey[common.BridgeConsensus] = bridgesig.SKBytes(&bridgePriKey)
 	miningKey.PubKey[common.BridgeConsensus] = bridgesig.PKBytes(&bridgePubKey)
@@ -114,7 +114,7 @@ func Test_newMiningKey(t *testing.T) {
 			if key, err := newMiningKey(tt.args.privateSeed); (err != nil) != tt.wantErr {
 				t.Errorf("newMiningKey() error = %v, wantErr %v", err, tt.wantErr)
 			} else {
-				fmt.Println("BLS Key:", base58.Base58Check{}.Encode(key.PubKey[common.BlsConsensus], common.Base58Version))
+				fmt.Println("BLS Key:", base58.Base58Check{}.Encode(key.PubKey[common.BlsConsensus2], common.Base58Version))
 				fmt.Println("BRI Key:", base58.Base58Check{}.Encode(key.PubKey[common.BridgeConsensus], common.Base58Version))
 			}
 		})

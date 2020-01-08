@@ -2,6 +2,7 @@ package shard
 
 import (
 	"context"
+	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -30,13 +31,16 @@ type CreateNewBlockState struct {
 	//app
 	app []ShardApp
 
-	txToRemove               []metadata.Transaction
-	txsToAdd                 []metadata.Transaction
+	crossShardTx             map[byte][]blockchain.CrossTransaction
+	txToRemoveFromPool       []metadata.Transaction
+	txsToAddFromPool         []metadata.Transaction
 	txsFromMetadataTx        []metadata.Transaction
 	txsFromBeaconInstruction []metadata.Transaction
 	errInstruction           [][]string
 	stakingTx                map[string]string
 	newShardPendingValidator []string
+
+	instruction [][]string
 }
 
 func (s *ShardView) NewCreateState(ctx context.Context) *CreateNewBlockState {
@@ -51,7 +55,7 @@ func (s *ShardView) NewCreateState(ctx context.Context) *CreateNewBlockState {
 	}
 
 	//ADD YOUR APP HERE
-	createState.app = append(createState.app, &CoreApp{AppData{Logger: s.Logger}})
+	createState.app = append(createState.app, &CoreApp{Logger: s.Logger, CreateState: createState})
 	return createState
 }
 
@@ -64,45 +68,53 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 	createState.newBlock = &ShardBlock{}
 	//pre processing
 	for _, app := range createState.app {
-		if err := app.preCreateBlock(createState); err != nil {
+		if err := app.preCreateBlock(); err != nil {
 			return nil, err
 		}
 	}
 
 	//build shardbody
 	for _, app := range createState.app {
-		if err := app.buildTxFromCrossShard(createState); err != nil {
+		if err := app.buildTxFromCrossShard(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := app.buildTxFromMemPool(createState); err != nil {
+		if err := app.buildTxFromMemPool(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := app.buildResponseTxFromTxWithMetadata(createState); err != nil {
+		if err := app.buildResponseTxFromTxWithMetadata(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := app.processBeaconInstruction(createState); err != nil {
+		if err := app.processBeaconInstruction(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := app.generateInstruction(createState); err != nil {
+		if err := app.generateInstruction(); err != nil {
 			return nil, err
 		}
+	}
+
+	createState.newBlock = &ShardBlock{
+		Body: ShardBody{
+			Transactions:      append(append(createState.txsToAddFromPool, createState.txsFromMetadataTx...), createState.txsFromBeaconInstruction...),
+			CrossTransactions: createState.crossShardTx,
+			Instructions:      createState.instruction,
+		},
 	}
 
 	//build shard header
 	for _, app := range createState.app {
-		if err := app.buildHeader(createState); err != nil {
+		if err := app.buildHeader(); err != nil {
 			return nil, err
 		}
 	}

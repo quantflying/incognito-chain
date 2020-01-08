@@ -12,14 +12,17 @@ import (
 )
 
 type ShardView struct {
-	BC                    BlockChain
+	//field that copy manualy
+	BC     BlockChain
+	DB     DB `json:"-"`
+	Lock   *sync.RWMutex
+	Logger common.Logger
+
+	//field that copy automatically and need to update
 	ShardID               byte
-	Block                 *ShardBlock                       `json:"BestBlock"` // block data
-	ShardCommittee        []incognitokey.CommitteePublicKey `json:"ShardCommittee"`
-	ShardPendingValidator []incognitokey.CommitteePublicKey `json:"ShardPendingValidator"`
-	DB                    DB                                `json:"-"`
-	Lock                  *sync.RWMutex
-	Logger                common.Logger
+	Block                 *ShardBlock
+	ShardCommittee        []incognitokey.CommitteePublicKey
+	ShardPendingValidator []incognitokey.CommitteePublicKey
 }
 
 func (s *ShardView) CreateBlockFromOldBlockData(block consensus.BlockInterface) consensus.BlockInterface {

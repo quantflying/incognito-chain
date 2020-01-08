@@ -34,7 +34,7 @@ func (s *ShardView) NewValidateState(ctx context.Context) *ValidateBlockState {
 	}
 
 	//ADD YOUR APP HERE
-	validateState.app = append(validateState.app, &CoreApp{AppData{Logger: s.Logger}})
+	validateState.app = append(validateState.app, &CoreApp{Logger: s.Logger, ValidateState: validateState})
 	return validateState
 }
 
@@ -47,7 +47,7 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 	//block has correct basic header
 	//we have enough data to validate this block and get beaconblocks, crossshardblock, txToAdd confirm by proposed block
 	for _, app := range validateState.app {
-		err := app.preValidate(validateState)
+		err := app.preValidate()
 		if err != nil {
 			return nil, err
 		}
@@ -57,25 +57,25 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 
 		//build shardbody and check content is same
 		for _, app := range createState.app {
-			if err := app.buildTxFromCrossShard(createState); err != nil {
+			if err := app.buildTxFromCrossShard(); err != nil {
 				return nil, err
 			}
 		}
 
 		for _, app := range createState.app {
-			if err := app.buildResponseTxFromTxWithMetadata(createState); err != nil {
+			if err := app.buildResponseTxFromTxWithMetadata(); err != nil {
 				return nil, err
 			}
 		}
 
 		for _, app := range createState.app {
-			if err := app.processBeaconInstruction(createState); err != nil {
+			if err := app.processBeaconInstruction(); err != nil {
 				return nil, err
 			}
 		}
 
 		for _, app := range createState.app {
-			if err := app.generateInstruction(createState); err != nil {
+			if err := app.generateInstruction(); err != nil {
 				return nil, err
 			}
 		}
@@ -83,14 +83,17 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 		//TODO: compare tx field
 		//TODO: compare instruction field
 
+		createState.newBlock = &ShardBlock{
+			Body: block.(*ShardBlock).Body,
+		}
 		//build shard header
 		for _, app := range createState.app {
-			if err := app.buildHeader(createState); err != nil {
+			if err := app.buildHeader(); err != nil {
 				return nil, err
 			}
 		}
 		//TODO: compare new view related content in header
-
+		validateState.newView = createState.newView
 	} else {
 		//validate producer signature
 		if err := (blsbftv2.BLSBFT{}.ValidateProducerSig(block)); err != nil {
@@ -98,20 +101,19 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 		}
 		//validate committeee signature
 		if err := (blsbftv2.BLSBFT{}.ValidateCommitteeSig(block, s.GetCommittee())); err != nil {
+			s.Logger.Error("Validate fail!", s.GetCommittee())
+			panic(1)
 			return nil, err
 		}
-
-		//TODO: check block ehader content => not necessary at this time
-		//createState.newBlock.Body = block.(*ShardBlock).Body
-		//createState.newBlock.Header = block.(*ShardBlock).Header
-		//for _, app := range createState.app {
-		//	if err := app.createNewViewFromBlock(createState); err != nil {
-		//		return nil, err
-		//	}
-		//}
+		newView := s.CloneNewView().(*ShardView)
+		for _, app := range createState.app {
+			if err := app.createNewViewFromBlock(s, block.(*ShardBlock), newView); err != nil {
+				return nil, err
+			}
+		}
 		//compare header content, with newview
+		validateState.newView = newView
 	}
 
-	validateState.newView = createState.newView
 	return validateState.newView, nil
 }

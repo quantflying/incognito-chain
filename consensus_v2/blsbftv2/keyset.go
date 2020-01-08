@@ -21,7 +21,7 @@ type MiningKey struct {
 func (miningKey *MiningKey) GetPublicKey() incognitokey.CommitteePublicKey {
 	key := incognitokey.CommitteePublicKey{}
 	key.MiningPubKey = make(map[string][]byte)
-	key.MiningPubKey[common.BlsConsensus] = miningKey.PubKey[common.BlsConsensus]
+	key.MiningPubKey[common.BlsConsensus2] = miningKey.PubKey[common.BlsConsensus2]
 	key.MiningPubKey[common.BridgeConsensus] = miningKey.PubKey[common.BridgeConsensus]
 	return key
 }
@@ -43,7 +43,7 @@ func (miningKey *MiningKey) BLSSignData(
 	[]byte,
 	error,
 ) {
-	sigBytes, err := blsmultisig.Sign(data, miningKey.PriKey[common.BlsConsensus], selfIdx, committee)
+	sigBytes, err := blsmultisig.Sign(data, miningKey.PriKey[common.BlsConsensus2], selfIdx, committee)
 	if err != nil {
 		return nil, consensus.NewConsensusError(consensus.SignDataError, err)
 	}
@@ -76,8 +76,8 @@ func (e *BLSBFT) LoadUserKey(privateSeed string) error {
 	// publicKeyBytes := blsmultisig.PKBytes(blsmultisig.PKGen(privateKey))
 	miningKey.PriKey = map[string][]byte{}
 	miningKey.PubKey = map[string][]byte{}
-	miningKey.PriKey[common.BlsConsensus] = blsmultisig.SKBytes(blsPriKey)
-	miningKey.PubKey[common.BlsConsensus] = blsmultisig.PKBytes(blsPubKey)
+	miningKey.PriKey[common.BlsConsensus2] = blsmultisig.SKBytes(blsPriKey)
+	miningKey.PubKey[common.BlsConsensus2] = blsmultisig.PKBytes(blsPubKey)
 	bridgePriKey, bridgePubKey := bridgesig.KeyGen(privateSeedBytes)
 	miningKey.PriKey[common.BridgeConsensus] = bridgesig.SKBytes(&bridgePriKey)
 	miningKey.PubKey[common.BridgeConsensus] = bridgesig.PKBytes(&bridgePubKey)
@@ -107,7 +107,7 @@ func (e BLSBFT) GetUserPublicKey() *incognitokey.CommitteePublicKey {
 }
 
 func (e BLSBFT) SignData(data []byte) (string, error) {
-	result, err := e.UserKeySet.BriSignData(data) //, 0, []blsmultisig.PublicKey{e.UserKeySet.PubKey[common.BlsConsensus]})
+	result, err := e.UserKeySet.BriSignData(data) //, 0, []blsmultisig.PublicKey{e.UserKeySet.PubKey[common.BlsConsensus2]})
 	if err != nil {
 		return "", consensus.NewConsensusError(consensus.SignDataError, err)
 	}
@@ -125,7 +125,6 @@ func combineVotes(votes map[string]BFTVote, committee []string) (aggSig []byte, 
 		blsSigList = append(blsSigList, votes[committee[idx]].BLS)
 		brigSigs = append(brigSigs, votes[committee[idx]].BRI)
 	}
-
 	aggSig, err = blsmultisig.Combine(blsSigList)
 	if err != nil {
 		return nil, nil, nil, consensus.NewConsensusError(consensus.CombineSignatureError, err)
@@ -144,8 +143,8 @@ func GetMiningKeyFromPrivateSeed(privateSeed string) (*MiningKey, error) {
 
 	miningKey.PriKey = map[string][]byte{}
 	miningKey.PubKey = map[string][]byte{}
-	miningKey.PriKey[common.BlsConsensus] = blsmultisig.SKBytes(blsPriKey)
-	miningKey.PubKey[common.BlsConsensus] = blsmultisig.PKBytes(blsPubKey)
+	miningKey.PriKey[common.BlsConsensus2] = blsmultisig.SKBytes(blsPriKey)
+	miningKey.PubKey[common.BlsConsensus2] = blsmultisig.PKBytes(blsPubKey)
 	bridgePriKey, bridgePubKey := bridgesig.KeyGen(privateSeedBytes)
 	miningKey.PriKey[common.BridgeConsensus] = bridgesig.SKBytes(&bridgePriKey)
 	miningKey.PubKey[common.BridgeConsensus] = bridgesig.PKBytes(&bridgePubKey)

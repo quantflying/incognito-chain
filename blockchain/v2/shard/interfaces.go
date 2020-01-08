@@ -4,26 +4,28 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
+	"github.com/incognitochain/incognito-chain/database"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/mempool"
 	"github.com/incognitochain/incognito-chain/metadata"
+	"github.com/incognitochain/incognito-chain/privacy"
 )
 
 type ShardApp interface {
 	//create block
-	preCreateBlock(state *CreateNewBlockState) error
-	buildTxFromCrossShard(state *CreateNewBlockState) error             // build tx from crossshard
-	buildTxFromMemPool(state *CreateNewBlockState) error                // build tx from mempool
-	buildResponseTxFromTxWithMetadata(state *CreateNewBlockState) error // build tx from metadata tx
-	processBeaconInstruction(state *CreateNewBlockState) error          // execute beacon instruction & build tx if any
-	generateInstruction(state *CreateNewBlockState) error               //create block instruction
-	buildHeader(state *CreateNewBlockState) error
+	preCreateBlock() error
+	buildTxFromCrossShard() error             // build tx from crossshard
+	buildTxFromMemPool() error                // build tx from mempool
+	buildResponseTxFromTxWithMetadata() error // build tx from metadata tx
+	processBeaconInstruction() error          // execute beacon instruction & build tx if any
+	generateInstruction() error               //create block instruction
+	buildHeader() error
 
 	//crete view from block
-	createNewViewFromBlock(state *CreateNewBlockState) error
+	createNewViewFromBlock(curView *ShardView, block *ShardBlock, newView *ShardView) error
 
 	//validate block
-	preValidate(state *ValidateBlockState) error
+	preValidate() error
 
 	//store block
 	storeDatabase(state *StoreDatabaseState) error
@@ -72,11 +74,77 @@ type BlockChain interface {
 
 	GetShardPendingCommittee(shardID byte) []incognitokey.CommitteePublicKey
 	//GetShardCommittee(shardID byte) []incognitokey.CommitteePublicKey
-	GetTransactionByHash(hash common.Hash) (byte, common.Hash, int, metadata.Transaction, error)
 	FetchAutoStakingByHeight(uint64) (map[string]bool, error)
+
+	GetCommitteeReward(committeeAddress []byte, tokenID common.Hash) (uint64, error)
+	InitTxSalaryByCoinID(payToAddress *privacy.PaymentAddress, amount uint64, payByPrivateKey *privacy.PrivateKey, meta metadata.Metadata, coinID common.Hash, shardID byte) (metadata.Transaction, error)
+	metadata.BlockchainRetriever
 }
 
 type FakeBC struct {
+}
+
+func (FakeBC) InitTxSalaryByCoinID(payToAddress *privacy.PaymentAddress, amount uint64, payByPrivateKey *privacy.PrivateKey, meta metadata.Metadata, coinID common.Hash, shardID byte) (metadata.Transaction, error) {
+	return nil, nil
+}
+func (FakeBC) GetCommitteeReward(committeeAddress []byte, tokenID common.Hash) (uint64, error) {
+	return 0, nil
+}
+
+func (FakeBC) GetStakingAmountShard() uint64 {
+	panic("implement me")
+}
+
+func (FakeBC) GetTxChainHeight(tx metadata.Transaction) (uint64, error) {
+	panic("implement me")
+}
+
+func (FakeBC) GetChainHeight(byte) uint64 {
+	panic("implement me")
+}
+
+func (FakeBC) GetBeaconHeight() uint64 {
+	panic("implement me")
+}
+
+func (FakeBC) GetCurrentBeaconBlockHeight(byte) uint64 {
+	panic("implement me")
+}
+
+func (FakeBC) GetAllCommitteeValidatorCandidate() (map[byte][]incognitokey.CommitteePublicKey, map[byte][]incognitokey.CommitteePublicKey, []incognitokey.CommitteePublicKey, []incognitokey.CommitteePublicKey, []incognitokey.CommitteePublicKey, []incognitokey.CommitteePublicKey, []incognitokey.CommitteePublicKey, []incognitokey.CommitteePublicKey, error) {
+	panic("implement me")
+}
+
+func (FakeBC) GetAllCommitteeValidatorCandidateFlattenListFromDatabase() ([]string, error) {
+	panic("implement me")
+}
+
+func (FakeBC) GetStakingTx(byte) map[string]string {
+	panic("implement me")
+}
+
+func (FakeBC) GetAutoStakingList() map[string]bool {
+	panic("implement me")
+}
+
+func (FakeBC) GetDatabase() database.DatabaseInterface {
+	panic("implement me")
+}
+
+func (FakeBC) GetTxValue(txid string) (uint64, error) {
+	panic("implement me")
+}
+
+func (FakeBC) GetShardIDFromTx(txid string) (byte, error) {
+	panic("implement me")
+}
+
+func (FakeBC) GetCentralizedWebsitePaymentAddress() string {
+	panic("implement me")
+}
+
+func (FakeBC) GetAllCoinID() ([]common.Hash, error) {
+	panic("implement me")
 }
 
 func (FakeBC) GetValidBeaconBlockFromPool() []BeaconBlockInterface {
@@ -87,6 +155,7 @@ func (FakeBC) GetShardPendingCommittee(shardID byte) []incognitokey.CommitteePub
 	return []incognitokey.CommitteePublicKey{}
 }
 
+//look at beacon chain, get the final view and get height
 func (FakeBC) GetCurrentBeaconHeight() (uint64, error) {
 	return 1, nil
 }

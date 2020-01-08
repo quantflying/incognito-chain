@@ -17,7 +17,7 @@ func (engine *Engine) LoadMiningKeys(keysString string) error {
 		if len(keys) > 0 {
 			for _, key := range keys {
 				keyParts := strings.Split(key, ":")
-				availableConsensus := common.BlsConsensus
+				availableConsensus := common.BlsConsensus2
 				keyConsensus := keyParts[0]
 				if len(keyParts) == 2 {
 					availableConsensus = keyParts[0]

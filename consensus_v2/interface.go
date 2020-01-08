@@ -15,6 +15,7 @@ type NodeSender interface {
 type BlockInterface interface {
 	GetBlockType() string
 	GetHeight() uint64
+	GetBeaconHeight() uint64
 	Hash() *common.Hash
 	// AddValidationField(validateData string) error
 	GetBlockProposer() string

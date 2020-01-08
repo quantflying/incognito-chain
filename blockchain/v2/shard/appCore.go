@@ -11,27 +11,36 @@ import (
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
 	"github.com/incognitochain/incognito-chain/transaction"
+
 	"sort"
 	"strconv"
 	"strings"
 )
 
 type CoreApp struct {
-	AppData
+	Logger        common.Logger
+	CreateState   *CreateNewBlockState
+	ValidateState *ValidateBlockState
 }
 
 //==============================Create Block Logic===========================
-func (s *CoreApp) preCreateBlock(state *CreateNewBlockState) error {
+func (s *CoreApp) preCreateBlock() error {
+	state := s.CreateState
 	bc := state.bc
 	beaconHeight, err := state.bc.GetCurrentBeaconHeight()
 	if err != nil {
 		return err
 	}
+
 	curView := state.curView
 
+	if beaconHeight < curView.GetBlock().GetBeaconHeight() {
+		//this case cannot happen, as view only add when we verify that beacon is confirm
+		panic("something wrong")
+	}
 	// limit number of beacon block confirmed in a shard block
-	if beaconHeight-curView.GetHeight() > blockchain.MAX_BEACON_BLOCK {
-		beaconHeight = curView.GetHeight() + blockchain.MAX_BEACON_BLOCK
+	if beaconHeight > curView.GetBlock().GetBeaconHeight() && beaconHeight-curView.GetBlock().GetBeaconHeight() > blockchain.MAX_BEACON_BLOCK {
+		beaconHeight = curView.GetBlock().GetBeaconHeight() + blockchain.MAX_BEACON_BLOCK
 	}
 
 	// we only confirm shard blocks within an epoch
@@ -46,10 +55,13 @@ func (s *CoreApp) preCreateBlock(state *CreateNewBlockState) error {
 	state.newConfirmBeaconHeight = beaconHeight
 	toShard := state.curView.ShardID
 	state.crossShardBlocks = state.bc.GetAllValidCrossShardBlockFromPool(toShard)
+	//TODO: get beacon blocks
+
 	return nil
 }
 
-func (s *CoreApp) buildTxFromCrossShard(state *CreateNewBlockState) error {
+func (s *CoreApp) buildTxFromCrossShard() error {
+	state := s.CreateState
 	toShard := state.curView.ShardID
 	crossTransactions := make(map[byte][]blockchain.CrossTransaction)
 	// Get Cross Shard Block
@@ -99,26 +111,28 @@ func (s *CoreApp) buildTxFromCrossShard(state *CreateNewBlockState) error {
 			return crossTransaction[i].BlockHeight < crossTransaction[j].BlockHeight
 		})
 	}
-	s.CreateBlock.crossShardTx = crossTransactions
+	state.crossShardTx = crossTransactions
 	return nil
 }
 
-func (s *CoreApp) buildTxFromMemPool(state *CreateNewBlockState) error {
+func (s *CoreApp) buildTxFromMemPool() error {
+	state := s.CreateState
 	txsToAdd, txToRemove, _ := state.bc.GetPendingTransaction(state.curView.ShardID)
 	if len(txsToAdd) == 0 {
 		s.Logger.Info("Creating empty block...")
 	}
-	s.CreateBlock.txToRemove = txToRemove
-	s.CreateBlock.txsToAdd = txsToAdd
+	state.txToRemoveFromPool = txToRemove
+	state.txsToAddFromPool = txsToAdd
 	return nil
 }
 
-func (s *CoreApp) buildResponseTxFromTxWithMetadata(state *CreateNewBlockState) error {
+func (s *CoreApp) buildResponseTxFromTxWithMetadata() error {
+	state := s.CreateState
 	blkProducerPrivateKey := createTempKeyset()
 	txRequestTable := map[string]metadata.Transaction{}
 	txsRes := []metadata.Transaction{}
 	//process withdraw reward
-	for _, tx := range state.txsToAdd {
+	for _, tx := range state.txsToAddFromPool {
 		if tx.GetMetadataType() == metadata.WithDrawRewardRequestMeta {
 			requestMeta := tx.GetMetadata().(*metadata.WithDrawRewardRequest)
 			requester := base58.Base58Check{}.Encode(requestMeta.PaymentAddress.Pk, common.Base58Version)
@@ -134,11 +148,12 @@ func (s *CoreApp) buildResponseTxFromTxWithMetadata(state *CreateNewBlockState) 
 		}
 		txsRes = append(txsRes, txRes)
 	}
-	s.CreateBlock.txsFromMetadataTx = txsRes
+	state.txsFromMetadataTx = txsRes
 	return nil
 }
 
-func (s *CoreApp) processBeaconInstruction(state *CreateNewBlockState) error {
+func (s *CoreApp) processBeaconInstruction() error {
+	state := s.CreateState
 	shardID := state.curView.ShardID
 	producerPrivateKey := createTempKeyset()
 	responsedTxs := []metadata.Transaction{}
@@ -225,13 +240,14 @@ func (s *CoreApp) processBeaconInstruction(state *CreateNewBlockState) error {
 			}
 		}
 	}
-	s.CreateBlock.newShardPendingValidator = shardPendingValidator
-	s.CreateBlock.stakingTx = stakingTx
-	s.CreateBlock.txsFromBeaconInstruction = responsedTxs
+	state.newShardPendingValidator = shardPendingValidator
+	state.stakingTx = stakingTx
+	state.txsFromBeaconInstruction = responsedTxs
 	return nil
 }
 
-func (s *CoreApp) generateInstruction(state *CreateNewBlockState) error {
+func (s *CoreApp) generateInstruction() error {
+	state := s.CreateState
 	beaconHeight := state.newConfirmBeaconHeight
 	shardCommittee, _ := incognitokey.CommitteeKeyListToString(state.curView.ShardCommittee)
 	shardID := state.curView.ShardID
@@ -259,21 +275,95 @@ func (s *CoreApp) generateInstruction(state *CreateNewBlockState) error {
 	if len(swapInstruction) > 0 {
 		instructions = append(instructions, swapInstruction)
 	}
-	s.CreateBlock.instruction = instructions
+	state.instruction = instructions
 	return nil
 }
 
-func (CoreApp) buildWithDrawTransactionResponse(transaction *metadata.Transaction, pkey *privacy.PrivateKey) (metadata.Transaction, error) {
+func (s *CoreApp) buildWithDrawTransactionResponse(txRequest *metadata.Transaction, blkProducerPrivateKey *privacy.PrivateKey) (metadata.Transaction, error) {
+	if (*txRequest).GetMetadataType() != metadata.WithDrawRewardRequestMeta {
+		return nil, errors.New("Can not understand this request!")
+	}
+	requestDetail := (*txRequest).GetMetadata().(*metadata.WithDrawRewardRequest)
+	amount, err := s.CreateState.bc.GetCommitteeReward(requestDetail.PaymentAddress.Pk, requestDetail.TokenID)
+	if (amount == 0) || (err != nil) {
+		return nil, errors.New("Not enough reward")
+	}
+	responseMeta, err := metadata.NewWithDrawRewardResponse((*txRequest).Hash())
+	if err != nil {
+		return nil, err
+	}
+	return s.CreateState.bc.InitTxSalaryByCoinID(
+		&requestDetail.PaymentAddress,
+		amount,
+		blkProducerPrivateKey,
+		responseMeta,
+		requestDetail.TokenID,
+		common.GetShardIDFromLastByte(requestDetail.PaymentAddress.Pk[common.PublicKeySize-1]))
+}
+
+func (s CoreApp) buildReturnStakingAmountTx(swapPublicKey string,
+	blkProducerPrivateKey *privacy.PrivateKey,
+) (metadata.Transaction, error) {
+	// addressBytes := blockGenerator.chain.config.UserKeySet.PaymentAddress.Pk
+	//shardID := common.GetShardIDFromLastByte(addressBytes[len(addressBytes)-1])
+	//publicKey, _ := blockGenerator.chain.config.ConsensusEngine.GetCurrentMiningPublicKey()
+	//_, committeeShardID := blockGenerator.chain.BestState.Beacon.GetPubkeyRole(publicKey, 0)
+	//
+	//fmt.Println("SA: get tx for ", swapPublicKey, GetBestStateShard(committeeShardID).StakingTx, committeeShardID)
+	//tx, ok := GetBestStateShard(committeeShardID).StakingTx[swapPublicKey]
+	//if !ok {
+	//	return nil, NewBlockChainError(GetStakingTransactionError, errors.New("No staking tx in best state"))
+	//}
+	//var txHash = &common.Hash{}
+	//err := (&common.Hash{}).Decode(txHash, tx)
+	//if err != nil {
+	//	return nil, NewBlockChainError(DecodeHashError, err)
+	//}
+	//blockHash, index, err := blockGenerator.chain.config.DataBase.GetTransactionIndexById(*txHash)
+	//if err != nil {
+	//	return nil, NewBlockChainError(GetTransactionFromDatabaseError, err)
+	//}
+	//shardBlock, _, err := blockGenerator.chain.GetShardBlockByHash(blockHash)
+	//if err != nil || shardBlock == nil {
+	//	Logger.log.Error("ERROR", err, "NO Transaction in block with hash", blockHash, "and index", index, "contains", shardBlock.Body.Transactions[index])
+	//	return nil, NewBlockChainError(FetchShardBlockError, err)
+	//}
+	//txData := shardBlock.Body.Transactions[index]
+	//keyWallet, err := wallet.Base58CheckDeserialize(txData.GetMetadata().(*metadata.StakingMetadata).FunderPaymentAddress)
+	//if err != nil {
+	//	Logger.log.Error("SA: cannot get payment address", txData.GetMetadata().(*metadata.StakingMetadata), committeeShardID)
+	//	return nil, blockchain.NewBlockChainError(blockchain.WalletKeySerializedError, err)
+	//}
+	//Logger.log.Info("SA: build salary tx", txData.GetMetadata().(*metadata.StakingMetadata).FunderPaymentAddress, committeeShardID)
+	//paymentShardID := common.GetShardIDFromLastByte(keyWallet.KeySet.PaymentAddress.Pk[len(keyWallet.KeySet.PaymentAddress.Pk)-1])
+	//if paymentShardID != committeeShardID {
+	//	return nil, blockchain.NewBlockChainError(blockchain.WrongShardIDError, fmt.Errorf("Staking Payment Address ShardID %+v, Not From Current Shard %+v", paymentShardID, committeeShardID))
+	//}
+	//returnStakingMeta := metadata.NewReturnStaking(
+	//	tx,
+	//	keyWallet.KeySet.PaymentAddress,
+	//	metadata.ReturnStakingMeta,
+	//)
+	//returnStakingTx := new(transaction.Tx)
+	//err = returnStakingTx.InitTxSalary(
+	//	txData.CalculateTxValue(),
+	//	&keyWallet.KeySet.PaymentAddress,
+	//	blkProducerPrivateKey,
+	//	blockGenerator.chain.config.DataBase,
+	//	returnStakingMeta,
+	//)
+	////modify the type of the salary transaction
+	//returnStakingTx.Type = common.TxReturnStakingType
+	//if err != nil {
+	//	return nil, blockchain.NewBlockChainError(blockchain.InitSalaryTransactionError, err)
+	//}
+	//return returnStakingTx, nil
 	return nil, nil
 }
 
-func (CoreApp) buildReturnStakingAmountTx(s string, pkey *privacy.PrivateKey) (metadata.Transaction, error) {
-	return nil, nil
-}
-
-func (s *CoreApp) buildHeader(state *CreateNewBlockState) error {
+func (s *CoreApp) buildHeader() error {
+	state := s.CreateState
 	shardID := state.curView.ShardID
-
 	totalTxsFee := make(map[common.Hash]uint64)
 	for _, tx := range state.newBlock.Body.Transactions {
 		totalTxsFee[*tx.GetTokenID()] += tx.GetTxFee()
@@ -296,11 +386,15 @@ func (s *CoreApp) buildHeader(state *CreateNewBlockState) error {
 		return err
 	}
 
-	//TODO: build total instruction from block
-	s2b := newBlock.CreateShardToBeaconBlock(nil)
-
+	txInstructions, err := CreateShardInstructionsFromTransactionAndInstruction(newBlock.Body.Transactions, state.bc, shardID)
+	if err != nil {
+		return err
+	}
 	totalInstructions := []string{}
-	for _, value := range s2b.Instructions {
+	for _, value := range txInstructions {
+		totalInstructions = append(totalInstructions, value...)
+	}
+	for _, value := range newBlock.Body.Instructions {
 		totalInstructions = append(totalInstructions, value...)
 	}
 	instructionsHash, err := v2.GenerateHashFromStringArray(totalInstructions)
@@ -329,12 +423,16 @@ func (s *CoreApp) buildHeader(state *CreateNewBlockState) error {
 		return blockchain.NewBlockChainError(blockchain.StakingTxHashError, err)
 	}
 
-	flattenInsts, err := blockchain.FlattenAndConvertStringInst(s2b.Instructions)
+	flattenTxInsts, err := blockchain.FlattenAndConvertStringInst(txInstructions)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.FlattenAndConvertStringInstError, fmt.Errorf("Instruction from Tx: %+v", err))
+	}
+	flattenInsts, err := blockchain.FlattenAndConvertStringInst(newBlock.Body.Instructions)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.FlattenAndConvertStringInstError, fmt.Errorf("Instruction from block body: %+v", err))
 	}
-	// TODO: check Order of instructions must be preserved in shardprocess
-	instMerkleRoot := blockchain.GetKeccak256MerkleRoot(flattenInsts)
+	insts := append(flattenTxInsts, flattenInsts...) // Order of instructions must be preserved in shardprocess
+	instMerkleRoot := blockchain.GetKeccak256MerkleRoot(insts)
 	// shard tx root
 	_, shardTxMerkleData := blockchain.CreateShardTxRoot2(newBlock.Body.Transactions)
 
@@ -374,12 +472,9 @@ func (s *CoreApp) buildHeader(state *CreateNewBlockState) error {
 	return nil
 }
 
-func (s *CoreApp) compileBlockAndUpdateNewView(state *CreateNewBlockState) error {
-	return nil
-}
-
 //==============================Validate Logic===============================
-func (s *CoreApp) preValidate(state *ValidateBlockState) error {
+func (s *CoreApp) preValidate() error {
+	state := s.ValidateState
 	shardID := state.curView.ShardID
 	newBlock := state.newView.GetBlock().(*ShardBlock)
 	oldBlock := state.curView.GetBlock().(*ShardBlock)
@@ -398,6 +493,7 @@ func (s *CoreApp) preValidate(state *ValidateBlockState) error {
 			state.isOldBeaconHeight = true
 		}
 		if newBlock.Header.BeaconHeight > oldBlock.Header.BeaconHeight {
+			fmt.Println("beacon ", newBlock.Header.BeaconHeight, oldBlock.Header.BeaconHeight)
 			state.isOldBeaconHeight = false
 			beaconBlocks := state.bc.GetValidBeaconBlockFromPool()
 			if len(beaconBlocks) == int(newBlock.Header.BeaconHeight-oldBlock.Header.BeaconHeight) {
@@ -437,6 +533,7 @@ func (s *CoreApp) storeDatabase(state *StoreDatabaseState) error {
 	return nil
 }
 
-func (s *CoreApp) createNewViewFromBlock(state *CreateNewBlockState) error {
+func (s *CoreApp) createNewViewFromBlock(curView *ShardView, block *ShardBlock, newView *ShardView) error {
+	newView.Block = block
 	return nil
 }
