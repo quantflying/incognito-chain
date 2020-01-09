@@ -133,6 +133,12 @@ func (s *ShardView) CloneViewFrom(view consensus.ChainViewInterface) error {
 	panic("implement me")
 }
 
+func (s *ShardView) GetNextProposer(timeSlot uint64) string {
+	committee := s.GetCommittee()
+	idx := int(timeSlot) % len(committee)
+	return committee[idx].GetMiningKeyBase58(common.BlsConsensus2)
+}
+
 func (s *ShardView) CloneNewView() consensus.ChainViewInterface {
 	b, _ := s.MarshalJSON()
 	var newView *ShardView

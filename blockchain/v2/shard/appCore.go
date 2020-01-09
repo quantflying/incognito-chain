@@ -478,7 +478,17 @@ func (s *CoreApp) preValidate() error {
 	shardID := state.curView.ShardID
 	newBlock := state.newView.GetBlock().(*ShardBlock)
 	oldBlock := state.curView.GetBlock().(*ShardBlock)
-	// TODO: verify proposer in timeslot
+
+	//check block proposer
+	key := incognitokey.CommitteePublicKey{}
+	err := key.FromBase58(newBlock.GetBlockProposer())
+	if err != nil {
+		return err
+	}
+	if key.GetMiningKeyBase58(common.BlsConsensus2) != state.curView.GetNextProposer(newBlock.GetTimeslot()) {
+		return errors.New("Wrong block proposer " + newBlock.GetBlockProposer() + " " + state.curView.GetNextProposer(newBlock.GetTimeslot()))
+	}
+
 	// TODO: check block version, should be function which return version base on block height
 	if newBlock.Header.Version != blockchain.SHARD_BLOCK_VERSION {
 		return blockchain.NewBlockChainError(blockchain.WrongVersionError, fmt.Errorf("Expect newBlock version %+v but get %+v", 1, newBlock.Header.Version))

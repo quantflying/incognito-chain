@@ -160,6 +160,7 @@ type ChainViewInterface interface {
 	UpdateViewWithBlock(block BlockInterface) error
 	CloneViewFrom(view ChainViewInterface) error
 	CloneNewView() ChainViewInterface
+	GetNextProposer(uint64) string
 	//CreateNewViewFromBlock(BlockInterface) ChainViewInterface
 	ValidateBlockAndCreateNewView(ctx context.Context, block BlockInterface, isPreSign bool) (ChainViewInterface, error)
 	CreateNewBlock(context.Context, uint64, string) (BlockInterface, error)

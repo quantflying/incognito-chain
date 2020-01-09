@@ -44,7 +44,6 @@ type CreateNewBlockState struct {
 }
 
 func (s *ShardView) NewCreateState(ctx context.Context) *CreateNewBlockState {
-
 	createState := &CreateNewBlockState{
 		bc:       s.BC,
 		curView:  s,

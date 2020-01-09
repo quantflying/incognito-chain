@@ -150,10 +150,7 @@ func (e *BLSBFT) Start() error {
 				/*
 					Check for whether we should propose block
 				*/
-				currentCommittee := bestView.GetCommittee()
-				currentProposerIndex := e.currentTimeSlot % uint64(len(currentCommittee))
-				proposer := currentCommittee[currentProposerIndex]
-				proposerPk := proposer.GetMiningKeyBase58(common.BlsConsensus2)
+				proposerPk := bestView.GetNextProposer(e.currentTimeSlot)
 				userPk := e.GetUserPublicKey().GetMiningKeyBase58(common.BlsConsensus2)
 
 				if proposerPk == userPk && bestView.GetTimeslot() != e.currentTimeSlot { // current timeslot is not add to view, and this user is proposer of this timeslot
@@ -214,12 +211,12 @@ func (e *BLSBFT) Start() error {
 					bestViewHeight := bestView.GetHeight()
 					if lastVotedBlk, ok := e.voteHistory[bestViewHeight+1]; ok {
 						if blkCreateTimeSlot < lastVotedBlk.GetCreateTimeslot() { //blkCreateTimeSlot is smaller than voted block => vote for this blk
-							e.validateAndVote(v, currentProposerIndex)
+							e.validateAndVote(v)
 						} else if blkCreateTimeSlot == lastVotedBlk.GetCreateTimeslot() && v.block.GetTimeslot() > lastVotedBlk.GetTimeslot() { //blk is old block (same round), but new proposer(larger timeslot) => vote again
-							e.validateAndVote(v, currentProposerIndex)
+							e.validateAndVote(v)
 						} //blkCreateTimeSlot is larger or equal than voted block => do nothing
 					} else { //there is no vote for this height yet
-						e.validateAndVote(v, currentProposerIndex)
+						e.validateAndVote(v)
 					}
 				}
 
@@ -342,7 +339,7 @@ func (e *BLSBFT) processIfBlockGetEnoughVote(k string, v *ProposeBlockInfo) {
 	}
 }
 
-func (e *BLSBFT) validateAndVote(v *ProposeBlockInfo, proposerID uint64) error {
+func (e *BLSBFT) validateAndVote(v *ProposeBlockInfo) error {
 	//not connected
 	view, err := e.Chain.GetViewByHash(v.block.GetPreviousBlockHash())
 	if err != nil {

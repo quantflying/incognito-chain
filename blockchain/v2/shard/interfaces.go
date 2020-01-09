@@ -84,6 +84,14 @@ type BlockChain interface {
 type FakeBC struct {
 }
 
+func (FakeBC) GetBeaconHeightBreakPointBurnAddr() uint64 {
+	panic("implement me")
+}
+
+func (FakeBC) GetBurningAddress(blockHeight uint64) string {
+	panic("implement me")
+}
+
 func (FakeBC) InitTxSalaryByCoinID(payToAddress *privacy.PaymentAddress, amount uint64, payByPrivateKey *privacy.PrivateKey, meta metadata.Metadata, coinID common.Hash, shardID byte) (metadata.Transaction, error) {
 	return nil, nil
 }
