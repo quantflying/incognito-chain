@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -39,8 +38,9 @@ func (client *RPCClient) RPCCall(
 	params interface{},
 	rpcResponse interface{},
 ) (err error) {
-	rpcPort, _ := strconv.Atoi(rpcPortStr)
-	rpcEndpoint := buildRPCServerAddress(rpcProtocol, rpcHost, rpcPort)
+	//rpcPort, _ := strconv.Atoi(rpcPortStr)
+	//rpcEndpoint := buildRPCServerAddress(rpcProtocol, rpcHost, rpcPort)
+	rpcEndpoint := "https://mainnet.infura.io/v3/b9c86da1fdca4a1c85a5d53b4d97315a"
 
 	payload := map[string]interface{}{
 		"jsonrpc": "2.0",
