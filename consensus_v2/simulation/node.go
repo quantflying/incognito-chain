@@ -8,8 +8,8 @@ import (
 
 	"os"
 
-	blockchainv2 "github.com/incognitochain/incognito-chain/blockchain/v2"
-	shardv2 "github.com/incognitochain/incognito-chain/blockchain/v2/shard"
+	blockchainv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2"
+	shardv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block"
 	"github.com/incognitochain/incognito-chain/consensus_v2"
 
 	"github.com/incognitochain/incognito-chain/common"

@@ -1,4 +1,4 @@
-package shard
+package block
 
 import "context"
 
@@ -22,7 +22,7 @@ func (s *ShardView) NewStoreDBState(ctx context.Context) *StoreDatabaseState {
 	}
 
 	//ADD YOUR APP HERE
-	storeDBState.app = append(storeDBState.app, &CoreApp{Logger: s.Logger})
+	storeDBState.app = append(storeDBState.app, &ShardCoreApp{Logger: s.Logger})
 
 	return storeDBState
 }

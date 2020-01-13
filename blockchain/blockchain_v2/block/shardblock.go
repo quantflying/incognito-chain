@@ -1,4 +1,4 @@
-package shard
+package block
 
 import (
 	"encoding/json"

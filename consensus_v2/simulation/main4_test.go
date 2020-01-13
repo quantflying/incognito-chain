@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/blockchain/v2/shard"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -26,7 +26,7 @@ func Test_Main4Committee(t *testing.T) {
 		committeePkStruct = append(committeePkStruct, m.GetPublicKey())
 	}
 	nodeList := []*Node{}
-	genesisTime, _ := time.Parse(shard.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
+	genesisTime, _ := time.Parse(block.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
 	for {
 		if int(common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT))%len(committee) == len(committee)-1 {
 			break
@@ -135,7 +135,7 @@ func Test_Main4Committee_ScenarioA(t *testing.T) {
 		committeePkStruct = append(committeePkStruct, m.GetPublicKey())
 	}
 	nodeList := []*Node{}
-	genesisTime, _ := time.Parse(shard.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
+	genesisTime, _ := time.Parse(block.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
 	for {
 		if int(common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT))%len(committee) == len(committee)-1 {
 			break
@@ -270,7 +270,7 @@ func Test_Main4Committee_ScenarioB(t *testing.T) {
 		committeePkStruct = append(committeePkStruct, m.GetPublicKey())
 	}
 	nodeList := []*Node{}
-	genesisTime, _ := time.Parse(shard.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
+	genesisTime, _ := time.Parse(block.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
 	for {
 		if int(common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT))%len(committee) == len(committee)-1 {
 			break
@@ -408,7 +408,7 @@ func Test_Main4Committee_ScenarioC(t *testing.T) {
 		committeePkStruct = append(committeePkStruct, m.GetPublicKey())
 	}
 	nodeList := []*Node{}
-	genesisTime, _ := time.Parse(shard.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
+	genesisTime, _ := time.Parse(block.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
 	for {
 		if int(common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT))%len(committee) == len(committee)-1 {
 			break

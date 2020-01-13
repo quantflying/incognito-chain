@@ -1,4 +1,4 @@
-package shard
+package block
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type CreateNewBlockState struct {
+type CreateShardBlockState struct {
 	ctx      context.Context
 	bc       BlockChain
 	curView  *ShardView
@@ -43,8 +43,8 @@ type CreateNewBlockState struct {
 	instruction [][]string
 }
 
-func (s *ShardView) NewCreateState(ctx context.Context) *CreateNewBlockState {
-	createState := &CreateNewBlockState{
+func (s *ShardView) NewCreateState(ctx context.Context) *CreateShardBlockState {
+	createState := &CreateShardBlockState{
 		bc:       s.BC,
 		curView:  s,
 		newView:  s.CloneNewView().(*ShardView),
@@ -54,7 +54,7 @@ func (s *ShardView) NewCreateState(ctx context.Context) *CreateNewBlockState {
 	}
 
 	//ADD YOUR APP HERE
-	createState.app = append(createState.app, &CoreApp{Logger: s.Logger, CreateState: createState})
+	createState.app = append(createState.app, &ShardCoreApp{Logger: s.Logger, CreateState: createState})
 	return createState
 }
 

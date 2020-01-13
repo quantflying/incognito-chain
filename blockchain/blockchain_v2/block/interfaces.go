@@ -1,4 +1,4 @@
-package shard
+package block
 
 import (
 	"github.com/incognitochain/incognito-chain/blockchain"
@@ -31,6 +31,23 @@ type ShardApp interface {
 	storeDatabase(state *StoreDatabaseState) error
 }
 
+type BeaconApp interface {
+	//create block
+	preCreateBlock() error
+	buildInstructionByEpoch() error
+	buildInstructionFromShardAction() error
+	buildHeader() error
+
+	//crete view from block
+	createNewViewFromBlock(curView *BeaconView, block *BeaconBlock, newView *BeaconView) error
+
+	//validate block
+	preValidate() error
+
+	////store block
+	//storeDatabase(state *StoreDatabaseState) error
+}
+
 type BeaconBlockInterface interface {
 	GetConfirmedCrossShardBlockToShard() map[byte]map[byte][]*CrossShardBlock
 }
@@ -52,6 +69,8 @@ type AppData struct {
 
 type DB interface {
 	GetGenesisBlock() consensus.BlockInterface
+	GetAllTokenIDForReward(epoch uint64) ([]common.Hash, error)
+	GetRewardOfShardByEpoch(epoch uint64, shardID byte, tokenID common.Hash) (uint64, error)
 	//GetBeaconBlockHashByIndex(uint64) (common.Hash, error)
 	//FetchBeaconBlock(common.Hash) ([]byte, error)
 }

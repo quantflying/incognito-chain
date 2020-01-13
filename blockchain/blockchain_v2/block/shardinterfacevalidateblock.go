@@ -1,4 +1,4 @@
-package shard
+package block
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/incognitochain/incognito-chain/metadata"
 )
 
-type ValidateBlockState struct {
+type ValidateShardBlockState struct {
 	ctx     context.Context
 	bc      BlockChain
 	curView *ShardView
@@ -24,8 +24,8 @@ type ValidateBlockState struct {
 	isOldBeaconHeight bool
 }
 
-func (s *ShardView) NewValidateState(ctx context.Context) *ValidateBlockState {
-	validateState := &ValidateBlockState{
+func (s *ShardView) NewValidateState(ctx context.Context) *ValidateShardBlockState {
+	validateState := &ValidateShardBlockState{
 		ctx:     ctx,
 		bc:      s.BC,
 		curView: s,
@@ -34,7 +34,7 @@ func (s *ShardView) NewValidateState(ctx context.Context) *ValidateBlockState {
 	}
 
 	//ADD YOUR APP HERE
-	validateState.app = append(validateState.app, &CoreApp{Logger: s.Logger, ValidateState: validateState})
+	validateState.app = append(validateState.app, &ShardCoreApp{Logger: s.Logger, ValidateState: validateState})
 	return validateState
 }
 

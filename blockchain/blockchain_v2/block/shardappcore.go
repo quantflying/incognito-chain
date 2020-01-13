@@ -1,15 +1,14 @@
-package shard
+package block
 
 import (
 	"errors"
 	"fmt"
 	"github.com/incognitochain/incognito-chain/blockchain"
-	v2 "github.com/incognitochain/incognito-chain/blockchain/v2"
+	v2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
-	"github.com/incognitochain/incognito-chain/privacy"
 	"github.com/incognitochain/incognito-chain/transaction"
 
 	"sort"
@@ -17,14 +16,14 @@ import (
 	"strings"
 )
 
-type CoreApp struct {
+type ShardCoreApp struct {
 	Logger        common.Logger
-	CreateState   *CreateNewBlockState
-	ValidateState *ValidateBlockState
+	CreateState   *CreateShardBlockState
+	ValidateState *ValidateShardBlockState
 }
 
 //==============================Create Block Logic===========================
-func (s *CoreApp) preCreateBlock() error {
+func (s *ShardCoreApp) preCreateBlock() error {
 	state := s.CreateState
 	bc := state.bc
 	beaconHeight, err := state.bc.GetCurrentBeaconHeight()
@@ -60,7 +59,7 @@ func (s *CoreApp) preCreateBlock() error {
 	return nil
 }
 
-func (s *CoreApp) buildTxFromCrossShard() error {
+func (s *ShardCoreApp) buildTxFromCrossShard() error {
 	state := s.CreateState
 	toShard := state.curView.ShardID
 	crossTransactions := make(map[byte][]blockchain.CrossTransaction)
@@ -115,7 +114,7 @@ func (s *CoreApp) buildTxFromCrossShard() error {
 	return nil
 }
 
-func (s *CoreApp) buildTxFromMemPool() error {
+func (s *ShardCoreApp) buildTxFromMemPool() error {
 	state := s.CreateState
 	txsToAdd, txToRemove, _ := state.bc.GetPendingTransaction(state.curView.ShardID)
 	if len(txsToAdd) == 0 {
@@ -126,7 +125,7 @@ func (s *CoreApp) buildTxFromMemPool() error {
 	return nil
 }
 
-func (s *CoreApp) buildResponseTxFromTxWithMetadata() error {
+func (s *ShardCoreApp) buildResponseTxFromTxWithMetadata() error {
 	state := s.CreateState
 	blkProducerPrivateKey := createTempKeyset()
 	txRequestTable := map[string]metadata.Transaction{}
@@ -152,7 +151,7 @@ func (s *CoreApp) buildResponseTxFromTxWithMetadata() error {
 	return nil
 }
 
-func (s *CoreApp) processBeaconInstruction() error {
+func (s *ShardCoreApp) processBeaconInstruction() error {
 	state := s.CreateState
 	shardID := state.curView.ShardID
 	producerPrivateKey := createTempKeyset()
@@ -246,7 +245,7 @@ func (s *CoreApp) processBeaconInstruction() error {
 	return nil
 }
 
-func (s *CoreApp) generateInstruction() error {
+func (s *ShardCoreApp) generateInstruction() error {
 	state := s.CreateState
 	beaconHeight := state.newConfirmBeaconHeight
 	shardCommittee, _ := incognitokey.CommitteeKeyListToString(state.curView.ShardCommittee)
@@ -279,89 +278,7 @@ func (s *CoreApp) generateInstruction() error {
 	return nil
 }
 
-func (s *CoreApp) buildWithDrawTransactionResponse(txRequest *metadata.Transaction, blkProducerPrivateKey *privacy.PrivateKey) (metadata.Transaction, error) {
-	if (*txRequest).GetMetadataType() != metadata.WithDrawRewardRequestMeta {
-		return nil, errors.New("Can not understand this request!")
-	}
-	requestDetail := (*txRequest).GetMetadata().(*metadata.WithDrawRewardRequest)
-	amount, err := s.CreateState.bc.GetCommitteeReward(requestDetail.PaymentAddress.Pk, requestDetail.TokenID)
-	if (amount == 0) || (err != nil) {
-		return nil, errors.New("Not enough reward")
-	}
-	responseMeta, err := metadata.NewWithDrawRewardResponse((*txRequest).Hash())
-	if err != nil {
-		return nil, err
-	}
-	return s.CreateState.bc.InitTxSalaryByCoinID(
-		&requestDetail.PaymentAddress,
-		amount,
-		blkProducerPrivateKey,
-		responseMeta,
-		requestDetail.TokenID,
-		common.GetShardIDFromLastByte(requestDetail.PaymentAddress.Pk[common.PublicKeySize-1]))
-}
-
-func (s CoreApp) buildReturnStakingAmountTx(swapPublicKey string,
-	blkProducerPrivateKey *privacy.PrivateKey,
-) (metadata.Transaction, error) {
-	// addressBytes := blockGenerator.chain.config.UserKeySet.PaymentAddress.Pk
-	//shardID := common.GetShardIDFromLastByte(addressBytes[len(addressBytes)-1])
-	//publicKey, _ := blockGenerator.chain.config.ConsensusEngine.GetCurrentMiningPublicKey()
-	//_, committeeShardID := blockGenerator.chain.BestState.Beacon.GetPubkeyRole(publicKey, 0)
-	//
-	//fmt.Println("SA: get tx for ", swapPublicKey, GetBestStateShard(committeeShardID).StakingTx, committeeShardID)
-	//tx, ok := GetBestStateShard(committeeShardID).StakingTx[swapPublicKey]
-	//if !ok {
-	//	return nil, NewBlockChainError(GetStakingTransactionError, errors.New("No staking tx in best state"))
-	//}
-	//var txHash = &common.Hash{}
-	//err := (&common.Hash{}).Decode(txHash, tx)
-	//if err != nil {
-	//	return nil, NewBlockChainError(DecodeHashError, err)
-	//}
-	//blockHash, index, err := blockGenerator.chain.config.DataBase.GetTransactionIndexById(*txHash)
-	//if err != nil {
-	//	return nil, NewBlockChainError(GetTransactionFromDatabaseError, err)
-	//}
-	//shardBlock, _, err := blockGenerator.chain.GetShardBlockByHash(blockHash)
-	//if err != nil || shardBlock == nil {
-	//	Logger.log.Error("ERROR", err, "NO Transaction in block with hash", blockHash, "and index", index, "contains", shardBlock.Body.Transactions[index])
-	//	return nil, NewBlockChainError(FetchShardBlockError, err)
-	//}
-	//txData := shardBlock.Body.Transactions[index]
-	//keyWallet, err := wallet.Base58CheckDeserialize(txData.GetMetadata().(*metadata.StakingMetadata).FunderPaymentAddress)
-	//if err != nil {
-	//	Logger.log.Error("SA: cannot get payment address", txData.GetMetadata().(*metadata.StakingMetadata), committeeShardID)
-	//	return nil, blockchain.NewBlockChainError(blockchain.WalletKeySerializedError, err)
-	//}
-	//Logger.log.Info("SA: build salary tx", txData.GetMetadata().(*metadata.StakingMetadata).FunderPaymentAddress, committeeShardID)
-	//paymentShardID := common.GetShardIDFromLastByte(keyWallet.KeySet.PaymentAddress.Pk[len(keyWallet.KeySet.PaymentAddress.Pk)-1])
-	//if paymentShardID != committeeShardID {
-	//	return nil, blockchain.NewBlockChainError(blockchain.WrongShardIDError, fmt.Errorf("Staking Payment Address ShardID %+v, Not From Current Shard %+v", paymentShardID, committeeShardID))
-	//}
-	//returnStakingMeta := metadata.NewReturnStaking(
-	//	tx,
-	//	keyWallet.KeySet.PaymentAddress,
-	//	metadata.ReturnStakingMeta,
-	//)
-	//returnStakingTx := new(transaction.Tx)
-	//err = returnStakingTx.InitTxSalary(
-	//	txData.CalculateTxValue(),
-	//	&keyWallet.KeySet.PaymentAddress,
-	//	blkProducerPrivateKey,
-	//	blockGenerator.chain.config.DataBase,
-	//	returnStakingMeta,
-	//)
-	////modify the type of the salary transaction
-	//returnStakingTx.Type = common.TxReturnStakingType
-	//if err != nil {
-	//	return nil, blockchain.NewBlockChainError(blockchain.InitSalaryTransactionError, err)
-	//}
-	//return returnStakingTx, nil
-	return nil, nil
-}
-
-func (s *CoreApp) buildHeader() error {
+func (s *ShardCoreApp) buildHeader() error {
 	state := s.CreateState
 	shardID := state.curView.ShardID
 	totalTxsFee := make(map[common.Hash]uint64)
@@ -473,7 +390,7 @@ func (s *CoreApp) buildHeader() error {
 }
 
 //==============================Validate Logic===============================
-func (s *CoreApp) preValidate() error {
+func (s *ShardCoreApp) preValidate() error {
 	state := s.ValidateState
 	shardID := state.curView.ShardID
 	newBlock := state.newView.GetBlock().(*ShardBlock)
@@ -538,12 +455,12 @@ func (s *CoreApp) preValidate() error {
 }
 
 //==============================Save Database Logic===========================
-func (s *CoreApp) storeDatabase(state *StoreDatabaseState) error {
+func (s *ShardCoreApp) storeDatabase(state *StoreDatabaseState) error {
 
 	return nil
 }
 
-func (s *CoreApp) createNewViewFromBlock(curView *ShardView, block *ShardBlock, newView *ShardView) error {
+func (s *ShardCoreApp) createNewViewFromBlock(curView *ShardView, block *ShardBlock, newView *ShardView) error {
 	newView.Block = block
 	return nil
 }

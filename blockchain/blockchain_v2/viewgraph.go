@@ -1,4 +1,4 @@
-package v2
+package blockchain_v2
 
 import (
 	"fmt"
