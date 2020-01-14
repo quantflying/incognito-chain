@@ -31,6 +31,10 @@ type BeaconView struct {
 	CandidateBeaconWaitingForNextRandom    []incognitokey.CommitteePublicKey
 	CandidateShardWaitingForCurrentRandom  []incognitokey.CommitteePublicKey
 	CandidateShardWaitingForNextRandom     []incognitokey.CommitteePublicKey
+
+	CurrentRandomTimeStamp int64
+	IsGettingRandomNumber  bool
+	AutoStaking            map[string]bool `json:"AutoStaking"`
 }
 
 func (s *BeaconView) GetAShardCommitee(shardID byte) []incognitokey.CommitteePublicKey {
@@ -54,7 +58,7 @@ func (s *BeaconView) GetBlock() consensus.BlockInterface {
 	return s.Block
 }
 
-func (s *BeaconView) UpdateViewWithBlock(block consensus.BlockInterface) error {
+func (s *BeaconView) CreateNewViewFromBlock(block consensus.BlockInterface) (consensus.ChainViewInterface, error) {
 	panic("implement me")
 }
 

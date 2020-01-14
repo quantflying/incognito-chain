@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/incognitochain/incognito-chain/blockchain"
-	v2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -280,6 +279,14 @@ func (s *ShardCoreApp) generateInstruction() error {
 
 func (s *ShardCoreApp) buildHeader() error {
 	state := s.CreateState
+	curView := state.curView
+	// create new view
+	newViewInterface, err := curView.CreateNewViewFromBlock(s.CreateState.newBlock)
+	if err != nil {
+		return err
+	}
+	newView := newViewInterface.(*ShardView)
+
 	shardID := state.curView.ShardID
 	totalTxsFee := make(map[common.Hash]uint64)
 	for _, tx := range state.newBlock.Body.Transactions {
@@ -314,28 +321,28 @@ func (s *ShardCoreApp) buildHeader() error {
 	for _, value := range newBlock.Body.Instructions {
 		totalInstructions = append(totalInstructions, value...)
 	}
-	instructionsHash, err := v2.GenerateHashFromStringArray(totalInstructions)
+	instructionsHash, err := GenerateHashFromStringArray(totalInstructions)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.InstructionsHashError, err)
 	}
 
-	tempShardCommitteePubKeys, err := incognitokey.CommitteeKeyListToString(state.newView.ShardCommittee)
+	tempShardCommitteePubKeys, err := incognitokey.CommitteeKeyListToString(newView.ShardCommittee)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
 	}
-	committeeRoot, err := v2.GenerateHashFromStringArray(tempShardCommitteePubKeys)
+	committeeRoot, err := GenerateHashFromStringArray(tempShardCommitteePubKeys)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.CommitteeHashError, err)
 	}
-	tempShardPendintValidator, err := incognitokey.CommitteeKeyListToString(state.newView.ShardPendingValidator)
+	tempShardPendintValidator, err := incognitokey.CommitteeKeyListToString(newView.ShardPendingValidator)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
 	}
-	pendingValidatorRoot, err := v2.GenerateHashFromStringArray(tempShardPendintValidator)
+	pendingValidatorRoot, err := GenerateHashFromStringArray(tempShardPendintValidator)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.PendingValidatorRootError, err)
 	}
-	stakingTxRoot, err := v2.GenerateHashFromMapStringString(state.stakingTx)
+	stakingTxRoot, err := GenerateHashFromMapStringString(state.stakingTx)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.StakingTxHashError, err)
 	}

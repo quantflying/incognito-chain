@@ -35,7 +35,7 @@ func (s *ShardView) GetBlock() consensus.BlockInterface {
 	return s.Block
 }
 
-func (s *ShardView) UpdateViewWithBlock(block consensus.BlockInterface) error {
+func (s *ShardView) CreateNewViewFromBlock(block consensus.BlockInterface) (consensus.ChainViewInterface, error) {
 	panic("implement me")
 }
 

@@ -38,6 +38,7 @@ type BeaconApp interface {
 	preCreateBlock() error
 	buildInstructionByEpoch() error
 	buildInstructionFromShardAction() error
+
 	buildHeader() error
 
 	//crete view from block

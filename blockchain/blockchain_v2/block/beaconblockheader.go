@@ -11,6 +11,7 @@ type BeaconHeader struct {
 	Epoch             uint64      `json:"Epoch"`
 	Round             int         `json:"Round"`
 	Timestamp         int64       `json:"Timestamp"`
+	TimeSlot          uint64      `json:"Timeslot"`
 	PreviousBlockHash common.Hash `json:"PreviousBlockHash"`
 	InstructionHash   common.Hash `json:"InstructionHash"` // hash of all parameters == hash of instruction
 	ShardStateHash    common.Hash `json:"ShardStateHash"`  // each shard will have a list of blockHash, shardRoot is hash of all list

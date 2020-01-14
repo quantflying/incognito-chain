@@ -3,6 +3,8 @@ package block
 import (
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/incognitokey"
+	"time"
 )
 
 type BeaconCoreApp struct {
@@ -67,8 +69,17 @@ func (s *BeaconCoreApp) buildInstructionByEpoch() error {
 	}
 
 	//build random instruction
-	if curView.GetHeight()+1%curView.BC.GetChainParams().Epoch > curView.BC.GetChainParams().RandomTime && !state.isGettingRandomNumber {
+	if state.isGettingRandomNumber {
+		if err := s.buildRandomInstruction(); err != nil {
+			panic(err)
+		}
+	}
 
+	//build assign instruction
+	if curView.IsGettingRandomNumber && len(state.randomInstruction) >= 1 {
+		if err := s.buildAsssignInstruction(); err != nil {
+			panic(err)
+		}
 	}
 	return nil
 }
@@ -104,7 +115,130 @@ func (s *BeaconCoreApp) buildInstructionFromShardAction() error {
 	return nil
 }
 
-func (BeaconCoreApp) buildHeader() error {
+func (s *BeaconCoreApp) buildHeader() error {
+	curView := s.CreateState.curView
+
+	newBlock := s.CreateState.newBlock
+	newBlock.Header = BeaconHeader{}
+
+	//======Build Header Essential Data=======
+	newBlock.Header.Version = blockchain.BEACON_BLOCK_VERSION
+	newBlock.Header.Height = curView.GetHeight() + 1
+	if s.CreateState.isNewEpoch {
+		newBlock.Header.Epoch = curView.GetEpoch() + 1
+	}
+	newBlock.Header.ConsensusType = common.BlsConsensus2
+	newBlock.Header.Producer = s.CreateState.proposer
+	newBlock.Header.ProducerPubKeyStr = s.CreateState.proposer
+
+	newBlock.Header.Timestamp = s.CreateState.createTimeStamp
+	newBlock.Header.TimeSlot = s.CreateState.createTimeSlot
+	newBlock.Header.PreviousBlockHash = *curView.GetBlock().Hash()
+
+	//============Build Header Hash=============
+	// create new view
+	newViewInterface, err := curView.CreateNewViewFromBlock(newBlock)
+	if err != nil {
+		return err
+	}
+	newView := newViewInterface.(*BeaconView)
+	// BeaconValidator root: beacon committee + beacon pending committee
+	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconCommittee)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+	}
+	validatorArr := append([]string{}, beaconCommitteeStr...)
+
+	beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconPendingValidator)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+	}
+	validatorArr = append(validatorArr, beaconPendingValidatorStr...)
+	tempBeaconCommitteeAndValidatorRoot, err := GenerateHashFromStringArray(validatorArr)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.GenerateBeaconCommitteeAndValidatorRootError, err)
+	}
+	// BeaconCandidate root: beacon current candidate + beacon next candidate
+	beaconCandidateArr := append(newView.CandidateBeaconWaitingForCurrentRandom, newView.CandidateBeaconWaitingForNextRandom...)
+
+	beaconCandidateArrStr, err := incognitokey.CommitteeKeyListToString(beaconCandidateArr)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+	}
+	tempBeaconCandidateRoot, err := GenerateHashFromStringArray(beaconCandidateArrStr)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.GenerateBeaconCandidateRootError, err)
+	}
+	// Shard candidate root: shard current candidate + shard next candidate
+	shardCandidateArr := append(newView.CandidateShardWaitingForCurrentRandom, newView.CandidateShardWaitingForNextRandom...)
+
+	shardCandidateArrStr, err := incognitokey.CommitteeKeyListToString(shardCandidateArr)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+	}
+	tempShardCandidateRoot, err := GenerateHashFromStringArray(shardCandidateArrStr)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.GenerateShardCandidateRootError, err)
+	}
+	// Shard Validator root
+	shardPendingValidator := make(map[byte][]string)
+	for shardID, keys := range newView.ShardPendingCommittee {
+		keysStr, err := incognitokey.CommitteeKeyListToString(keys)
+		if err != nil {
+			return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+		}
+		shardPendingValidator[shardID] = keysStr
+	}
+
+	shardCommittee := make(map[byte][]string)
+	for shardID, keys := range newView.ShardCommittee {
+		keysStr, err := incognitokey.CommitteeKeyListToString(keys)
+		if err != nil {
+			return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+		}
+		shardCommittee[shardID] = keysStr
+	}
+
+	tempShardCommitteeAndValidatorRoot, err := GenerateHashFromMapByteString(shardPendingValidator, shardCommittee)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.GenerateShardCommitteeAndValidatorRootError, err)
+	}
+
+	tempAutoStakingRoot, err := GenerateHashFromMapStringBool(newView.AutoStaking)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.AutoStakingRootHashError, err)
+	}
+	// Shard state hash
+	tempShardStateHash, err := GenerateHashFromShardState(s.CreateState.shardStates)
+	if err != nil {
+		Logger.log.Error(err)
+		return blockchain.NewBlockChainError(blockchain.GenerateShardStateError, err)
+	}
+	// Instruction Hash
+	tempInstructionArr := []string{}
+	for _, strs := range s.CreateState.newBlock.Body.Instructions {
+		tempInstructionArr = append(tempInstructionArr, strs...)
+	}
+	tempInstructionHash, err := GenerateHashFromStringArray(tempInstructionArr)
+	if err != nil {
+		Logger.log.Error(err)
+		return blockchain.NewBlockChainError(blockchain.GenerateInstructionHashError, err)
+	}
+	// Instruction merkle root
+	flattenInsts, err := blockchain.FlattenAndConvertStringInst(s.CreateState.newBlock.Body.Instructions)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.FlattenAndConvertStringInstError, err)
+	}
+	// add hash to header
+	newBlock.Header.BeaconCommitteeAndValidatorRoot = tempBeaconCommitteeAndValidatorRoot
+	newBlock.Header.BeaconCandidateRoot = tempBeaconCandidateRoot
+	newBlock.Header.ShardCandidateRoot = tempShardCandidateRoot
+	newBlock.Header.ShardCommitteeAndValidatorRoot = tempShardCommitteeAndValidatorRoot
+	newBlock.Header.ShardStateHash = tempShardStateHash
+	newBlock.Header.InstructionHash = tempInstructionHash
+	newBlock.Header.AutoStakingRoot = tempAutoStakingRoot
+	copy(newBlock.Header.InstructionMerkleRoot[:], blockchain.GetKeccak256MerkleRoot(flattenInsts))
+	newBlock.Header.Timestamp = time.Now().Unix()
 	return nil
 }
 

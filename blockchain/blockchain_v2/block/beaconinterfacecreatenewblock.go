@@ -37,6 +37,11 @@ type CreateBeaconBlockState struct {
 	acceptedRewardInstructions       [][]string
 
 	beaconSwapInstruction [][]string
+
+	randomInstruction []string
+	randomNumber      int64
+
+	shardAssignInst [][]string
 }
 
 func (s *BeaconView) NewCreateState(ctx context.Context) *CreateBeaconBlockState {

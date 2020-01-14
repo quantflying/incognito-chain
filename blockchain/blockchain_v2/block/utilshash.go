@@ -1,4 +1,4 @@
-package blockchain_v2
+package block
 
 import (
 	"bytes"
@@ -104,7 +104,7 @@ func GenerateHashFromMapStringBool(maps1 map[string]bool) (common.Hash, error) {
 	}
 	return GenerateHashFromStringArray(res)
 }
-func GenerateHashFromShardState(allShardState map[byte][]blockchain.ShardState) (common.Hash, error) {
+func GenerateHashFromShardState(allShardState map[byte][]ShardState) (common.Hash, error) {
 	allShardStateStr := []string{}
 	var keys []int
 	for k := range allShardState {
@@ -171,7 +171,7 @@ func VerifyHashFromMapByteString(maps1 map[byte][]string, maps2 map[byte][]strin
 	return bytes.Equal(res.GetBytes(), hash.GetBytes())
 }
 
-func VerifyHashFromShardState(allShardState map[byte][]blockchain.ShardState, hash common.Hash) bool {
+func VerifyHashFromShardState(allShardState map[byte][]ShardState, hash common.Hash) bool {
 	res, err := GenerateHashFromShardState(allShardState)
 	if err != nil {
 		return false

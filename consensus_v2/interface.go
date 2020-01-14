@@ -105,32 +105,13 @@ type ChainViewManagerInterface interface {
 	GetChainName() string
 	GetShardID() int
 	GetGenesisTime() int64
-
-	// IsReady() bool                                         //TO_BE_DELETE
-	// GetActiveShardNumber() int                             //TO_BE_DELETE
-	// GetPubkeyRole(pubkey string, round int) (string, byte) //TO_BE_DELETE
-	// GetConsensusType() string                              //TO_BE_DELETE
-	// GetTimeStamp() int64                                   //TO_BE_DELETE
-	// GetMinBlkInterval() time.Duration                      //TO_BE_DELETE
-	// GetMaxBlkCreateTime() time.Duration                    //TO_BE_DELETE
-	// GetHeight() uint64                                     //TO_BE_DELETE
-	// GetCommitteeSize() int                                 //TO_BE_DELETE
-	// GetCommittee() []incognitokey.CommitteePublicKey       //TO_BE_DELETE
-	// GetPubKeyCommitteeIndex(string) int                    //TO_BE_DELETE
-	// GetLastProposerIndex() int                             //TO_BE_DELETE
-
 	UnmarshalBlock(blockString []byte) (BlockInterface, error)
-	ValidateBlockSignatures(block BlockInterface) error
-	ValidateBlockProposer(block BlockInterface) error
 	GetBestView() ChainViewInterface
 	GetFinalView() ChainViewInterface
 	GetAllViews() map[string]ChainViewInterface
 	GetViewByRange(from, to string) []ChainViewInterface
 	GetViewByHash(common.Hash) (ChainViewInterface, error)
-	GetAllTipBlocksHash() []*common.Hash
-	AddView(view ChainViewInterface) error
 	ConnectBlockAndAddView(block BlockInterface) error
-	CommitView(view ChainViewInterface) error
 }
 
 type ChainViewInterface interface {
@@ -157,7 +138,6 @@ type ChainViewInterface interface {
 	SetViewIsBest(isBest bool)
 
 	DeleteView() error
-	UpdateViewWithBlock(block BlockInterface) error
 	CloneViewFrom(view ChainViewInterface) error
 	CloneNewView() ChainViewInterface
 	GetNextProposer(uint64) string
