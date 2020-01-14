@@ -34,7 +34,7 @@ type BeaconView struct {
 
 	CurrentRandomTimeStamp int64
 	IsGettingRandomNumber  bool
-	AutoStaking            map[string]bool `json:"AutoStaking"`
+	AutoStaking            map[string]bool
 }
 
 func (s *BeaconView) GetAShardCommitee(shardID byte) []incognitokey.CommitteePublicKey {
