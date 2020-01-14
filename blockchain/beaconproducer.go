@@ -426,6 +426,7 @@ func (beaconBestState *BeaconBestState) GenerateInstruction(
 	instructions = append(instructions, stakeInstructions...)
 	// Stop Auto Staking
 	instructions = append(instructions, stopAutoStakingInstructions...)
+
 	// Random number for Assign Instruction
 	if newBeaconHeight%chainParamEpoch > randomTime && !beaconBestState.IsGetRandomNumber {
 		var err error

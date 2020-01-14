@@ -2,18 +2,20 @@ package block
 
 import (
 	"errors"
+	"fmt"
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
-func (s *BeaconCoreApp) buildInstructionFromBlock(s2bBlk *ShardToBeaconBlock) error {
+func buildInstructionFromBlock(s2bBlk *ShardToBeaconBlock, curView *BeaconView) ([][]string, []string, map[byte][][]string, []string, [][]string) {
 	shardID := s2bBlk.Header.ShardID
-	curView := s.CreateState.curView
 	instructions := s2bBlk.Instructions
 	shardStates := make(map[byte]ShardState)
 	stakeInstructions := [][]string{}
@@ -150,7 +152,7 @@ func (s *BeaconCoreApp) buildInstructionFromBlock(s2bBlk *ShardToBeaconBlock) er
 		stopAutoStakingInstructions = append(stopAutoStakingInstructions, []string{blockchain.StopAutoStake, strings.Join(stopAutoStakingPublicKeys, ",")})
 	}
 
-	return nil
+	return stakeInstructions, tempValidStakePublicKeys, swapInstructions, acceptedRewardInstructions, stopAutoStakingInstructions
 }
 
 func (s *BeaconView) getAllCommitteeValidatorCandidateFlattenList() []string {
@@ -265,20 +267,6 @@ func (s *BeaconView) GetValidStakers(stakers []string) []string {
 	return stakers
 }
 
-func getStakeValidatorArrayString(v []string) ([]string, []string) {
-	beacon := []string{}
-	shard := []string{}
-	if len(v) > 0 {
-		if v[0] == blockchain.StakeAction && v[2] == "beacon" {
-			beacon = strings.Split(v[1], ",")
-		}
-		if v[0] == blockchain.StakeAction && v[2] == "shard" {
-			shard = strings.Split(v[1], ",")
-		}
-	}
-	return beacon, shard
-}
-
 func (s *BeaconView) BuildInstRewardForBeacons(epoch uint64, totalReward map[common.Hash]uint64) ([][]string, error) {
 	resInst := [][]string{}
 	baseRewards := map[common.Hash]uint64{}
@@ -321,6 +309,77 @@ func (s *BeaconView) BuildInstRewardForIncDAO(epoch uint64, totalReward map[comm
 	}
 	resInst = append(resInst, devRewardInst)
 	return resInst, nil
+}
+
+func (s *BeaconCoreApp) buildRandomInstruction() (randomInst []string, err error) {
+	var chainTimeStamp int64
+	curView := s.CreateState.curView
+
+	if s.CreateState.isGettingRandomNumber {
+		chainTimeStamp, err = s.CreateState.bc.GetRandomClient().GetCurrentChainTimeStamp()
+	}
+
+	//==================================
+	if err == nil && chainTimeStamp > s.CurrentRandomTimeStamp {
+		numberOfPendingValidator := make(map[byte]int)
+		for i := 0; i < curView.GetActiveShardNumber(); i++ {
+			if pendingValidators, ok := curView.ShardPendingCommittee[byte(i)]; ok {
+				numberOfPendingValidator[byte(i)] = len(pendingValidators)
+			} else {
+				numberOfPendingValidator[byte(i)] = 0
+			}
+		}
+		randomInstruction, rand, err := beaconBestState.generateRandomInstruction(beaconBestState.CurrentRandomTimeStamp, blockchain.config.RandomClient)
+		if err != nil {
+			return [][]string{}, err
+		}
+		instructions = append(instructions, randomInstruction)
+		Logger.log.Infof("Beacon Producer found Random Instruction at Block Height %+v, %+v", randomInstruction, newBeaconHeight)
+		shardCandidatesStr, err := incognitokey.CommitteeKeyListToString(shardCandidates)
+		if err != nil {
+			panic(err)
+		}
+		_, assignedCandidates := assignShardCandidate(shardCandidatesStr, numberOfPendingValidator, rand, blockchain.config.ChainParams.AssignOffset, beaconBestState.ActiveShards)
+		var keys []int
+		for k := range assignedCandidates {
+			keys = append(keys, int(k))
+		}
+		sort.Ints(keys)
+		for _, key := range keys {
+			shardID := byte(key)
+			candidates := assignedCandidates[shardID]
+			Logger.log.Infof("Assign Candidate at Shard %+v: %+v", shardID, candidates)
+			shardAssingInstruction := []string{AssignAction}
+			shardAssingInstruction = append(shardAssingInstruction, strings.Join(candidates, ","))
+			shardAssingInstruction = append(shardAssingInstruction, "shard")
+			shardAssingInstruction = append(shardAssingInstruction, fmt.Sprintf("%v", shardID))
+			instructions = append(instructions, shardAssingInstruction)
+		}
+	}
+}
+
+func (s *BeaconView) buildChangeBeaconValidatorByEpoch() (instructions [][]string, err error) {
+	swapBeaconInstructions := []string{}
+
+	beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(s.BeaconPendingValidator)
+	if err != nil {
+		return
+	}
+	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(s.BeaconCommittee)
+	if err != nil {
+		return
+	}
+
+	_, _, swappedValidator, beaconNextCommittee, err := SwapValidator(beaconPendingValidatorStr, beaconCommitteeStr, s.BC.GetChainParams().MaxBeaconCommitteeSize, s.BC.GetChainParams().MinBeaconCommitteeSize, s.BC.GetChainParams().Offset, map[string]uint8{}, s.BC.GetChainParams().SwapOffset)
+
+	if len(swappedValidator) > 0 || len(beaconNextCommittee) > 0 && err == nil {
+		swapBeaconInstructions = append(swapBeaconInstructions, "swap")
+		swapBeaconInstructions = append(swapBeaconInstructions, strings.Join(beaconNextCommittee, ","))
+		swapBeaconInstructions = append(swapBeaconInstructions, strings.Join(swappedValidator, ","))
+		swapBeaconInstructions = append(swapBeaconInstructions, "beacon")
+		instructions = append(instructions, swapBeaconInstructions)
+	}
+	return
 }
 
 func (s *BeaconView) getRewardInstByEpoch() ([][]string, error) {

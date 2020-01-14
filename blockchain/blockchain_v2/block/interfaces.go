@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/database"
@@ -9,6 +10,7 @@ import (
 	"github.com/incognitochain/incognito-chain/mempool"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
+	"time"
 )
 
 type ShardApp interface {
@@ -98,9 +100,33 @@ type BlockChain interface {
 	GetCommitteeReward(committeeAddress []byte, tokenID common.Hash) (uint64, error)
 	InitTxSalaryByCoinID(payToAddress *privacy.PaymentAddress, amount uint64, payByPrivateKey *privacy.PrivateKey, meta metadata.Metadata, coinID common.Hash, shardID byte) (metadata.Transaction, error)
 	metadata.BlockchainRetriever
+
+	GetRandomClient() btc.RandomClient
+}
+
+type FakeRandomClient struct{}
+
+func (FakeRandomClient) GetNonceByTimestamp(startTime time.Time, maxTime time.Duration, timestamp int64) (int, int64, int64, error) {
+	panic("implement me")
+}
+
+func (FakeRandomClient) VerifyNonceWithTimestamp(startTime time.Time, maxTime time.Duration, timestamp int64, nonce int64) (bool, error) {
+	panic("implement me")
+}
+
+func (FakeRandomClient) GetCurrentChainTimeStamp() (int64, error) {
+	return time.Now().Unix(), nil
+}
+
+func (FakeRandomClient) GetTimeStampAndNonceByBlockHeight(blockHeight int) (int64, int64, error) {
+	panic("implement me")
 }
 
 type FakeBC struct {
+}
+
+func (FakeBC) GetRandomClient() btc.RandomClient {
+	return FakeRandomClient{}
 }
 
 func (FakeBC) GetBeaconHeightBreakPointBurnAddr() uint64 {

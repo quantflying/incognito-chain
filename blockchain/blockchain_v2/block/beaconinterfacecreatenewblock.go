@@ -21,11 +21,22 @@ type CreateBeaconBlockState struct {
 	createTimeSlot  uint64
 	proposer        string
 
-	isNewEpoch bool
-	isEndEpoch bool
-	s2bBlks    map[byte][]*ShardToBeaconBlock
+	isNewEpoch            bool
+	isEndEpoch            bool
+	isFinalBlockInEpoch   bool
+	isGettingRandomNumber bool
+	s2bBlks               map[byte][]*ShardToBeaconBlock
 
 	rewardInstByEpoch [][]string
+
+	shardStates                      map[byte][]ShardState
+	validStakeInstructions           [][]string
+	validStakePublicKeys             []string
+	validStopAutoStakingInstructions [][]string
+	validSwapInstructions            map[byte][][]string
+	acceptedRewardInstructions       [][]string
+
+	beaconSwapInstruction [][]string
 }
 
 func (s *BeaconView) NewCreateState(ctx context.Context) *CreateBeaconBlockState {
