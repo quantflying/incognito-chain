@@ -23,8 +23,8 @@ type CreateBeaconBlockState struct {
 
 	isNewEpoch            bool
 	isEndEpoch            bool
-	isFinalBlockInEpoch   bool
 	isGettingRandomNumber bool
+	isRandomTime          bool
 	s2bBlks               map[byte][]*ShardToBeaconBlock
 
 	rewardInstByEpoch [][]string

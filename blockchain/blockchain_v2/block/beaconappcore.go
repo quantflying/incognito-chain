@@ -25,14 +25,14 @@ func (s *BeaconCoreApp) preCreateBlock() error {
 	state.s2bBlks = make(map[byte][]*ShardToBeaconBlock)
 
 	//newEpoch? endEpoch? finalBlockInEpoch?
-	if curView.GetHeight()+1%curView.BC.GetChainParams().Epoch == 1 {
+	if (curView.GetHeight()+1)%curView.BC.GetChainParams().Epoch == 1 {
 		state.isNewEpoch = true
 	}
-	if curView.GetHeight()+1%curView.BC.GetChainParams().Epoch == 0 {
+	if (curView.GetHeight()+1)%curView.BC.GetChainParams().Epoch == 0 {
 		state.isEndEpoch = true
 	}
-	if curView.GetHeight()%curView.BC.GetChainParams().Epoch == curView.BC.GetChainParams().Epoch-1 {
-		state.isFinalBlockInEpoch = true
+	if (curView.GetHeight()+1)%curView.BC.GetChainParams().Epoch == curView.BC.GetChainParams().RandomTime {
+		state.isRandomTime = true
 	}
 
 	//shardstates
@@ -72,13 +72,13 @@ func (s *BeaconCoreApp) buildInstructionByEpoch() error {
 	}
 
 	//build random instruction
-	if state.isGettingRandomNumber {
+	if curView.IsGettingRandomNumber {
 		if err := s.buildRandomInstruction(); err != nil {
 			panic(err)
 		}
 	}
 
-	//build assign instruction
+	//build assign instruction - if getting random number and get one random
 	if curView.IsGettingRandomNumber && len(state.randomInstruction) >= 1 {
 		if err := s.buildAsssignInstruction(); err != nil {
 			panic(err)
@@ -247,17 +247,20 @@ func (s *BeaconCoreApp) buildHeader() error {
 
 func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 	newView := s.CreateState.newView
+	//curView := s.CreateState.curView
 	newShardCandidates := []incognitokey.CommitteePublicKey{}
 	newBeaconCandidates := []incognitokey.CommitteePublicKey{}
-
+	randomFlag := false
 	for _, inst := range block.Body.Instructions {
 		switch instructionType(inst) {
 		case RandomInst:
-			newView.CurrentRandomNumber, err = extractRandomInst(inst)
-			if err != nil {
-				return blockchain.NewBlockChainError(blockchain.ProcessRandomInstructionError, err)
+			if newView.IsGettingRandomNumber { //only process if in getting random number
+				newView.CurrentRandomNumber, err = extractRandomInst(inst)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.ProcessRandomInstructionError, err)
+				}
+				randomFlag = true
 			}
-			//TODO: something else
 		case StopAutoStakeInst:
 			stopAutoCommittees := extractStopAutoStakeInst(inst)
 			for _, committeePublicKey := range stopAutoCommittees {
@@ -454,17 +457,76 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 		default:
 			return errors.New("Unknown Instruction")
 		}
-
-		newView.CandidateShardWaitingForNextRandom = append(newView.CandidateShardWaitingForNextRandom, newShardCandidates...)
-		newView.CandidateShardWaitingForNextRandom = append(newView.CandidateShardWaitingForNextRandom, newShardCandidates...)
 	}
-	//update beacon committee
 
-	//update shard commiteee
+	//process newShardCandidates, newBeaconCandidates
+	// update candidate list after processing instructions
+	newView.CandidateBeaconWaitingForNextRandom = append(newView.CandidateBeaconWaitingForNextRandom, newBeaconCandidates...)
+	newView.CandidateShardWaitingForNextRandom = append(newView.CandidateShardWaitingForNextRandom, newShardCandidates...)
 
-	//update random number state
+	if s.CreateState.isEndEpoch {
+		// Begin of each epoch
+		newView.IsGettingRandomNumber = false
+		// Before get random from bitcoin
+	}
 
-	//update auto staking
+	if s.CreateState.isRandomTime {
+		newView.IsGettingRandomNumber = true
+		// snapshot candidate list
+		newView.CandidateShardWaitingForCurrentRandom = append(newView.CandidateShardWaitingForCurrentRandom, newView.CandidateShardWaitingForNextRandom...)
+		newView.CandidateBeaconWaitingForCurrentRandom = append(newView.CandidateBeaconWaitingForCurrentRandom, newView.CandidateBeaconWaitingForNextRandom...)
+		Logger.log.Info("Beacon Process: CandidateShardWaitingForCurrentRandom: ", newView.CandidateShardWaitingForCurrentRandom)
+		Logger.log.Info("Beacon Process: CandidateBeaconWaitingForCurrentRandom: ", newView.CandidateBeaconWaitingForCurrentRandom)
+		// reset candidate list
+		newView.CandidateShardWaitingForNextRandom = []incognitokey.CommitteePublicKey{}
+		newView.CandidateBeaconWaitingForNextRandom = []incognitokey.CommitteePublicKey{}
+		// assign random timestamp
+		newView.CurrentRandomTimeStamp = s.CreateState.createTimeStamp
+	}
+
+	// if get new random number
+	// Assign candidate to shard
+	// assign CandidateShardWaitingForCurrentRandom to ShardPendingValidator with CurrentRandom
+	if randomFlag {
+		numberOfPendingValidator := make(map[byte]int)
+		for shardID, pendingValidators := range newView.ShardPendingValidator {
+			numberOfPendingValidator[shardID] = len(pendingValidators)
+		}
+
+		shardCandidatesStr, err := incognitokey.CommitteeKeyListToString(newView.CandidateShardWaitingForCurrentRandom)
+		if err != nil {
+			panic(err)
+		}
+
+		remainShardCandidatesStr, assignedCandidates := assignShardCandidate(shardCandidatesStr, numberOfPendingValidator, newView.CurrentRandomNumber, newView.BC.GetChainParams().AssignOffset, newView.GetActiveShard())
+		remainShardCandidates, err := incognitokey.CommitteeBase58KeyListToStruct(remainShardCandidatesStr)
+		if err != nil {
+			panic(err)
+		}
+
+		// append remain candidate into shard waiting for next random list
+		newView.CandidateShardWaitingForNextRandom = append(newView.CandidateShardWaitingForNextRandom, remainShardCandidates...)
+		// assign candidate into shard pending validator list
+		for shardID, candidateListStr := range assignedCandidates {
+			candidateList, err := incognitokey.CommitteeBase58KeyListToStruct(candidateListStr)
+			if err != nil {
+				panic(err)
+			}
+			newView.ShardPendingValidator[shardID] = append(newView.ShardPendingValidator[shardID], candidateList...)
+		}
+
+		// delete CandidateShardWaitingForCurrentRandom list
+		newView.CandidateShardWaitingForCurrentRandom = []incognitokey.CommitteePublicKey{}
+		// Shuffle candidate
+		// shuffle CandidateBeaconWaitingForCurrentRandom with current random number
+		newBeaconPendingValidator, err := ShuffleCandidate(newView.CandidateBeaconWaitingForCurrentRandom, newView.CurrentRandomNumber)
+		if err != nil {
+			return blockchain.NewBlockChainError(blockchain.ShuffleBeaconCandidateError, err)
+		}
+		newView.CandidateBeaconWaitingForCurrentRandom = []incognitokey.CommitteePublicKey{}
+		newView.BeaconPendingValidator = append(newView.BeaconPendingValidator, newBeaconPendingValidator...)
+	}
+
 	return nil
 }
 
