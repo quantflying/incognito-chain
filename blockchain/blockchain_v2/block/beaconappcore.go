@@ -246,6 +246,7 @@ func (s *BeaconCoreApp) buildHeader() error {
 }
 
 func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
+	s.CreateState.newView.Block = block
 	newView := s.CreateState.newView
 	//curView := s.CreateState.curView
 	newShardCandidates := []incognitokey.CommitteePublicKey{}

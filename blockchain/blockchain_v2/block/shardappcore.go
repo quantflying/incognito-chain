@@ -469,5 +469,12 @@ func (s *ShardCoreApp) storeDatabase(state *StoreDatabaseState) error {
 
 func (s *ShardCoreApp) updateNewViewFromBlock(block *ShardBlock) error {
 	s.CreateState.newView.Block = block
+	newView := s.CreateState.newView
+	//curView := s.CreateState.curView
+	for _, inst := range block.Body.Instructions {
+		switch instructionType(inst) {
+
+		}
+	}
 	return nil
 }
