@@ -165,7 +165,7 @@ func (s *BeaconView) getAllCommitteeValidatorCandidateFlattenList() []string {
 		}
 		res = append(res, committeeStr...)
 	}
-	for _, pendingValidator := range s.ShardPendingCommittee {
+	for _, pendingValidator := range s.ShardPendingValidator {
 		pendingValidatorStr, err := incognitokey.CommitteeKeyListToString(pendingValidator)
 		if err != nil {
 			panic(err)
@@ -222,7 +222,7 @@ func (s *BeaconView) GetValidStakers(stakers []string) []string {
 		}
 		stakers = common.GetValidStaker(committeesStr, stakers)
 	}
-	for _, validators := range s.ShardPendingCommittee {
+	for _, validators := range s.ShardPendingValidator {
 		validatorsStr, err := incognitokey.CommitteeKeyListToString(validators)
 		if err != nil {
 			panic(err)
@@ -317,7 +317,7 @@ func (s *BeaconCoreApp) buildAsssignInstruction() (err error) {
 	instructions := [][]string{}
 	numberOfPendingValidator := make(map[byte]int)
 	for i := 0; i < curView.GetActiveShard(); i++ {
-		if pendingValidators, ok := curView.ShardPendingCommittee[byte(i)]; ok {
+		if pendingValidators, ok := curView.ShardPendingValidator[byte(i)]; ok {
 			numberOfPendingValidator[byte(i)] = len(pendingValidators)
 		} else {
 			numberOfPendingValidator[byte(i)] = 0
@@ -529,4 +529,81 @@ func splitReward(
 		return nil, nil, blockchain.NewBlockChainError(blockchain.NotEnoughRewardError, errors.New("Not enough reward"))
 	}
 	return &rewardForBeacon, &rewardForIncDAO, nil
+}
+
+const (
+	RandomInst        = "RandomInst"
+	StopAutoStakeInst = "StopAutoStakeInst"
+	ShardSwapInst     = "ShardSwapInst"
+	BeaconSwapInst    = "BeaconSwapInst"
+	BeaconStakeInst   = "BeaconStakeInst"
+	ShardStakeInst    = "ShardStakeInst"
+)
+
+func instructionType(instruction []string) string {
+	if instruction[0] == blockchain.RandomAction {
+		return RandomInst
+	}
+	if instruction[0] == blockchain.StopAutoStake {
+		return StopAutoStakeInst
+	}
+	if instruction[0] == blockchain.SwapAction {
+		if instruction[3] == "shard" {
+			return ShardSwapInst
+		}
+		if instruction[3] == "beacon" {
+			return BeaconSwapInst
+		}
+	}
+	if instruction[0] == blockchain.StakeAction && instruction[2] == "beacon" {
+		return BeaconStakeInst
+	}
+	if instruction[0] == blockchain.StakeAction && instruction[2] == "shard" {
+		return ShardStakeInst
+	}
+	return ""
+}
+
+func extractRandomInst(instruction []string) (rand int64, err error) {
+	temp, err := strconv.Atoi(instruction[1])
+	if err != nil {
+		return 0, err
+	}
+	return int64(temp), nil
+}
+
+func extractStopAutoStakeInst(instruction []string) (stopAutoCommittees []string) {
+	committeePublicKeys := strings.Split(instruction[1], ",")
+	return committeePublicKeys
+}
+
+func extractBeaconSwapInst(instruction []string) (inPublicKeys []string, outPublicKeys []string, err error) {
+	inPublickeys := strings.Split(instruction[1], ",")
+	outPublickeys := strings.Split(instruction[2], ",")
+	return inPublickeys, outPublickeys, nil
+}
+
+func extractShardSwapInst(instruction []string) (inPublicKeys []string, outPublicKeys []string, shardID byte, err error) {
+	inPublickeys := strings.Split(instruction[1], ",")
+	outPublickeys := strings.Split(instruction[2], ",")
+	temp, err := strconv.Atoi(instruction[4])
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	shardID = byte(temp)
+	return inPublickeys, outPublickeys, shardID, nil
+}
+
+func extractBeaconStakeInst(instruction []string) ([]string, []string, []string) {
+	beaconCandidates := strings.Split(instruction[1], ",")
+	beaconRewardReceivers := strings.Split(instruction[4], ",")
+	beaconAutoReStaking := strings.Split(instruction[5], ",")
+	return beaconCandidates, beaconRewardReceivers, beaconAutoReStaking
+}
+
+func extractShardStakeInst(instruction []string) ([]string, []string, []string) {
+	shardCandidates := strings.Split(instruction[1], ",")
+	shardRewardReceivers := strings.Split(instruction[4], ",")
+	shardAutoReStaking := strings.Split(instruction[5], ",")
+	return shardCandidates, shardRewardReceivers, shardAutoReStaking
 }

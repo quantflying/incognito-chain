@@ -1,9 +1,12 @@
 package block
 
 import (
+	"errors"
+	"fmt"
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
+
 	"time"
 )
 
@@ -182,7 +185,7 @@ func (s *BeaconCoreApp) buildHeader() error {
 	}
 	// Shard Validator root
 	shardPendingValidator := make(map[byte][]string)
-	for shardID, keys := range newView.ShardPendingCommittee {
+	for shardID, keys := range newView.ShardPendingValidator {
 		keysStr, err := incognitokey.CommitteeKeyListToString(keys)
 		if err != nil {
 			return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
@@ -242,7 +245,226 @@ func (s *BeaconCoreApp) buildHeader() error {
 	return nil
 }
 
-func (BeaconCoreApp) createNewViewFromBlock(curView *BeaconView, block *BeaconBlock, newView *BeaconView) error {
+func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
+	newView := s.CreateState.newView
+	newShardCandidates := []incognitokey.CommitteePublicKey{}
+	newBeaconCandidates := []incognitokey.CommitteePublicKey{}
+
+	for _, inst := range block.Body.Instructions {
+		switch instructionType(inst) {
+		case RandomInst:
+			newView.CurrentRandomNumber, err = extractRandomInst(inst)
+			if err != nil {
+				return blockchain.NewBlockChainError(blockchain.ProcessRandomInstructionError, err)
+			}
+			//TODO: something else
+		case StopAutoStakeInst:
+			stopAutoCommittees := extractStopAutoStakeInst(inst)
+			for _, committeePublicKey := range stopAutoCommittees {
+				allCommitteeValidatorCandidate := newView.getAllCommitteeValidatorCandidateFlattenList()
+				// check existence in all committee list
+				if common.IndexOfStr(committeePublicKey, allCommitteeValidatorCandidate) == -1 {
+					// if not found then delete auto staking data for this public key if present
+					if _, ok := newView.AutoStaking[committeePublicKey]; ok {
+						delete(newView.AutoStaking, committeePublicKey)
+					}
+				} else {
+					// if found in committee list then turn off auto staking
+					if _, ok := newView.AutoStaking[committeePublicKey]; ok {
+						newView.AutoStaking[committeePublicKey] = false
+					}
+				}
+			}
+		case ShardSwapInst:
+			in, out, shardID, err := extractShardSwapInst(inst)
+			if err != nil {
+				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+			}
+
+			// delete in public key out of sharding pending validator list
+			if len(in) > 0 {
+				shardPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(newView.ShardPendingValidator[shardID])
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				tempShardPendingValidator, err := RemoveValidator(shardPendingValidatorStr, in)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+				}
+				// update shard pending validator
+				newView.ShardPendingValidator[shardID], err = incognitokey.CommitteeBase58KeyListToStruct(tempShardPendingValidator)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+				}
+				// add new public key to committees
+				inPublickeyStructs, err := incognitokey.CommitteeBase58KeyListToStruct(in)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				newView.ShardCommittee[shardID] = append(newView.ShardCommittee[shardID], inPublickeyStructs...)
+			}
+
+			// delete out public key out of current committees
+			if len(out) > 0 {
+				outPublickeyStructs, err := incognitokey.CommitteeBase58KeyListToStruct(out)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+
+				shardCommitteeStr, err := incognitokey.CommitteeKeyListToString(newView.ShardCommittee[shardID])
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				tempShardCommittees, err := RemoveValidator(shardCommitteeStr, out)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+				}
+				// remove old public key in shard committee update shard committee
+				newView.ShardCommittee[shardID], err = incognitokey.CommitteeBase58KeyListToStruct(tempShardCommittees)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				// Check auto stake in out public keys list
+				// if auto staking not found or flag auto stake is false then do not re-stake for this out public key
+				// if auto staking flag is true then system will automatically add this out public key to current candidate list
+				for index, outPublicKey := range out {
+					if isAutoRestaking, ok := newView.AutoStaking[outPublicKey]; !ok {
+						if _, ok := newView.RewardReceiver[outPublicKey]; ok {
+							delete(newView.RewardReceiver, outPublickeyStructs[index].GetIncKeyBase58())
+						}
+						continue
+					} else {
+						if !isAutoRestaking {
+							// delete this flag for next time staking
+							delete(newView.RewardReceiver, outPublickeyStructs[index].GetIncKeyBase58())
+							delete(newView.AutoStaking, outPublicKey)
+						} else {
+							shardCandidate, err := incognitokey.CommitteeBase58KeyListToStruct([]string{outPublicKey})
+							if err != nil {
+								return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+							}
+							newShardCandidates = append(newShardCandidates, shardCandidate...)
+						}
+					}
+				}
+			}
+
+		case BeaconSwapInst:
+			in, out, err := extractBeaconSwapInst(inst)
+			if err != nil {
+				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+			}
+			if len(in) > 0 {
+				beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconPendingValidator)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				tempBeaconPendingValidator, err := RemoveValidator(beaconPendingValidatorStr, in)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+				}
+				// update beacon pending validator
+				newView.BeaconPendingValidator, err = incognitokey.CommitteeBase58KeyListToStruct(tempBeaconPendingValidator)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				// add new public key to beacon committee
+				inPublickeyStructs, err := incognitokey.CommitteeBase58KeyListToStruct(in)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				newView.BeaconCommittee = append(newView.BeaconCommittee, inPublickeyStructs...)
+			}
+
+			if len(out) > 0 {
+				outPublickeyStructs, err := incognitokey.CommitteeBase58KeyListToStruct(out)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconCommittee)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				tempBeaconCommittes, err := RemoveValidator(beaconCommitteeStr, out)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+				}
+				// remove old public key in beacon committee and update beacon best state
+				newView.BeaconCommittee, err = incognitokey.CommitteeBase58KeyListToStruct(tempBeaconCommittes)
+				if err != nil {
+					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				}
+				for index, outPublicKey := range out {
+					if isAutoRestaking, ok := newView.AutoStaking[outPublicKey]; !ok {
+						if _, ok := newView.RewardReceiver[outPublicKey]; ok {
+							delete(newView.RewardReceiver, outPublickeyStructs[index].GetIncKeyBase58())
+						}
+						continue
+					} else {
+						if !isAutoRestaking {
+							delete(newView.RewardReceiver, outPublickeyStructs[index].GetIncKeyBase58())
+							delete(newView.AutoStaking, outPublicKey)
+						} else {
+							beaconCandidate, err := incognitokey.CommitteeBase58KeyListToStruct([]string{outPublicKey})
+							if err != nil {
+								return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+							}
+							newBeaconCandidates = append(newBeaconCandidates, beaconCandidate...)
+						}
+					}
+				}
+			}
+		case BeaconStakeInst:
+			beaconCandidates, beaconRewardReceivers, beaconAutoReStaking := extractBeaconStakeInst(inst)
+			beaconCandidatesStructs, err := incognitokey.CommitteeBase58KeyListToStruct(beaconCandidates)
+			if err != nil {
+				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+			}
+			if len(beaconCandidatesStructs) != len(beaconRewardReceivers) && len(beaconRewardReceivers) != len(beaconAutoReStaking) {
+				return blockchain.NewBlockChainError(blockchain.StakeInstructionError, fmt.Errorf("Expect Beacon Candidate (length %+v) and Beacon Reward Receiver (length %+v) and Beacon Auto ReStaking (lenght %+v) have equal length"))
+			}
+			for index, candidate := range beaconCandidatesStructs {
+				newView.RewardReceiver[candidate.GetIncKeyBase58()] = beaconRewardReceivers[index]
+				if beaconAutoReStaking[index] == "true" {
+					newView.AutoStaking[beaconCandidates[index]] = true
+				} else {
+					newView.AutoStaking[beaconCandidates[index]] = false
+				}
+			}
+			newBeaconCandidates = append(newBeaconCandidates, beaconCandidatesStructs...)
+			return nil
+		case ShardStakeInst:
+			shardCandidates, shardRewardReceivers, shardAutoReStaking := extractShardStakeInst(inst)
+			shardCandidatesStructs, err := incognitokey.CommitteeBase58KeyListToStruct(shardCandidates)
+			if err != nil {
+				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+			}
+			if len(shardCandidates) != len(shardRewardReceivers) && len(shardRewardReceivers) != len(shardAutoReStaking) {
+				return blockchain.NewBlockChainError(blockchain.StakeInstructionError, fmt.Errorf("Expect Beacon Candidate (length %+v) and Beacon Reward Receiver (length %+v) and Shard Auto ReStaking (length %+v) have equal length"))
+			}
+			for index, candidate := range shardCandidatesStructs {
+				newView.RewardReceiver[candidate.GetIncKeyBase58()] = shardRewardReceivers[index]
+				if shardAutoReStaking[index] == "true" {
+					newView.AutoStaking[shardCandidates[index]] = true
+				} else {
+					newView.AutoStaking[shardCandidates[index]] = false
+				}
+			}
+			newShardCandidates = append(newShardCandidates, shardCandidatesStructs...)
+		default:
+			return errors.New("Unknown Instruction")
+		}
+
+		newView.CandidateShardWaitingForNextRandom = append(newView.CandidateShardWaitingForNextRandom, newShardCandidates...)
+		newView.CandidateShardWaitingForNextRandom = append(newView.CandidateShardWaitingForNextRandom, newShardCandidates...)
+	}
+	//update beacon committee
+
+	//update shard commiteee
+
+	//update random number state
+
+	//update auto staking
 	return nil
 }
 

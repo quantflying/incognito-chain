@@ -24,7 +24,7 @@ type ShardApp interface {
 	buildHeader() error
 
 	//crete view from block
-	createNewViewFromBlock(curView *ShardView, block *ShardBlock, newView *ShardView) error
+	updateNewViewFromBlock(block *ShardBlock) error
 
 	//validate block
 	preValidate() error
@@ -42,7 +42,7 @@ type BeaconApp interface {
 	buildHeader() error
 
 	//crete view from block
-	createNewViewFromBlock(curView *BeaconView, block *BeaconBlock, newView *BeaconView) error
+	updateNewViewFromBlock(block *BeaconBlock) error
 
 	//validate block
 	preValidate() error

@@ -84,7 +84,14 @@ func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, propos
 			return nil, err
 		}
 	}
+
 	createState.newBlock = &BeaconBlock{}
+
+	for _, app := range createState.app {
+		if err := app.updateNewViewFromBlock(createState.newBlock); err != nil {
+			return nil, err
+		}
+	}
 
 	//build shard header
 	for _, app := range createState.app {

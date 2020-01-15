@@ -111,6 +111,12 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 		},
 	}
 
+	for _, app := range createState.app {
+		if err := app.updateNewViewFromBlock(createState.newBlock); err != nil {
+			return nil, err
+		}
+	}
+
 	//build shard header
 	for _, app := range createState.app {
 		if err := app.buildHeader(); err != nil {

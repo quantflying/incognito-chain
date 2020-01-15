@@ -25,7 +25,7 @@ type BeaconView struct {
 	BeaconPendingValidator []incognitokey.CommitteePublicKey
 
 	ShardCommittee        map[byte][]incognitokey.CommitteePublicKey
-	ShardPendingCommittee map[byte][]incognitokey.CommitteePublicKey
+	ShardPendingValidator map[byte][]incognitokey.CommitteePublicKey
 
 	CandidateBeaconWaitingForCurrentRandom []incognitokey.CommitteePublicKey
 	CandidateBeaconWaitingForNextRandom    []incognitokey.CommitteePublicKey
@@ -34,7 +34,10 @@ type BeaconView struct {
 
 	CurrentRandomTimeStamp int64
 	IsGettingRandomNumber  bool
-	AutoStaking            map[string]bool
+	CurrentRandomNumber    int64
+
+	RewardReceiver map[string]string // map incognito public key -> reward receiver (payment address)
+	AutoStaking    map[string]bool
 }
 
 func (s *BeaconView) GetAShardCommitee(shardID byte) []incognitokey.CommitteePublicKey {

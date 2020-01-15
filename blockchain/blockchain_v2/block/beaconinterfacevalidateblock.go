@@ -49,12 +49,33 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block co
 
 	if isPreSign {
 		createState.newBlock = &BeaconBlock{}
+		for _, app := range createState.app {
+			if err := app.buildInstructionFromShardAction(); err != nil {
+				return nil, err
+			}
+		}
+
+		for _, app := range createState.app {
+			if err := app.buildInstructionByEpoch(); err != nil {
+				return nil, err
+			}
+		}
+
+		createState.newBlock = &BeaconBlock{}
+		//TODO: compare body content
+		for _, app := range createState.app {
+			if err := app.updateNewViewFromBlock(createState.newBlock); err != nil {
+				return nil, err
+			}
+		}
+
 		//build shard header
 		for _, app := range createState.app {
 			if err := app.buildHeader(); err != nil {
 				return nil, err
 			}
 		}
+
 		//TODO: compare new view related content in header
 		validateState.newView = createState.newView
 	} else {
@@ -68,14 +89,15 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block co
 			panic(1)
 			return nil, err
 		}
-		newView := s.CloneNewView().(*BeaconView)
+
+		createState.newView = s.CloneNewView().(*BeaconView)
 		for _, app := range createState.app {
-			if err := app.createNewViewFromBlock(s, block.(*BeaconBlock), newView); err != nil {
+			if err := app.updateNewViewFromBlock(block.(*BeaconBlock)); err != nil {
 				return nil, err
 			}
 		}
-		//compare header content, with newview
-		validateState.newView = newView
+		validateState.newView = createState.newView
+		//TODO: compare header content, with newview, necessary???
 	}
 
 	return validateState.newView, nil

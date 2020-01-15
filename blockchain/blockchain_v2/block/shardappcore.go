@@ -467,7 +467,7 @@ func (s *ShardCoreApp) storeDatabase(state *StoreDatabaseState) error {
 	return nil
 }
 
-func (s *ShardCoreApp) createNewViewFromBlock(curView *ShardView, block *ShardBlock, newView *ShardView) error {
-	newView.Block = block
+func (s *ShardCoreApp) updateNewViewFromBlock(block *ShardBlock) error {
+	s.CreateState.newView.Block = block
 	return nil
 }
