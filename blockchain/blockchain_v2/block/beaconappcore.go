@@ -465,7 +465,7 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 	newView.CandidateBeaconWaitingForNextRandom = append(newView.CandidateBeaconWaitingForNextRandom, newBeaconCandidates...)
 	newView.CandidateShardWaitingForNextRandom = append(newView.CandidateShardWaitingForNextRandom, newShardCandidates...)
 
-	if s.CreateState.isEndEpoch {
+	if s.CreateState.isNewEpoch {
 		// Begin of each epoch
 		newView.IsGettingRandomNumber = false
 		// Before get random from bitcoin
@@ -489,6 +489,7 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 	// Assign candidate to shard
 	// assign CandidateShardWaitingForCurrentRandom to ShardPendingValidator with CurrentRandom
 	if randomFlag {
+		newView.IsGettingRandomNumber = false
 		numberOfPendingValidator := make(map[byte]int)
 		for shardID, pendingValidators := range newView.ShardPendingValidator {
 			numberOfPendingValidator[shardID] = len(pendingValidators)
