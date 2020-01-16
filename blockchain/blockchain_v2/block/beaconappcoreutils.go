@@ -538,6 +538,7 @@ const (
 	BeaconSwapInst    = "BeaconSwapInst"
 	BeaconStakeInst   = "BeaconStakeInst"
 	ShardStakeInst    = "ShardStakeInst"
+	ShardAssignInst   = "ShardAssignInst"
 )
 
 func instructionType(instruction []string) string {
@@ -561,9 +562,15 @@ func instructionType(instruction []string) string {
 	if instruction[0] == blockchain.StakeAction && instruction[2] == "shard" {
 		return ShardStakeInst
 	}
+
+	if instruction[0] == blockchain.AssignAction && instruction[2] == "shard" {
+		return ShardAssignInst
+	}
+
 	return ""
 }
 
+//from beacon
 func extractRandomInst(instruction []string) (rand int64, err error) {
 	temp, err := strconv.Atoi(instruction[1])
 	if err != nil {
@@ -577,10 +584,10 @@ func extractStopAutoStakeInst(instruction []string) (stopAutoCommittees []string
 	return committeePublicKeys
 }
 
-func extractBeaconSwapInst(instruction []string) (inPublicKeys []string, outPublicKeys []string, err error) {
+func extractBeaconSwapInst(instruction []string) (inPublicKeys []string, outPublicKeys []string) {
 	inPublickeys := strings.Split(instruction[1], ",")
 	outPublickeys := strings.Split(instruction[2], ",")
-	return inPublickeys, outPublickeys, nil
+	return inPublickeys, outPublickeys
 }
 
 func extractShardSwapInst(instruction []string) (inPublicKeys []string, outPublicKeys []string, shardID byte, err error) {
@@ -594,16 +601,31 @@ func extractShardSwapInst(instruction []string) (inPublicKeys []string, outPubli
 	return inPublickeys, outPublickeys, shardID, nil
 }
 
-func extractBeaconStakeInst(instruction []string) ([]string, []string, []string) {
-	beaconCandidates := strings.Split(instruction[1], ",")
-	beaconRewardReceivers := strings.Split(instruction[4], ",")
-	beaconAutoReStaking := strings.Split(instruction[5], ",")
-	return beaconCandidates, beaconRewardReceivers, beaconAutoReStaking
+func extractBeaconStakeInst(instruction []string) (beaconCandidates []string, stakeTx []string, beaconRewardReceivers []string, beaconAutoReStaking []string) {
+	beaconCandidates = strings.Split(instruction[1], ",")
+	stakeTx = strings.Split(instruction[3], ",")
+	beaconRewardReceivers = strings.Split(instruction[4], ",")
+	beaconAutoReStaking = strings.Split(instruction[5], ",")
+	return
 }
 
-func extractShardStakeInst(instruction []string) ([]string, []string, []string) {
-	shardCandidates := strings.Split(instruction[1], ",")
-	shardRewardReceivers := strings.Split(instruction[4], ",")
-	shardAutoReStaking := strings.Split(instruction[5], ",")
-	return shardCandidates, shardRewardReceivers, shardAutoReStaking
+func extractShardStakeInst(instruction []string) (shardCandidates []string, stakeTx []string, shardRewardReceivers []string, shardAutoReStaking []string) {
+	shardCandidates = strings.Split(instruction[1], ",")
+	stakeTx = strings.Split(instruction[3], ",")
+	shardRewardReceivers = strings.Split(instruction[4], ",")
+	shardAutoReStaking = strings.Split(instruction[5], ",")
+	return
+}
+
+func extractAssignInst(instruction []string) (assignPubkeys []string, shardID string) {
+	assignPubkeys = strings.Split(instruction[1], ",")
+	shardID = instruction[3]
+	return
+}
+
+//From Shard
+func extractShardSwapInstFromShard(instruction []string) (inPublickeys []string, outPublickeys []string) {
+	inPublickeys = strings.Split(instruction[1], ",")
+	outPublickeys = strings.Split(instruction[2], ",")
+	return
 }

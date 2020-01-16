@@ -9,6 +9,7 @@ import (
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/transaction"
+	"reflect"
 
 	"sort"
 	"strconv"
@@ -155,86 +156,80 @@ func (s *ShardCoreApp) processBeaconInstruction() error {
 	shardID := state.curView.ShardID
 	producerPrivateKey := createTempKeyset()
 	responsedTxs := []metadata.Transaction{}
-	shardPendingValidator, err := incognitokey.CommitteeKeyListToString(state.bc.GetShardPendingCommittee(state.curView.ShardID))
+	shardPendingValidator, err := incognitokey.CommitteeKeyListToString(state.curView.ShardPendingValidator)
 	if err != nil {
 		panic(err)
 	}
-	assignInstructions := [][]string{}
 	stakingTx := make(map[string]string)
 	for _, beaconBlock := range state.beaconBlocks {
-		for _, l := range beaconBlock.GetInstructions() {
-
-			if l[0] == blockchain.SwapAction {
+		for _, inst := range beaconBlock.GetInstructions() {
+			switch instructionType(inst) {
+			case BeaconSwapInst, ShardSwapInst: //build return staking tx for swap validator who do not autostaking
 				autoStaking, err := state.bc.FetchAutoStakingByHeight(beaconBlock.GetHeight())
 				if err != nil {
 					break
 				}
-				for _, outPublicKeys := range strings.Split(l[2], ",") {
+				outPkKeys := []string{}
+				if instructionType(inst) == BeaconSwapInst {
+					_, outPkKeys = extractBeaconSwapInst(inst)
+				} else {
+					_, outPkKeys, _, _ = extractShardSwapInst(inst)
+				}
+
+				for _, outPublicKey := range outPkKeys {
 					// If out public key has auto staking then ignore this public key
-					if _, ok := autoStaking[outPublicKeys]; ok {
+					if _, ok := autoStaking[outPublicKey]; ok {
 						continue
 					}
-					tx, err := s.buildReturnStakingAmountTx(outPublicKeys, &producerPrivateKey)
+					tx, err := s.buildReturnStakingAmountTx(outPublicKey, &producerPrivateKey)
 					if err != nil {
 						s.Logger.Error(err)
 						continue
 					}
 					responsedTxs = append(responsedTxs, tx)
 				}
-			}
+			case ShardAssignInst: //build return staking tx for swap validator who do not autostaking
+				assignPks, assignSID := extractAssignInst(inst)
+				if strings.Compare(assignSID, strconv.Itoa(int(shardID))) == 0 {
+					shardPendingValidator = append(shardPendingValidator, assignPks...)
+				}
+			case BeaconStakeInst:
+				//update staking tx
+				newBeaconCandidates, stakeTx, _, _ := extractBeaconStakeInst(inst)
+				for i, v := range stakeTx {
+					txHash, err := common.Hash{}.NewHashFromStr(v)
+					if err != nil {
+						continue
+					}
+					txShardID, _, _, _, err := state.bc.GetTransactionByHash(*txHash)
+					if err != nil {
+						continue
+					}
+					if txShardID != shardID {
+						continue
+					}
+					// if transaction belong to this shard then add to shard beststate
+					stakingTx[newBeaconCandidates[i]] = v
+				}
+			case ShardStakeInst:
+				//update staking tx
+				newShardCandidates, stakeTx, _, _ := extractBeaconStakeInst(inst)
+				for i, v := range stakeTx {
+					txHash, err := common.Hash{}.NewHashFromStr(v)
+					if err != nil {
+						continue
+					}
+					txShardID, _, _, _, err := state.bc.GetTransactionByHash(*txHash)
+					if err != nil {
+						continue
+					}
+					if txShardID != shardID {
+						continue
+					}
+					// if transaction belong to this shard then add to shard beststate
+					stakingTx[newShardCandidates[i]] = v
+				}
 
-			// Process Assign Instruction
-			if l[0] == blockchain.AssignAction && l[2] == "shard" {
-				if strings.Compare(l[3], strconv.Itoa(int(shardID))) == 0 {
-					shardPendingValidator = append(shardPendingValidator, strings.Split(l[1], ",")...)
-					assignInstructions = append(assignInstructions, l)
-				}
-			}
-			// Get Staking Tx
-			// assume that stake instruction already been validated by beacon committee
-			if l[0] == blockchain.StakeAction && l[2] == "beacon" {
-				beacon := strings.Split(l[1], ",")
-				newBeaconCandidates := []string{}
-				newBeaconCandidates = append(newBeaconCandidates, beacon...)
-				if len(l) == 6 {
-					for i, v := range strings.Split(l[3], ",") {
-						txHash, err := common.Hash{}.NewHashFromStr(v)
-						if err != nil {
-							continue
-						}
-						txShardID, _, _, _, err := state.bc.GetTransactionByHash(*txHash)
-						if err != nil {
-							continue
-						}
-						if txShardID != shardID {
-							continue
-						}
-						// if transaction belong to this shard then add to shard beststate
-						stakingTx[newBeaconCandidates[i]] = v
-					}
-				}
-			}
-			if l[0] == blockchain.StakeAction && l[2] == "shard" {
-				shard := strings.Split(l[1], ",")
-				newShardCandidates := []string{}
-				newShardCandidates = append(newShardCandidates, shard...)
-				if len(l) == 6 {
-					for i, v := range strings.Split(l[3], ",") {
-						txHash, err := common.Hash{}.NewHashFromStr(v)
-						if err != nil {
-							continue
-						}
-						txShardID, _, _, _, err := state.bc.GetTransactionByHash(*txHash)
-						if err != nil {
-							continue
-						}
-						if txShardID != shardID {
-							continue
-						}
-						// if transaction belong to this shard then add to shard beststate
-						stakingTx[newShardCandidates[i]] = v
-					}
-				}
 			}
 		}
 	}
@@ -403,6 +398,11 @@ func (s *ShardCoreApp) preValidate() error {
 	newBlock := state.newView.GetBlock().(*ShardBlock)
 	oldBlock := state.curView.GetBlock().(*ShardBlock)
 
+	if newBlock.Header.ShardID != shardID {
+		return errors.New("Block not belong to shard")
+	}
+	//TODO: check basic data
+
 	//check block proposer
 	key := incognitokey.CommitteePublicKey{}
 	err := key.FromBase58(newBlock.GetBlockProposer())
@@ -467,14 +467,75 @@ func (s *ShardCoreApp) storeDatabase(state *StoreDatabaseState) error {
 	return nil
 }
 
+/*
+	Update newview field:
+	- ShardCommmitee
+	- ShardPendingValidator
+	- StakingTx
+*/
+
 func (s *ShardCoreApp) updateNewViewFromBlock(block *ShardBlock) error {
 	s.CreateState.newView.Block = block
+	curView := s.CreateState.curView
 	newView := s.CreateState.newView
 	//curView := s.CreateState.curView
+
+	//staking tx
+	for stakePublicKey, txHash := range s.CreateState.stakingTx {
+		newView.StakingTx[stakePublicKey] = txHash
+	}
+	//TODO: what about new assign validator
+	shardPendingValidator, err := incognitokey.CommitteeKeyListToString(curView.ShardPendingValidator)
+	if err != nil {
+		return err
+	}
+	shardID := curView.ShardID
+	shardCommittee, err := incognitokey.CommitteeKeyListToString(curView.ShardCommittee)
+	if err != nil {
+		return err
+	}
+	shardSwappedCommittees := []string{}
+	shardNewCommittees := []string{}
+
 	for _, inst := range block.Body.Instructions {
 		switch instructionType(inst) {
+		case ShardSwapInst:
+			inValidators, outValidators := extractShardSwapInstFromShard(inst)
+			// #1 remaining pendingValidators, #2 new currentValidators #3 swapped out validator, #4 incoming validator
+			shardPendingValidator, shardCommittee, shardSwappedCommittees, shardNewCommittees, err = SwapValidator(shardPendingValidator, shardCommittee, curView.BC.GetChainParams().MaxShardCommitteeSize, curView.BC.GetChainParams().MinShardCommitteeSize, curView.BC.GetChainParams().Offset, map[string]uint8{}, curView.BC.GetChainParams().SwapOffset)
+			if err != nil {
+				Logger.log.Errorf("SHARD %+v | Blockchain Error %+v", err)
+				return err
+			}
 
+			//process out validator
+			for _, v := range outValidators {
+				if txId, ok := curView.StakingTx[v]; ok {
+					if checkReturnStakingTxExistence(txId, block) {
+						delete(newView.StakingTx, v)
+					}
+				}
+			}
+			if !reflect.DeepEqual(outValidators, shardSwappedCommittees) {
+				return fmt.Errorf("Expect swapped committees to be %+v but get %+v", outValidators, shardSwappedCommittees)
+			}
+
+			//process in validator
+			if !reflect.DeepEqual(inValidators, shardNewCommittees) {
+				return fmt.Errorf("Expect new committees to be %+v but get %+v", inValidators, shardNewCommittees)
+			}
+			Logger.log.Infof("SHARD %+v | Swap: Out committee %+v", shardID, shardSwappedCommittees)
+			Logger.log.Infof("SHARD %+v | Swap: In committee %+v", shardID, shardNewCommittees)
 		}
+	}
+
+	newView.ShardPendingValidator, err = incognitokey.CommitteeBase58KeyListToStruct(shardPendingValidator)
+	if err != nil {
+		return err
+	}
+	newView.ShardCommittee, err = incognitokey.CommitteeBase58KeyListToStruct(shardCommittee)
+	if err != nil {
+		return err
 	}
 	return nil
 }

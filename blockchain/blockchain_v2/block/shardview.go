@@ -23,6 +23,8 @@ type ShardView struct {
 	Block                 *ShardBlock
 	ShardCommittee        []incognitokey.CommitteePublicKey
 	ShardPendingValidator []incognitokey.CommitteePublicKey
+
+	StakingTx map[string]string
 }
 
 func (s *ShardView) CreateBlockFromOldBlockData(block consensus.BlockInterface) consensus.BlockInterface {
