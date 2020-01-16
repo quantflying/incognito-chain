@@ -354,10 +354,8 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 			}
 
 		case BeaconSwapInst:
-			in, out, err := extractBeaconSwapInst(inst)
-			if err != nil {
-				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
-			}
+			in, out := extractBeaconSwapInst(inst)
+
 			if len(in) > 0 {
 				beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconPendingValidator)
 				if err != nil {
@@ -419,7 +417,7 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 				}
 			}
 		case BeaconStakeInst:
-			beaconCandidates, beaconRewardReceivers, beaconAutoReStaking := extractBeaconStakeInst(inst)
+			beaconCandidates, _, beaconRewardReceivers, beaconAutoReStaking := extractBeaconStakeInst(inst)
 			beaconCandidatesStructs, err := incognitokey.CommitteeBase58KeyListToStruct(beaconCandidates)
 			if err != nil {
 				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
@@ -438,7 +436,7 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 			newBeaconCandidates = append(newBeaconCandidates, beaconCandidatesStructs...)
 			return nil
 		case ShardStakeInst:
-			shardCandidates, shardRewardReceivers, shardAutoReStaking := extractShardStakeInst(inst)
+			shardCandidates, _, shardRewardReceivers, shardAutoReStaking := extractShardStakeInst(inst)
 			shardCandidatesStructs, err := incognitokey.CommitteeBase58KeyListToStruct(shardCandidates)
 			if err != nil {
 				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)

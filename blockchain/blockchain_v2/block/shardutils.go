@@ -154,3 +154,18 @@ func CreateShardInstructionsFromTransactionAndInstruction(transactions []metadat
 	}
 	return instructions, nil
 }
+
+func checkReturnStakingTxExistence(txId string, shardBlock *ShardBlock) bool {
+	for _, tx := range shardBlock.Body.Transactions {
+		if tx.GetMetadata() != nil {
+			if tx.GetMetadata().GetType() == metadata.ReturnStakingMeta {
+				if returnStakingMeta, ok := tx.GetMetadata().(*metadata.ReturnStakingMetadata); ok {
+					if returnStakingMeta.TxID == txId {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
