@@ -123,6 +123,9 @@ func (s *Node) NotifyOutdatedView(nodeID string, latestView string) {
 		nodeIDNumber, _ := strconv.Atoi(nodeID)
 		views := s.chain.GetViewByRange("", latestView)
 		for _, v := range views {
+			if v.GetHeight() == 1 {
+				continue
+			}
 			GetSimulation().nodeList[nodeIDNumber].chain.ConnectBlockAndAddView(v.GetBlock())
 			GetSimulation().nodeList[nodeIDNumber].consensusEngine.Logger.Debug("Sync from notify outdated view, block height", v.GetHeight())
 		}
