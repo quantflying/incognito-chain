@@ -274,13 +274,7 @@ func (s *ShardCoreApp) generateInstruction() error {
 
 func (s *ShardCoreApp) buildHeader() error {
 	state := s.CreateState
-	curView := state.curView
-	// create new view
-	newViewInterface, err := curView.CreateNewViewFromBlock(s.CreateState.newBlock)
-	if err != nil {
-		return err
-	}
-	newView := newViewInterface.(*ShardView)
+	newView := state.newView
 
 	shardID := state.curView.ShardID
 	totalTxsFee := make(map[common.Hash]uint64)
