@@ -479,8 +479,8 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 		// snapshot candidate list
 		newView.CandidateShardWaitingForCurrentRandom = append(newView.CandidateShardWaitingForCurrentRandom, newView.CandidateShardWaitingForNextRandom...)
 		newView.CandidateBeaconWaitingForCurrentRandom = append(newView.CandidateBeaconWaitingForCurrentRandom, newView.CandidateBeaconWaitingForNextRandom...)
-		Logger.log.Info("Beacon Process: CandidateShardWaitingForCurrentRandom: ", newView.CandidateShardWaitingForCurrentRandom)
-		Logger.log.Info("Beacon Process: CandidateBeaconWaitingForCurrentRandom: ", newView.CandidateBeaconWaitingForCurrentRandom)
+		s.Logger.Info("Beacon Process: CandidateShardWaitingForCurrentRandom: ", newView.CandidateShardWaitingForCurrentRandom)
+		s.Logger.Info("Beacon Process: CandidateBeaconWaitingForCurrentRandom: ", newView.CandidateBeaconWaitingForCurrentRandom)
 		// reset candidate list
 		newView.CandidateShardWaitingForNextRandom = []incognitokey.CommitteePublicKey{}
 		newView.CandidateBeaconWaitingForNextRandom = []incognitokey.CommitteePublicKey{}

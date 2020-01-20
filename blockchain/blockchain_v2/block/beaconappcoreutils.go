@@ -3,16 +3,17 @@ package block
 import (
 	"errors"
 	"fmt"
-	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/blockchain/btc"
-	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/incognitokey"
-	"github.com/incognitochain/incognito-chain/metadata"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/btc"
+	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/incognitokey"
+	"github.com/incognitochain/incognito-chain/metadata"
 )
 
 func buildInstructionFromBlock(s2bBlk *ShardToBeaconBlock, curView *BeaconView) ([][]string, []string, map[byte][][]string, []string, [][]string) {
@@ -453,7 +454,7 @@ func (s *BeaconView) getRewardInstByEpoch() ([][]string, error) {
 		}
 		rewardForBeacon, rewardForIncDAO, err := splitReward(&totalRewards[ID], numberOfActiveShards, percentForIncognitoDAO)
 		if err != nil {
-			Logger.log.Infof("\n------------------------------------\nNot enough reward in epoch %v\n------------------------------------\n", err)
+			s.Logger.Infof("\n------------------------------------\nNot enough reward in epoch %v\n------------------------------------\n", err)
 		}
 		mapPlusMap(rewardForBeacon, &totalRewardForBeacon)
 		mapPlusMap(rewardForIncDAO, &totalRewardForIncDAO)
