@@ -286,7 +286,7 @@ func NewNodeBeacon(committeePkStruct []incognitokey.CommitteePublicKey, committe
 	node.consensusEngine = &blsbftv2.BLSBFT{
 		Chain:    node.chain,
 		Node:     &node,
-		ChainKey: "shard",
+		ChainKey: "beacon",
 		PeerID:   name,
 		Logger:   consensusLogger,
 	}

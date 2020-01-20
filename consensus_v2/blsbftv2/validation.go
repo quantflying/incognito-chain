@@ -3,6 +3,8 @@ package blsbftv2
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
@@ -44,6 +46,9 @@ func EncodeValidationData(validationData ValidationData) (string, error) {
 func (e BLSBFT) CreateValidationData(block consensus.BlockInterface) ValidationData {
 	var valData ValidationData
 	valData.ProducerBLSSig, _ = e.UserKeySet.BriSignData(block.Hash().GetBytes())
+
+	fmt.Println(block.Hash().GetBytes(), valData.ProducerBLSSig)
+
 	return valData
 }
 

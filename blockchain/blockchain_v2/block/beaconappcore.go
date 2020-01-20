@@ -3,6 +3,7 @@ package block
 import (
 	"errors"
 	"fmt"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -138,13 +139,17 @@ func (s *BeaconCoreApp) buildHeader() error {
 	newBlock.Header.TimeSlot = s.CreateState.createTimeSlot
 	newBlock.Header.PreviousBlockHash = *curView.GetBlock().Hash()
 
+	newBlock.ConsensusHeader.Proposer = s.CreateState.proposer
+	newBlock.ConsensusHeader.TimeSlot = s.CreateState.createTimeSlot
+
 	//============Build Header Hash=============
 	// create new view
-	newViewInterface, err := curView.CreateNewViewFromBlock(newBlock)
-	if err != nil {
-		return err
-	}
-	newView := newViewInterface.(*BeaconView)
+	// newViewInterface, err := curView.CreateNewViewFromBlock(newBlock)
+	// if err != nil {
+	// 	return err
+	// }
+	// newView := newViewInterface.(*BeaconView)
+	newView := s.CreateState.newView
 	// BeaconValidator root: beacon committee + beacon pending committee
 	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconCommittee)
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 )
 
@@ -479,6 +480,10 @@ func CreateBeaconGenesisBlock(
 	block := &BeaconBlock{
 		Body:   body,
 		Header: header,
+		ConsensusHeader: ConsensusHeader{
+			TimeSlot: common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT),
+			Proposer: "",
+		},
 	}
 
 	return block

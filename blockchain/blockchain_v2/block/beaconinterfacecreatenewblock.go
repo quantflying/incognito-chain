@@ -2,8 +2,9 @@ package block
 
 import (
 	"context"
-	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"time"
+
+	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 )
 
 type CreateBeaconBlockState struct {
@@ -65,7 +66,7 @@ func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, propos
 	createState.createTimeStamp = time.Now().Unix()
 	createState.createTimeSlot = timeslot
 	createState.proposer = proposer
-	createState.newBlock = &BeaconBlock{}
+	// createState.newBlock = &BeaconBlock{}
 	//pre processing
 	for _, app := range createState.app {
 		if err := app.preCreateBlock(); err != nil {
@@ -85,7 +86,21 @@ func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, propos
 		}
 	}
 
-	createState.newBlock = &BeaconBlock{}
+	instructions := [][]string{}
+	// instructions = append(instructions, createState.randomInstruction)
+	instructions = append(instructions, createState.rewardInstByEpoch...)
+	instructions = append(instructions, createState.validStakeInstructions...)
+	instructions = append(instructions, createState.validStopAutoStakingInstructions...)
+	instructions = append(instructions, createState.acceptedRewardInstructions...)
+	instructions = append(instructions, createState.beaconSwapInstruction...)
+	instructions = append(instructions, createState.shardAssignInst...)
+
+	createState.newBlock = &BeaconBlock{
+		Body: BeaconBody{
+			ShardState:   createState.shardStates,
+			Instructions: instructions,
+		},
+	}
 
 	for _, app := range createState.app {
 		if err := app.updateNewViewFromBlock(createState.newBlock); err != nil {

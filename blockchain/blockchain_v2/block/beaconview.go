@@ -3,12 +3,13 @@ package block
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
-	"sync"
-	"time"
 )
 
 type BeaconView struct {
@@ -52,7 +53,7 @@ func (s *BeaconView) GetActiveShard() int {
 }
 
 func (s *BeaconView) CreateBlockFromOldBlockData(block consensus.BlockInterface) consensus.BlockInterface {
-	block1 := block.(*ShardBlock)
+	block1 := block.(*BeaconBlock)
 	block1.ConsensusHeader.TimeSlot = common.GetTimeSlot(s.GetGenesisTime(), time.Now().Unix(), blsbftv2.TIMESLOT)
 	return block1
 }
@@ -66,12 +67,12 @@ func (s *BeaconView) CreateNewViewFromBlock(block consensus.BlockInterface) (con
 }
 
 func (s *BeaconView) UnmarshalBlock(b []byte) (consensus.BlockInterface, error) {
-	var shardBlk *ShardBlock
-	err := json.Unmarshal(b, &shardBlk)
+	var beaconBlk *BeaconBlock
+	err := json.Unmarshal(b, &beaconBlk)
 	if err != nil {
 		return nil, err
 	}
-	return shardBlk, nil
+	return beaconBlk, nil
 }
 
 func (s *BeaconView) GetGenesisTime() int64 {
