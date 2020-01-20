@@ -259,7 +259,7 @@ func NewNodeBeacon(committeePkStruct []incognitokey.CommitteePublicKey, committe
 
 	node := Node{id: fmt.Sprintf("%d", index)}
 	db := &FakeDB{}
-	db.genesisBlock = shardv2.CreateShardGenesisBlock(1, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.TestnetInitPRV)
+	db.genesisBlock = shardv2.CreateBeaconGenesisBlock(1, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.GenesisParamsTestnetNew)
 	node.chain = blockchainv2.InitNewChainViewManager(fmt.Sprintf("beacon_%d", index), &shardv2.BeaconView{
 		BC:              &shardv2.FakeBC{},
 		Block:           db.genesisBlock.(*shardv2.BeaconBlock),
@@ -270,7 +270,7 @@ func NewNodeBeacon(committeePkStruct []incognitokey.CommitteePublicKey, committe
 
 	if fullnode == nil {
 		db := &FakeDB{}
-		db.genesisBlock = shardv2.CreateShardGenesisBlock(1, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.TestnetInitPRV)
+		db.genesisBlock = shardv2.CreateBeaconGenesisBlock(1, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.GenesisParamsTestnetNew)
 		backendLog := common.NewBackend(nil).Logger("Fullnode", false)
 		fullnode = blockchainv2.InitNewChainViewManager("fullnode", &shardv2.BeaconView{
 			Block:           db.genesisBlock.(*shardv2.BeaconBlock),
