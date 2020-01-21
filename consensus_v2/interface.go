@@ -132,13 +132,7 @@ type ChainViewInterface interface {
 	GetEpoch() uint64
 	Hash() common.Hash
 	GetPreviousViewHash() *common.Hash
-	GetActiveShardNumber() int
 
-	IsBestView() bool
-	SetViewIsBest(isBest bool)
-
-	DeleteView() error
-	CloneViewFrom(view ChainViewInterface) error
 	CloneNewView() ChainViewInterface
 	GetNextProposer(uint64) string
 	//CreateNewViewFromBlock(BlockInterface) ChainViewInterface

@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
+	"sync"
+	"time"
+
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/consensus_v2"
+	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/signatureschemes/blsmultisig"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/wire"
-	"sort"
-	"sync"
-	"time"
 )
 
 type BLSBFT struct {
@@ -329,7 +330,6 @@ func (e *BLSBFT) processIfBlockGetEnoughVote(k string, v *ProposeBlockInfo) {
 			e.Logger.Error(err)
 			return
 		}
-
 		if err := e.Chain.ConnectBlockAndAddView(v.block); err != nil {
 			e.Logger.Error("Cannot add block to view")
 		}
@@ -405,13 +405,17 @@ func (e *BLSBFT) validateAndVote(v *ProposeBlockInfo) error {
 
 func (e *BLSBFT) proposeBlock(block consensus.BlockInterface) (consensus.BlockInterface, error) {
 	time1 := time.Now()
+	isCreateNewValidationData := true
 	if block == nil {
 		ctx := context.Background()
 		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		block, _ = e.Chain.GetBestView().CreateNewBlock(ctx, e.currentTimeSlot, e.UserKeySet.GetPublicKeyBase58())
+		isCreateNewValidationData = true
 	} else {
+		fmt.Println(block.Hash().GetBytes())
 		block = e.Chain.GetBestView().CreateBlockFromOldBlockData(block)
+		isCreateNewValidationData = false
 	}
 	if block != nil {
 		e.Logger.Info("create block", block.GetHeight(), time.Since(time1).Seconds())
@@ -419,10 +423,12 @@ func (e *BLSBFT) proposeBlock(block consensus.BlockInterface) (consensus.BlockIn
 		e.Logger.Info("create block", time.Since(time1).Seconds())
 		return nil, consensus.NewConsensusError(consensus.BlockCreationError, errors.New("block creation timeout"))
 	}
+	if isCreateNewValidationData {
+		validationData := e.CreateValidationData(block)
+		validationDataString, _ := EncodeValidationData(validationData)
+		block.(blockValidation).AddValidationField(validationDataString)
+	}
 
-	validationData := e.CreateValidationData(block)
-	validationDataString, _ := EncodeValidationData(validationData)
-	block.(blockValidation).AddValidationField(validationDataString)
 	blockData, _ := json.Marshal(block)
 	var proposeCtn = new(BFTPropose)
 	proposeCtn.Block = blockData

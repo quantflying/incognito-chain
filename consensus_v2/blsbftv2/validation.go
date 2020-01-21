@@ -3,6 +3,7 @@ package blsbftv2
 import (
 	"encoding/json"
 	"errors"
+
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"

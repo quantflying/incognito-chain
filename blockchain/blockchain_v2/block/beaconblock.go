@@ -3,6 +3,7 @@ package block
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 )
@@ -20,31 +21,31 @@ type BeaconBlock struct {
 }
 
 func (beaconBlock BeaconBlock) GetBlockType() string {
-	panic("implement me")
+	return "beacon"
 }
 
 func (beaconBlock BeaconBlock) GetBeaconHeight() uint64 {
-	panic("implement me")
+	return beaconBlock.Header.Height
 }
 
 func (beaconBlock BeaconBlock) GetBlockProposer() string {
-	panic("implement me")
+	return beaconBlock.ConsensusHeader.Proposer
 }
 
 func (beaconBlock BeaconBlock) GetPreviousBlockHash() common.Hash {
-	panic("implement me")
+	return beaconBlock.Header.PreviousBlockHash
 }
 
 func (beaconBlock BeaconBlock) GetTimeslot() uint64 {
-	panic("implement me")
+	return beaconBlock.ConsensusHeader.TimeSlot
 }
 
 func (beaconBlock BeaconBlock) GetCreateTimeslot() uint64 {
-	panic("implement me")
+	return beaconBlock.Header.TimeSlot
 }
 
 func (beaconBlock BeaconBlock) GetBlockTimestamp() int64 {
-	panic("implement me")
+	return beaconBlock.Header.Timestamp
 }
 
 func (beaconBlock BeaconBlock) Hash() *common.Hash {
@@ -62,10 +63,10 @@ func (beaconBlock BeaconBlock) GetHeight() uint64 {
 
 func (beaconBlock *BeaconBlock) UnmarshalJSON(data []byte) error {
 	tempBeaconBlock := &struct {
-		ValidationData string `json:"ValidationData"`
-
-		Header BeaconHeader
-		Body   BeaconBody
+		ValidationData  string `json:"ValidationData"`
+		ConsensusHeader ConsensusHeader
+		Header          BeaconHeader
+		Body            BeaconBody
 	}{}
 	err := json.Unmarshal(data, &tempBeaconBlock)
 	if err != nil {
@@ -76,6 +77,7 @@ func (beaconBlock *BeaconBlock) UnmarshalJSON(data []byte) error {
 	// beaconBlock.ValidatorsIdx = tempBlk.ValidatorsIdx
 	// beaconBlock.ProducerSig = tempBlk.ProducerSig
 	beaconBlock.ValidationData = tempBeaconBlock.ValidationData
+	beaconBlock.ConsensusHeader = tempBeaconBlock.ConsensusHeader
 	beaconBlock.Header = tempBeaconBlock.Header
 	beaconBlock.Body = tempBeaconBlock.Body
 	return nil

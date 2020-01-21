@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"strconv"
 	"time"
+
+	"github.com/incognitochain/incognito-chain/blockchain"
 
 	"os"
 
 	blockchainv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2"
 	shardv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block"
-	"github.com/incognitochain/incognito-chain/consensus_v2"
+	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
@@ -122,6 +123,9 @@ func (s *Node) NotifyOutdatedView(nodeID string, latestView string) {
 		nodeIDNumber, _ := strconv.Atoi(nodeID)
 		views := s.chain.GetViewByRange("", latestView)
 		for _, v := range views {
+			if v.GetHeight() == 1 {
+				continue
+			}
 			GetSimulation().nodeList[nodeIDNumber].chain.ConnectBlockAndAddView(v.GetBlock())
 			GetSimulation().nodeList[nodeIDNumber].consensusEngine.Logger.Debug("Sync from notify outdated view, block height", v.GetHeight())
 		}
@@ -238,4 +242,60 @@ func (Node) PushMessageToPeer(msg interface{}, peerId libp2p.ID) error {
 
 func main() {
 
+}
+
+func NewNodeBeacon(committeePkStruct []incognitokey.CommitteePublicKey, committee []string, index int) *Node {
+	name := fmt.Sprintf("log%d", index)
+	fd, err := os.OpenFile(fmt.Sprintf("%s.log", name), os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		panic(err)
+	}
+	fd.Truncate(0)
+	backendLog := common.NewBackend(logWriter{
+		NodeID: name,
+		fd:     fd,
+	})
+	consensusLogger := backendLog.Logger("Consensus", false)
+	consensusLogger.SetLevel(1)
+	chainViewLogger := backendLog.Logger("BeaconView", false)
+	chainViewLogger.SetLevel(1)
+
+	node := Node{id: fmt.Sprintf("%d", index)}
+	db := &FakeDB{}
+	db.genesisBlock = shardv2.CreateBeaconGenesisBlock(1, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.GenesisParamsTestnetNew)
+	node.chain = blockchainv2.InitNewChainViewManager(fmt.Sprintf("beacon_%d", index), &shardv2.BeaconView{
+		BC:              &shardv2.FakeBC{},
+		Block:           db.genesisBlock.(*shardv2.BeaconBlock),
+		BeaconCommittee: committeePkStruct,
+		DB:              db,
+		Logger:          chainViewLogger,
+	})
+
+	if fullnode == nil {
+		db := &FakeDB{}
+		db.genesisBlock = shardv2.CreateBeaconGenesisBlock(1, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.GenesisParamsTestnetNew)
+		backendLog := common.NewBackend(nil).Logger("Fullnode", false)
+		fullnode = blockchainv2.InitNewChainViewManager("fullnode", &shardv2.BeaconView{
+			Block:           db.genesisBlock.(*shardv2.BeaconBlock),
+			BeaconCommittee: committeePkStruct,
+			DB:              db,
+			Logger:          backendLog,
+		})
+	}
+
+	//node.chain.UserPubKey = committeePkStruct[index]
+	node.chain.GetBestView()
+
+	node.consensusEngine = &blsbftv2.BLSBFT{
+		Chain:    node.chain,
+		Node:     &node,
+		ChainKey: "beacon",
+		PeerID:   name,
+		Logger:   consensusLogger,
+	}
+
+	prvSeed, err := blsbftv2.LoadUserKeyFromIncPrivateKey(committee[index])
+	failOnError(err)
+	failOnError(node.consensusEngine.LoadUserKey(prvSeed))
+	return &node
 }

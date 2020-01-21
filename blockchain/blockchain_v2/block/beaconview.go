@@ -3,12 +3,13 @@ package block
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
-	"sync"
-	"time"
 )
 
 type BeaconView struct {
@@ -52,7 +53,7 @@ func (s *BeaconView) GetActiveShard() int {
 }
 
 func (s *BeaconView) CreateBlockFromOldBlockData(block consensus.BlockInterface) consensus.BlockInterface {
-	block1 := block.(*ShardBlock)
+	block1 := block.(*BeaconBlock)
 	block1.ConsensusHeader.TimeSlot = common.GetTimeSlot(s.GetGenesisTime(), time.Now().Unix(), blsbftv2.TIMESLOT)
 	return block1
 }
@@ -61,17 +62,17 @@ func (s *BeaconView) GetBlock() consensus.BlockInterface {
 	return s.Block
 }
 
-func (s *BeaconView) CreateNewViewFromBlock(block consensus.BlockInterface) (consensus.ChainViewInterface, error) {
-	panic("implement me")
-}
+// func (s *BeaconView) CreateNewViewFromBlock(block consensus.BlockInterface) (consensus.ChainViewInterface, error) {
+// 	panic("implement me")
+// }
 
 func (s *BeaconView) UnmarshalBlock(b []byte) (consensus.BlockInterface, error) {
-	var shardBlk *ShardBlock
-	err := json.Unmarshal(b, &shardBlk)
+	var beaconBlk *BeaconBlock
+	err := json.Unmarshal(b, &beaconBlk)
 	if err != nil {
 		return nil, err
 	}
-	return shardBlk, nil
+	return beaconBlk, nil
 }
 
 func (s *BeaconView) GetGenesisTime() int64 {
@@ -87,14 +88,14 @@ func (s *BeaconView) GetConsensusType() string {
 }
 
 func (s *BeaconView) GetBlkMinInterval() time.Duration {
-	panic("implement me")
+	return s.BC.GetChainParams().MinBeaconBlockInterval
 }
 
 func (s *BeaconView) GetBlkMaxCreateTime() time.Duration {
-	panic("implement me")
+	return s.BC.GetChainParams().MaxBeaconBlockCreation
 }
 
-func (s *BeaconView) GetPubkeyRole(pubkey string, round int) (string, byte) {
+func (s *BeaconView) GetPubkeyRole(pubkey string, timeslot int) (string, byte) {
 	panic("implement me")
 }
 
@@ -137,26 +138,6 @@ func (s *BeaconView) Hash() common.Hash {
 func (s *BeaconView) GetPreviousViewHash() *common.Hash {
 	prevHash := s.Block.GetPreviousBlockHash()
 	return &prevHash
-}
-
-func (s *BeaconView) GetActiveShardNumber() int {
-	panic("implement me")
-}
-
-func (s *BeaconView) IsBestView() bool {
-	panic("implement me")
-}
-
-func (s *BeaconView) SetViewIsBest(isBest bool) {
-	panic("implement me")
-}
-
-func (s *BeaconView) DeleteView() error {
-	panic("implement me")
-}
-
-func (s *BeaconView) CloneViewFrom(view consensus.ChainViewInterface) error {
-	panic("implement me")
 }
 
 func (s *BeaconView) GetNextProposer(timeSlot uint64) string {

@@ -1,6 +1,8 @@
 package block
 
 import (
+	"time"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
@@ -10,7 +12,6 @@ import (
 	"github.com/incognitochain/incognito-chain/mempool"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
-	"time"
 )
 
 type ShardApp interface {
@@ -220,7 +221,11 @@ func (FakeBC) GetCurrentEpoch() (uint64, error) {
 
 func (FakeBC) GetChainParams() blockchain.Params {
 	return blockchain.Params{
-		Epoch: 10,
+		Epoch:                  10,
+		MinShardBlockInterval:  blockchain.TestNetMinShardBlkInterval,
+		MaxShardBlockCreation:  blockchain.TestNetMaxShardBlkCreation,
+		MinBeaconBlockInterval: blockchain.TestNetMinBeaconBlkInterval,
+		MaxBeaconBlockCreation: blockchain.TestNetMaxBeaconBlkCreation,
 	}
 }
 

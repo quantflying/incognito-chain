@@ -3,6 +3,7 @@ package block
 import (
 	"errors"
 	"fmt"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -138,13 +139,17 @@ func (s *BeaconCoreApp) buildHeader() error {
 	newBlock.Header.TimeSlot = s.CreateState.createTimeSlot
 	newBlock.Header.PreviousBlockHash = *curView.GetBlock().Hash()
 
+	newBlock.ConsensusHeader.Proposer = s.CreateState.proposer
+	newBlock.ConsensusHeader.TimeSlot = s.CreateState.createTimeSlot
+
 	//============Build Header Hash=============
 	// create new view
-	newViewInterface, err := curView.CreateNewViewFromBlock(newBlock)
-	if err != nil {
-		return err
-	}
-	newView := newViewInterface.(*BeaconView)
+	// newViewInterface, err := curView.CreateNewViewFromBlock(newBlock)
+	// if err != nil {
+	// 	return err
+	// }
+	// newView := newViewInterface.(*BeaconView)
+	newView := s.CreateState.newView
 	// BeaconValidator root: beacon committee + beacon pending committee
 	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconCommittee)
 	if err != nil {
@@ -474,8 +479,8 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 		// snapshot candidate list
 		newView.CandidateShardWaitingForCurrentRandom = append(newView.CandidateShardWaitingForCurrentRandom, newView.CandidateShardWaitingForNextRandom...)
 		newView.CandidateBeaconWaitingForCurrentRandom = append(newView.CandidateBeaconWaitingForCurrentRandom, newView.CandidateBeaconWaitingForNextRandom...)
-		Logger.log.Info("Beacon Process: CandidateShardWaitingForCurrentRandom: ", newView.CandidateShardWaitingForCurrentRandom)
-		Logger.log.Info("Beacon Process: CandidateBeaconWaitingForCurrentRandom: ", newView.CandidateBeaconWaitingForCurrentRandom)
+		s.Logger.Info("Beacon Process: CandidateShardWaitingForCurrentRandom: ", newView.CandidateShardWaitingForCurrentRandom)
+		s.Logger.Info("Beacon Process: CandidateBeaconWaitingForCurrentRandom: ", newView.CandidateBeaconWaitingForCurrentRandom)
 		// reset candidate list
 		newView.CandidateShardWaitingForNextRandom = []incognitokey.CommitteePublicKey{}
 		newView.CandidateBeaconWaitingForNextRandom = []incognitokey.CommitteePublicKey{}
