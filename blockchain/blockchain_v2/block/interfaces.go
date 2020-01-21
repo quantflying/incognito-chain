@@ -101,6 +101,7 @@ type BlockChain interface {
 
 	GetCommitteeReward(committeeAddress []byte, tokenID common.Hash) (uint64, error)
 	InitTxSalaryByCoinID(payToAddress *privacy.PaymentAddress, amount uint64, payByPrivateKey *privacy.PrivateKey, meta metadata.Metadata, coinID common.Hash, shardID byte) (metadata.Transaction, error)
+
 	metadata.BlockchainRetriever
 
 	GetRandomClient() btc.RandomClient

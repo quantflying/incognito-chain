@@ -57,6 +57,7 @@ func (s *BeaconView) NewCreateState(ctx context.Context) *CreateBeaconBlockState
 
 	//ADD YOUR APP HERE
 	createState.app = append(createState.app, &BeaconCoreApp{Logger: s.Logger, CreateState: createState})
+	createState.app = append(createState.app, &BeaconPDEApp{Logger: s.Logger, CreateState: createState})
 	return createState
 }
 
