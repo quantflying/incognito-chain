@@ -62,9 +62,9 @@ func (s *BeaconView) GetBlock() consensus.BlockInterface {
 	return s.Block
 }
 
-func (s *BeaconView) CreateNewViewFromBlock(block consensus.BlockInterface) (consensus.ChainViewInterface, error) {
-	panic("implement me")
-}
+// func (s *BeaconView) CreateNewViewFromBlock(block consensus.BlockInterface) (consensus.ChainViewInterface, error) {
+// 	panic("implement me")
+// }
 
 func (s *BeaconView) UnmarshalBlock(b []byte) (consensus.BlockInterface, error) {
 	var beaconBlk *BeaconBlock
@@ -88,14 +88,14 @@ func (s *BeaconView) GetConsensusType() string {
 }
 
 func (s *BeaconView) GetBlkMinInterval() time.Duration {
-	panic("implement me")
+	return s.BC.GetChainParams().MinBeaconBlockInterval
 }
 
 func (s *BeaconView) GetBlkMaxCreateTime() time.Duration {
-	panic("implement me")
+	return s.BC.GetChainParams().MaxBeaconBlockCreation
 }
 
-func (s *BeaconView) GetPubkeyRole(pubkey string, round int) (string, byte) {
+func (s *BeaconView) GetPubkeyRole(pubkey string, timeslot int) (string, byte) {
 	panic("implement me")
 }
 
@@ -138,26 +138,6 @@ func (s *BeaconView) Hash() common.Hash {
 func (s *BeaconView) GetPreviousViewHash() *common.Hash {
 	prevHash := s.Block.GetPreviousBlockHash()
 	return &prevHash
-}
-
-func (s *BeaconView) GetActiveShardNumber() int {
-	panic("implement me")
-}
-
-func (s *BeaconView) IsBestView() bool {
-	panic("implement me")
-}
-
-func (s *BeaconView) SetViewIsBest(isBest bool) {
-	panic("implement me")
-}
-
-func (s *BeaconView) DeleteView() error {
-	panic("implement me")
-}
-
-func (s *BeaconView) CloneViewFrom(view consensus.ChainViewInterface) error {
-	panic("implement me")
 }
 
 func (s *BeaconView) GetNextProposer(timeSlot uint64) string {

@@ -3,12 +3,13 @@ package block
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
-	"sync"
-	"time"
 )
 
 type ShardView struct {
@@ -116,22 +117,6 @@ func (s *ShardView) GetPreviousViewHash() *common.Hash {
 }
 
 func (s *ShardView) GetActiveShardNumber() int {
-	panic("implement me")
-}
-
-func (s *ShardView) IsBestView() bool {
-	panic("implement me")
-}
-
-func (s *ShardView) SetViewIsBest(isBest bool) {
-	panic("implement me")
-}
-
-func (s *ShardView) DeleteView() error {
-	panic("implement me")
-}
-
-func (s *ShardView) CloneViewFrom(view consensus.ChainViewInterface) error {
 	panic("implement me")
 }
 

@@ -329,7 +329,7 @@ func (s *BeaconCoreApp) buildAsssignInstruction() (err error) {
 	if err != nil {
 		panic(err)
 	}
-	_, assignedCandidates := assignShardCandidate(shardCandidatesStr, numberOfPendingValidator, s.CreateState.randomNumber, curView.BC.GetChainParams().AssignOffset, curView.GetActiveShardNumber())
+	_, assignedCandidates := assignShardCandidate(shardCandidatesStr, numberOfPendingValidator, s.CreateState.randomNumber, curView.BC.GetChainParams().AssignOffset, curView.GetActiveShard())
 	var keys []int
 	for k := range assignedCandidates {
 		keys = append(keys, int(k))
