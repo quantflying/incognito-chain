@@ -99,6 +99,61 @@ func (s *BeaconView) GetPubkeyRole(pubkey string, timeslot int) (string, byte) {
 	panic("implement me")
 }
 
+func (s *BeaconView) GetPublicKeyStatus(pubkey string) (status string, isBeacon bool, shardID byte) {
+	s.Lock.RLock()
+	defer s.Lock.RUnlock()
+	for _, key := range s.BeaconCommittee {
+		if key.GetIncKeyBase58() == pubkey {
+			return MININGKEY_STATUS_COMMITTEE, true, 0
+		}
+	}
+	for _, key := range s.BeaconPendingValidator {
+		if key.GetIncKeyBase58() == pubkey {
+			return MININGKEY_STATUS_PENDING, true, 0
+		}
+	}
+
+	for _, key := range s.CandidateBeaconWaitingForCurrentRandom {
+		if key.GetIncKeyBase58() == pubkey {
+			return MININGKEY_STATUS_WAITING, true, 0
+		}
+	}
+	for _, key := range s.CandidateBeaconWaitingForNextRandom {
+		if key.GetIncKeyBase58() == pubkey {
+			return MININGKEY_STATUS_WAITING, true, 0
+		}
+	}
+	for _, key := range s.CandidateShardWaitingForCurrentRandom {
+		if key.GetIncKeyBase58() == pubkey {
+			return MININGKEY_STATUS_WAITING, false, 0
+		}
+	}
+	for _, key := range s.CandidateShardWaitingForNextRandom {
+		if key.GetIncKeyBase58() == pubkey {
+			return MININGKEY_STATUS_WAITING, false, 0
+		}
+	}
+
+	for shardID, shardCommittee := range s.ShardCommittee {
+		for _, key := range shardCommittee {
+			if key.GetIncKeyBase58() == pubkey {
+				return MININGKEY_STATUS_COMMITTEE, false, shardID
+			}
+		}
+	}
+
+	for shardID, shardCommittee := range s.ShardPendingValidator {
+		for _, key := range shardCommittee {
+			if key.GetIncKeyBase58() == pubkey {
+				return MININGKEY_STATUS_PENDING, false, shardID
+			}
+		}
+	}
+
+	return MININGKEY_STATUS_OUTSIDER, false, 0
+
+}
+
 func (s *BeaconView) GetCommittee() []incognitokey.CommitteePublicKey {
 	return s.BeaconCommittee
 }

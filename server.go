@@ -2117,3 +2117,7 @@ func (serverObj *Server) GetMinerIncognitoPublickey(publicKey string, keyType st
 
 	return nil
 }
+
+func (serverObj *Server) GetIncognitoPublicKeyStatus(publicKey string) (int, bool, int) {
+	panic("implement me")
+}
