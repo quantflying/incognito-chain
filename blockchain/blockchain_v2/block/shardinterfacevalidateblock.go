@@ -86,6 +86,13 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 		createState.newBlock = &ShardBlock{
 			Body: block.(*ShardBlock).Body,
 		}
+
+		for _, app := range createState.app {
+			if err := app.updateNewViewFromBlock(block.(*ShardBlock)); err != nil {
+				return nil, err
+			}
+		}
+
 		//build shard header
 		for _, app := range createState.app {
 			if err := app.buildHeader(); err != nil {
