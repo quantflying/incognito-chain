@@ -106,6 +106,11 @@ func Test_Main4BeaconCommittee(t *testing.T) {
 		lastTimeSlot := uint64(0)
 		for {
 			curTimeSlot := (common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT) - startTimeSlot) + 1
+			if lastTimeSlot != curTimeSlot {
+				time.AfterFunc(time.Millisecond*500, func() {
+					fmt.Printf("Best view height: %d. Final view height: %d\n", fullnode.GetBestView().GetHeight(), fullnode.GetFinalView().GetHeight())
+				})
+			}
 			for _, v := range nodeList {
 				if lastTimeSlot != curTimeSlot && curTimeSlot <= GetSimulation().maxTimeSlot {
 					v.consensusEngine.Logger.Info("========================================")
@@ -242,6 +247,11 @@ func Test_Main4BeaconCommittee_ScenarioA(t *testing.T) {
 		lastTimeSlot := uint64(0)
 		for {
 			curTimeSlot := (common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT) - startTimeSlot) + 1
+			if lastTimeSlot != curTimeSlot {
+				time.AfterFunc(time.Millisecond*500, func() {
+					fmt.Printf("Best view height: %d. Final view height: %d\n", fullnode.GetBestView().GetHeight(), fullnode.GetFinalView().GetHeight())
+				})
+			}
 			for _, v := range nodeList {
 				if lastTimeSlot != curTimeSlot && curTimeSlot <= GetSimulation().maxTimeSlot {
 					v.consensusEngine.Logger.Info("========================================")
