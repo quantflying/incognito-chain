@@ -24,6 +24,7 @@ type BeaconView struct {
 
 	BeaconCommittee        []incognitokey.CommitteePublicKey
 	BeaconPendingValidator []incognitokey.CommitteePublicKey
+	BeaconCommitteeHash    common.Hash
 
 	ShardCommittee        map[byte][]incognitokey.CommitteePublicKey
 	ShardPendingValidator map[byte][]incognitokey.CommitteePublicKey
@@ -158,44 +159,44 @@ func (s *BeaconView) GetCommittee() []incognitokey.CommitteePublicKey {
 	return s.BeaconCommittee
 }
 
-func (s *BeaconView) GetCommitteeHash() *common.Hash {
+func (s BeaconView) GetCommitteeHash() common.Hash {
+	return s.BeaconCommitteeHash
+}
+
+func (s BeaconView) GetCommitteeIndex(string) int {
 	panic("implement me")
 }
 
-func (s *BeaconView) GetCommitteeIndex(string) int {
-	panic("implement me")
-}
-
-func (s *BeaconView) GetHeight() uint64 {
+func (s BeaconView) GetHeight() uint64 {
 	return s.Block.Header.Height
 }
 
-func (s *BeaconView) GetRound() int {
+func (s BeaconView) GetRound() int {
 	return s.Block.Header.Round
 }
 
-func (s *BeaconView) GetTimeStamp() int64 {
+func (s BeaconView) GetTimeStamp() int64 {
 	return s.Block.GetBlockTimestamp()
 }
 
-func (s *BeaconView) GetTimeslot() uint64 {
+func (s BeaconView) GetTimeslot() uint64 {
 	return s.Block.ConsensusHeader.TimeSlot
 }
 
-func (s *BeaconView) GetEpoch() uint64 {
+func (s BeaconView) GetEpoch() uint64 {
 	return s.Block.GetCurrentEpoch()
 }
 
-func (s *BeaconView) Hash() common.Hash {
+func (s BeaconView) Hash() common.Hash {
 	return *s.Block.Hash()
 }
 
-func (s *BeaconView) GetPreviousViewHash() *common.Hash {
+func (s BeaconView) GetPreviousViewHash() common.Hash {
 	prevHash := s.Block.GetPreviousBlockHash()
-	return &prevHash
+	return prevHash
 }
 
-func (s *BeaconView) GetNextProposer(timeSlot uint64) string {
+func (s BeaconView) GetNextProposer(timeSlot uint64) string {
 	committee := s.GetCommittee()
 	idx := int(timeSlot) % len(committee)
 	return committee[idx].GetMiningKeyBase58(common.BlsConsensus2)

@@ -79,7 +79,7 @@ func (s *ShardView) GetCommittee() []incognitokey.CommitteePublicKey {
 	return s.ShardCommittee
 }
 
-func (s *ShardView) GetCommitteeHash() *common.Hash {
+func (s *ShardView) GetCommitteeHash() common.Hash {
 	panic("implement me")
 }
 
@@ -111,9 +111,9 @@ func (s *ShardView) Hash() common.Hash {
 	return *s.Block.Hash()
 }
 
-func (s *ShardView) GetPreviousViewHash() *common.Hash {
+func (s *ShardView) GetPreviousViewHash() common.Hash {
 	prevHash := s.Block.GetPreviousBlockHash()
-	return &prevHash
+	return prevHash
 }
 
 func (s *ShardView) GetActiveShardNumber() int {

@@ -122,7 +122,7 @@ type ChainViewInterface interface {
 	GetBlkMaxCreateTime() time.Duration
 	GetPubkeyRole(pubkey string, round int) (string, byte)
 	GetCommittee() []incognitokey.CommitteePublicKey
-	GetCommitteeHash() *common.Hash
+	GetCommitteeHash() common.Hash
 	GetCommitteeIndex(string) int
 	GetBlock() BlockInterface
 	GetHeight() uint64
@@ -131,7 +131,7 @@ type ChainViewInterface interface {
 	GetTimeslot() uint64
 	GetEpoch() uint64
 	Hash() common.Hash
-	GetPreviousViewHash() *common.Hash
+	GetPreviousViewHash() common.Hash
 
 	CloneNewView() ChainViewInterface
 	GetNextProposer(uint64) string
