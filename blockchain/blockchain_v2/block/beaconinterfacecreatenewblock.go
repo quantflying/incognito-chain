@@ -100,6 +100,9 @@ func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, propos
 	instructions = append(instructions, createState.beaconSwapInstruction...)
 	instructions = append(instructions, createState.shardAssignInst...)
 
+	instructions = append(instructions, createState.bridgeInstructions...)
+	instructions = append(instructions, createState.statefulInstructions...)
+
 	createState.newBlock = &BeaconBlock{
 		Body: BeaconBody{
 			ShardState:   createState.shardStates,
