@@ -141,6 +141,7 @@ type ChainViewInterface interface {
 	UnmarshalBlock(blockString []byte) (BlockInterface, error)
 	GetRootTimeSlot() uint64
 	CreateBlockFromOldBlockData(block BlockInterface) BlockInterface
+	StoreDatabase(ctx context.Context) error
 }
 
 type ConsensusMsgInterface interface {

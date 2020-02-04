@@ -23,11 +23,12 @@ import (
 type ChainViewManager struct {
 	manager *ViewGraph
 	name    string
+	chainID int
 	lock    *sync.RWMutex
 }
 
 func (s *ChainViewManager) CommitView(view consensus.ChainViewInterface) error {
-	return nil
+	return view.StoreDatabase(context.Background())
 }
 
 func (s *ChainViewManager) ConnectBlockAndAddView(block consensus.BlockInterface) error {
@@ -69,7 +70,7 @@ func (s *ChainViewManager) GetChainData() (res []byte) {
 }
 
 //create new chain with root manager
-func InitNewChainViewManager(name string, rootView consensus.ChainViewInterface) *ChainViewManager {
+func InitNewChainViewManager(name string, chainID int, rootView consensus.ChainViewInterface) *ChainViewManager {
 	cm := &ChainViewManager{
 		name: name,
 		lock: new(sync.RWMutex),
@@ -157,7 +158,7 @@ func (s *ChainViewManager) ValidateBlockProposer(block consensus.BlockInterface)
 }
 
 func (s *ChainViewManager) GetShardID() int {
-	panic("implement me")
+	return s.chainID
 }
 
 func (s *ChainViewManager) GetBestView() consensus.ChainViewInterface {

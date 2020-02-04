@@ -27,7 +27,7 @@ func (s *ShardView) NewStoreDBState(ctx context.Context) *StoreDatabaseState {
 	return storeDBState
 }
 
-func (s *ShardView) StoreDatabase(block *ShardBlock, newView *ShardView) error {
+func (s *ShardView) StoreDatabase(ctx context.Context) error {
 	state := s.NewStoreDBState(context.Background())
 
 	for _, app := range state.app {

@@ -27,7 +27,7 @@ func (s *BeaconView) NewStoreDBState(ctx context.Context) *StoreBeaconDatabaseSt
 	return storeDBState
 }
 
-func (s *BeaconView) StoreDatabase(block *ShardBlock, newView *BeaconView) error {
+func (s *BeaconView) StoreDatabase(ctx context.Context) error {
 	state := s.NewStoreDBState(context.Background())
 
 	for _, app := range state.app {
