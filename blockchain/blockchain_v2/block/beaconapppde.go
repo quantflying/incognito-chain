@@ -10,6 +10,7 @@ type BeaconPDEApp struct {
 	Logger        common.Logger
 	CreateState   *CreateBeaconBlockState
 	ValidateState *ValidateBeaconBlockState
+	StoreState    *StoreBeaconDatabaseState
 }
 
 func (s *BeaconPDEApp) preCreateBlock() error {
@@ -60,13 +61,6 @@ func (s *BeaconPDEApp) buildHeader() error {
 }
 
 func (s *BeaconPDEApp) updateNewViewFromBlock(block *BeaconBlock) error {
-	//TODO: store db?
-	batchPutData := []database.BatchData{}
-	// execute, store
-	err := processPDEInstructions(block, &batchPutData, s.ValidateState.bc)
-	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.ProcessPDEInstructionError, err)
-	}
 	return nil
 }
 
@@ -75,7 +69,13 @@ func (s *BeaconPDEApp) preValidate() error {
 }
 
 //==============================Save Database Logic===========================
-func (s *BeaconPDEApp) storeDatabase(state *StoreBeaconDatabaseState) error {
-
+func (s *BeaconPDEApp) storeDatabase() error {
+	//TODO: store db?
+	batchPutData := []database.BatchData{}
+	// execute, store
+	err := storePDEInstructions(s.StoreState.block, &batchPutData, s.StoreState.bc)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.ProcessPDEInstructionError, err)
+	}
 	return nil
 }

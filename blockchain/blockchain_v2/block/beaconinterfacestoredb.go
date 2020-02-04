@@ -4,7 +4,7 @@ import "context"
 
 type StoreBeaconDatabaseState struct {
 	ctx     context.Context
-	block   *ShardBlock
+	block   *BeaconBlock
 	bc      BlockChain
 	curView *BeaconView
 	newView *BeaconView
@@ -22,7 +22,9 @@ func (s *BeaconView) NewStoreDBState(ctx context.Context) *StoreBeaconDatabaseSt
 	}
 
 	//ADD YOUR APP HERE
-	storeDBState.app = append(storeDBState.app, &BeaconCoreApp{Logger: s.Logger})
+	storeDBState.app = append(storeDBState.app, &BeaconCoreApp{Logger: s.Logger, StoreState: storeDBState})
+	storeDBState.app = append(storeDBState.app, &BeaconBridgeApp{Logger: s.Logger, StoreState: storeDBState})
+	storeDBState.app = append(storeDBState.app, &BeaconPDEApp{Logger: s.Logger, StoreState: storeDBState})
 
 	return storeDBState
 }
@@ -31,7 +33,7 @@ func (s *BeaconView) StoreDatabase(ctx context.Context) error {
 	state := s.NewStoreDBState(context.Background())
 
 	for _, app := range state.app {
-		err := app.storeDatabase(state)
+		err := app.storeDatabase()
 		if err != nil {
 			//TODO: revert db state if get error
 			return err

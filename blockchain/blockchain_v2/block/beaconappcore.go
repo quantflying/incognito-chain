@@ -15,6 +15,7 @@ type BeaconCoreApp struct {
 	Logger        common.Logger
 	CreateState   *CreateBeaconBlockState
 	ValidateState *ValidateBeaconBlockState
+	StoreState    *StoreBeaconDatabaseState
 }
 
 func (s *BeaconCoreApp) preCreateBlock() error {
@@ -537,12 +538,14 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 	return nil
 }
 
-func (BeaconCoreApp) preValidate() error {
+// import stuff from ValidateState block to CreateState
+func (s *BeaconCoreApp) preValidate() error {
+
 	return nil
 }
 
 //==============================Save Database Logic===========================
-func (s *BeaconCoreApp) storeDatabase(state *StoreBeaconDatabaseState) error {
+func (s *BeaconCoreApp) storeDatabase() error {
 
 	return nil
 }

@@ -31,7 +31,7 @@ type BurningReqAction struct {
 	RequestedTxID *common.Hash            `json:"RequestedTxID"`
 }
 
-func processBridgeInstructions(block *BeaconBlock, bd *[]database.BatchData, blockchain BlockChain, logger common.Logger) error {
+func storeBridgeInstructions(block *BeaconBlock, bd *[]database.BatchData, blockchain BlockChain, logger common.Logger) error {
 	updatingInfoByTokenID := map[common.Hash]UpdatingInfo{}
 	for _, inst := range block.Body.Instructions {
 		if len(inst) < 2 {

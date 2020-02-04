@@ -10,6 +10,7 @@ type BeaconBridgeApp struct {
 	Logger        common.Logger
 	CreateState   *CreateBeaconBlockState
 	ValidateState *ValidateBeaconBlockState
+	StoreState    *StoreBeaconDatabaseState
 }
 
 func (s *BeaconBridgeApp) preCreateBlock() error {
@@ -58,12 +59,7 @@ func (s *BeaconBridgeApp) buildHeader() error {
 }
 
 func (s *BeaconBridgeApp) updateNewViewFromBlock(block *BeaconBlock) error {
-	//TODO: store db?
-	batchPutData := []database.BatchData{}
-	err := processBridgeInstructions(block, &batchPutData, s.ValidateState.bc, s.Logger)
-	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.ProcessBridgeInstructionError, err)
-	}
+
 	return nil
 }
 
@@ -72,7 +68,12 @@ func (s *BeaconBridgeApp) preValidate() error {
 }
 
 //==============================Save Database Logic===========================
-func (s *BeaconBridgeApp) storeDatabase(state *StoreBeaconDatabaseState) error {
-
+func (s *BeaconBridgeApp) storeDatabase() error {
+	//TODO: store db?
+	batchPutData := []database.BatchData{}
+	err := storeBridgeInstructions(s.StoreState.block, &batchPutData, s.ValidateState.bc, s.Logger)
+	if err != nil {
+		return blockchain.NewBlockChainError(blockchain.ProcessBridgeInstructionError, err)
+	}
 	return nil
 }

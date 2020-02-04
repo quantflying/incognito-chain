@@ -11,7 +11,7 @@ import (
 	"github.com/incognitochain/incognito-chain/metadata"
 )
 
-func processPDEInstructions(block *BeaconBlock, bd *[]database.BatchData, blockchain BlockChain) error {
+func storePDEInstructions(block *BeaconBlock, bd *[]database.BatchData, blockchain BlockChain) error {
 	beaconHeight := block.Header.Height - 1
 	db := blockchain.GetDatabase()
 	currentPDEState, err := InitCurrentPDEStateFromDB(db, beaconHeight)
