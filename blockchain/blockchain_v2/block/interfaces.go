@@ -49,7 +49,7 @@ type BeaconApp interface {
 	preValidate() error
 
 	////store block
-	//storeDatabase(state *StoreDatabaseState) error
+	storeDatabase(state *StoreBeaconDatabaseState) error
 }
 
 type BeaconBlockInterface interface {

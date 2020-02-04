@@ -540,3 +540,9 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
 func (BeaconCoreApp) preValidate() error {
 	return nil
 }
+
+//==============================Save Database Logic===========================
+func (s *BeaconCoreApp) storeDatabase(state *StoreBeaconDatabaseState) error {
+
+	return nil
+}

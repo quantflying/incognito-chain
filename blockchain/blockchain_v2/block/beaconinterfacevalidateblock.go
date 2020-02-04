@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 )
@@ -29,6 +30,8 @@ func (s *BeaconView) NewValidateState(ctx context.Context) *ValidateBeaconBlockS
 
 	//ADD YOUR APP HERE
 	validateState.app = append(validateState.app, &BeaconCoreApp{Logger: s.Logger, ValidateState: validateState})
+	validateState.app = append(validateState.app, &BeaconBridgeApp{Logger: s.Logger, ValidateState: validateState})
+	validateState.app = append(validateState.app, &BeaconPDEApp{Logger: s.Logger, ValidateState: validateState})
 	return validateState
 }
 
