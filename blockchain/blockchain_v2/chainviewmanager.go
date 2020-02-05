@@ -38,7 +38,6 @@ func (s *ChainViewManager) ConnectBlockAndAddView(block consensus.BlockInterface
 		panic(err)
 		return err
 	}
-
 	newView, err := view.ValidateBlockAndCreateNewView(context.Background(), block, false)
 	if err != nil {
 		panic(err)

@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"fmt"
 
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
@@ -19,7 +20,7 @@ type ValidateBeaconBlockState struct {
 	newView   *BeaconView
 }
 
-func (s *BeaconView) NewValidateState(ctx context.Context) *ValidateBeaconBlockState {
+func (s *BeaconView) NewValidateState(ctx context.Context, createState *CreateBeaconBlockState) *ValidateBeaconBlockState {
 	validateState := &ValidateBeaconBlockState{
 		ctx:     ctx,
 		bc:      s.BC,
@@ -29,18 +30,25 @@ func (s *BeaconView) NewValidateState(ctx context.Context) *ValidateBeaconBlockS
 	}
 
 	//ADD YOUR APP HERE
-	validateState.app = append(validateState.app, &BeaconCoreApp{Logger: s.Logger, ValidateState: validateState})
-	validateState.app = append(validateState.app, &BeaconBridgeApp{Logger: s.Logger, ValidateState: validateState})
-	validateState.app = append(validateState.app, &BeaconPDEApp{Logger: s.Logger, ValidateState: validateState})
+	validateState.app = append(validateState.app, &BeaconCoreApp{Logger: s.Logger, ValidateState: validateState, CreateState: createState})
+	validateState.app = append(validateState.app, &BeaconBridgeApp{Logger: s.Logger, ValidateState: validateState, CreateState: createState})
+	validateState.app = append(validateState.app, &BeaconPDEApp{Logger: s.Logger, ValidateState: validateState, CreateState: createState})
+
+	createState.app = validateState.app
+	createState.ctx = validateState.ctx
+	createState.bc = validateState.bc
+	createState.curView = validateState.curView
+	createState.newView = validateState.newView
+
 	return validateState
 }
 
 func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block consensus.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
-	validateState := s.NewValidateState(ctx)
+	createState := &CreateBeaconBlockState{}
+	validateState := s.NewValidateState(ctx, createState)
 	validateState.newView.Block = block.(*BeaconBlock)
 	validateState.isPreSign = isPreSign
 
-	createState := s.NewCreateState(ctx)
 	//block has correct basic header
 	//we have enough data to validate this block and get beaconblocks, crossshardblock, txToAdd confirm by proposed block
 	for _, app := range validateState.app {
@@ -51,36 +59,55 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block co
 	}
 
 	if isPreSign {
-		createState.newBlock = &BeaconBlock{}
-		for _, app := range createState.app {
+
+		createState.createTimeStamp = validateState.newView.Block.Header.Timestamp
+		createState.createTimeSlot = validateState.newView.Block.Header.TimeSlot
+		createState.proposer = validateState.newView.Block.Header.Producer
+
+		for _, app := range validateState.app {
 			if err := app.buildInstructionFromShardAction(); err != nil {
 				return nil, err
 			}
 		}
 
-		for _, app := range createState.app {
+		for _, app := range validateState.app {
 			if err := app.buildInstructionByEpoch(); err != nil {
 				return nil, err
 			}
 		}
 
-		createState.newBlock = &BeaconBlock{}
-		//TODO: compare body content
-		for _, app := range createState.app {
-			if err := app.updateNewViewFromBlock(createState.newBlock); err != nil {
-				return nil, err
-			}
+		instructions := [][]string{}
+		// instructions = append(instructions, createState.randomInstruction)
+		instructions = append(instructions, createState.rewardInstByEpoch...)
+		instructions = append(instructions, createState.validStakeInstructions...)
+		instructions = append(instructions, createState.validStopAutoStakingInstructions...)
+		instructions = append(instructions, createState.acceptedRewardInstructions...)
+		instructions = append(instructions, createState.beaconSwapInstruction...)
+		instructions = append(instructions, createState.shardAssignInst...)
+
+		instructions = append(instructions, createState.bridgeInstructions...)
+		instructions = append(instructions, createState.statefulInstructions...)
+
+		createState.newBlock = &BeaconBlock{
+			Body: BeaconBody{
+				ShardState:   createState.shardStates,
+				Instructions: instructions,
+			},
 		}
 
-		//build shard header
-		for _, app := range createState.app {
+		//build header
+		for _, app := range validateState.app {
 			if err := app.buildHeader(); err != nil {
 				return nil, err
 			}
 		}
 
-		//TODO: compare new view related content in header
-		validateState.newView = createState.newView
+		//compare block hash
+		if !createState.newBlock.Hash().IsEqual(validateState.newView.Block.Hash()) {
+			fmt.Println(createState.newBlock.Hash().String(), validateState.newView.Block.Hash().String())
+			panic(1)
+			return nil, nil
+		}
 	} else {
 		//validate producer signature
 		if err := (blsbftv2.BLSBFT{}.ValidateProducerSig(block)); err != nil {
@@ -93,13 +120,13 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block co
 			return nil, err
 		}
 
-		createState.newView = s.CloneNewView().(*BeaconView)
-		for _, app := range createState.app {
-			if err := app.updateNewViewFromBlock(block.(*BeaconBlock)); err != nil {
-				return nil, err
-			}
-		}
-		validateState.newView = createState.newView
+		// validateState.newView = s.CloneNewView().(*BeaconView)
+		// for _, app := range validateState.app {
+		// 	if err := app.updateNewViewFromBlock(block.(*BeaconBlock)); err != nil {
+		// 		return nil, err
+		// 	}
+		// }
+		// validateState.newView = validateState.newView
 		//TODO: compare header content, with newview, necessary???
 	}
 

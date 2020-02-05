@@ -116,7 +116,7 @@ func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, propos
 		}
 	}
 
-	//build shard header
+	//build header
 	for _, app := range createState.app {
 		if err := app.buildHeader(); err != nil {
 			return nil, err

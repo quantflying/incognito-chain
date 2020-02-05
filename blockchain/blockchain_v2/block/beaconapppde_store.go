@@ -3,6 +3,7 @@ package block
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/incognitochain/incognito-chain/common"
@@ -14,7 +15,11 @@ import (
 func storePDEInstructions(block *BeaconBlock, bd *[]database.BatchData, blockchain BlockChain) error {
 	if len(block.Body.Instructions) == 0 {
 		return nil
+	} else {
+		fmt.Println(len(block.Body.Instructions), block.Body.Instructions[0], block.Body.Instructions[1], block.Body.Instructions[2])
+		panic(block.Body.Instructions)
 	}
+
 	beaconHeight := block.Header.Height - 1
 	db := blockchain.GetDatabase()
 	currentPDEState, err := InitCurrentPDEStateFromDB(db, beaconHeight)
