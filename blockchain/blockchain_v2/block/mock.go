@@ -32,6 +32,9 @@ func (FakeRandomClient) GetTimeStampAndNonceByBlockHeight(blockHeight int) (int6
 }
 
 type FakeBC struct {
+	ShardToBeaconPool blockchain.ShardToBeaconPool
+	CrossShardPool    map[byte]blockchain.CrossShardPool
+	ShardPool         map[byte]blockchain.ShardPool
 }
 
 func (FakeBC) GetRandomClient() btc.RandomClient {
