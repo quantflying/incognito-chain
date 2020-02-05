@@ -37,8 +37,5 @@ func (s *ShardView) StoreDatabase(ctx context.Context) error {
 			return err
 		}
 	}
-
-	//TODO: commit
-	// revert db state if commit error
 	return nil
 }

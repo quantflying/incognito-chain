@@ -12,6 +12,9 @@ import (
 )
 
 func storePDEInstructions(block *BeaconBlock, bd *[]database.BatchData, blockchain BlockChain) error {
+	if len(block.Body.Instructions) == 0 {
+		return nil
+	}
 	beaconHeight := block.Header.Height - 1
 	db := blockchain.GetDatabase()
 	currentPDEState, err := InitCurrentPDEStateFromDB(db, beaconHeight)

@@ -22,12 +22,11 @@ func (s *BeaconBridgeApp) buildInstructionByEpoch() error {
 }
 
 func (s *BeaconBridgeApp) buildInstructionFromShardAction() error {
-	db := s.CreateState.bc.GetDatabase()
-	newBeaconHeight := s.CreateState.curView.GetHeight() + 1
-
-	if s.CreateState.s2bBlks == nil {
+	if len(s.CreateState.s2bBlks) == 0 {
 		return nil
 	}
+	db := s.CreateState.bc.GetDatabase()
+	newBeaconHeight := s.CreateState.curView.GetHeight() + 1
 
 	for shardID, shardBlocks := range s.CreateState.s2bBlks {
 		for _, block := range shardBlocks {
@@ -71,7 +70,7 @@ func (s *BeaconBridgeApp) preValidate() error {
 func (s *BeaconBridgeApp) storeDatabase() error {
 	//TODO: store db?
 	batchPutData := []database.BatchData{}
-	err := storeBridgeInstructions(s.StoreState.block, &batchPutData, s.ValidateState.bc, s.Logger)
+	err := storeBridgeInstructions(s.StoreState.block, &batchPutData, s.StoreState.bc, s.Logger)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.ProcessBridgeInstructionError, err)
 	}

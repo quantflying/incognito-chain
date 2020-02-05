@@ -32,6 +32,9 @@ type BurningReqAction struct {
 }
 
 func storeBridgeInstructions(block *BeaconBlock, bd *[]database.BatchData, blockchain BlockChain, logger common.Logger) error {
+	if len(block.Body.Instructions) == 0 {
+		return nil
+	}
 	updatingInfoByTokenID := map[common.Hash]UpdatingInfo{}
 	for _, inst := range block.Body.Instructions {
 		if len(inst) < 2 {

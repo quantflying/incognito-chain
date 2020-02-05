@@ -16,6 +16,7 @@ func (s *BeaconView) NewStoreDBState(ctx context.Context) *StoreBeaconDatabaseSt
 	storeDBState := &StoreBeaconDatabaseState{
 		ctx:     ctx,
 		bc:      s.BC,
+		block:   s.Block,
 		curView: s,
 		newView: s.CloneNewView().(*BeaconView),
 		app:     []BeaconApp{},
@@ -39,8 +40,5 @@ func (s *BeaconView) StoreDatabase(ctx context.Context) error {
 			return err
 		}
 	}
-
-	//TODO: commit
-	// revert db state if commit error
 	return nil
 }

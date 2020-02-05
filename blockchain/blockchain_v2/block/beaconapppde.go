@@ -22,13 +22,13 @@ func (s *BeaconPDEApp) buildInstructionByEpoch() error {
 }
 
 func (s *BeaconPDEApp) buildInstructionFromShardAction() error {
+
+	if len(s.CreateState.s2bBlks) == 0 {
+		return nil
+	}
 	db := s.CreateState.bc.GetDatabase()
 	newBeaconHeight := s.CreateState.curView.GetHeight() + 1
 	statefulActionsByShardID := map[byte][][]string{}
-
-	if s.CreateState.s2bBlks == nil {
-		return nil
-	}
 
 	for shardID, shardBlocks := range s.CreateState.s2bBlks {
 		for _, block := range shardBlocks {
