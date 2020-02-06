@@ -134,7 +134,6 @@ func (s *BeaconCoreApp) buildHeader() error {
 	}
 	newBlock.Header.ConsensusType = common.BlsConsensus2
 	newBlock.Header.Producer = s.CreateState.proposer
-	newBlock.Header.ProducerPubKeyStr = s.CreateState.proposer
 
 	newBlock.Header.Timestamp = s.CreateState.createTimeStamp
 	newBlock.Header.TimeSlot = s.CreateState.createTimeSlot

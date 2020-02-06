@@ -3,13 +3,14 @@ package block
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/transaction"
-	"reflect"
 
 	"sort"
 	"strconv"
@@ -350,9 +351,7 @@ func (s *ShardCoreApp) buildHeader() error {
 	_, shardTxMerkleData := blockchain.CreateShardTxRoot2(newBlock.Body.Transactions)
 
 	state.newBlock.Header = ShardHeader{
-		Producer:          state.proposer,
-		ProducerPubKeyStr: state.proposer,
-
+		Producer:             state.proposer,
 		ShardID:              shardID,
 		Version:              blockchain.SHARD_BLOCK_VERSION,
 		PreviousBlockHash:    *state.curView.Block.Hash(),

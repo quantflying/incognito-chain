@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
 
 	"github.com/incognitochain/incognito-chain/common"
@@ -423,10 +424,6 @@ func (block ShardBlock) GetBlockProposer() string {
 
 func (block ShardBlock) GetProducer() string {
 	return block.Header.Producer
-}
-
-func (block ShardBlock) GetProducerPubKeyStr() string {
-	return block.Header.ProducerPubKeyStr
 }
 
 func (block ShardBlock) GetValidationField() string {

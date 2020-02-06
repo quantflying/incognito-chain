@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+
 	"github.com/incognitochain/incognito-chain/common"
 )
 
@@ -25,7 +26,6 @@ type BeaconHeader struct {
 	AutoStakingRoot                 common.Hash `json:"AutoStakingRoot"`
 	ConsensusType                   string      `json:"ConsensusType"`
 	Producer                        string      `json:"Producer"`
-	ProducerPubKeyStr               string      `json:"ProducerPubKeyStr"`
 }
 
 func (beaconHeader *BeaconHeader) toString() string {
@@ -44,17 +44,18 @@ func (beaconHeader *BeaconHeader) toString() string {
 	res += beaconHeader.AutoStakingRoot.String()
 	res += beaconHeader.ShardStateHash.String()
 	res += beaconHeader.InstructionHash.String()
+	res += beaconHeader.Producer
 	return res
 }
 
-func (beaconBlock *BeaconHeader) MetaHash() common.Hash {
-	return common.Keccak256([]byte(beaconBlock.toString()))
+func (beaconHeader *BeaconHeader) MetaHash() common.Hash {
+	return common.Keccak256([]byte(beaconHeader.toString()))
 }
 
-func (beaconBlock *BeaconHeader) Hash() common.Hash {
+func (beaconHeader *BeaconHeader) Hash() common.Hash {
 	// Block header of beacon uses Keccak256 as a hash func to check on Ethereum when relaying blocks
-	blkMetaHash := beaconBlock.MetaHash()
-	blkInstHash := beaconBlock.InstructionMerkleRoot
+	blkMetaHash := beaconHeader.MetaHash()
+	blkInstHash := beaconHeader.InstructionMerkleRoot
 	combined := append(blkMetaHash[:], blkInstHash[:]...)
 	return common.Keccak256(combined)
 }
