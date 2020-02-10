@@ -170,3 +170,15 @@ func (FakeBC) GetTransactionByHash(hash common.Hash) (byte, common.Hash, int, me
 func (FakeBC) FetchAutoStakingByHeight(uint64) (map[string]bool, error) {
 	return map[string]bool{}, nil
 }
+
+type RawDB interface {
+}
+
+type StateDB interface {
+}
+
+type StateObject interface {
+}
+
+type DatabaseAccessWarper interface {
+}

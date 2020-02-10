@@ -40,6 +40,17 @@ type BeaconView struct {
 
 	RewardReceiver map[string]string // map incognito public key -> reward receiver (payment address)
 	AutoStaking    map[string]bool
+
+	//================================ StateDB Method
+	// block height => root hash
+	// consensusStateDB *statedb.StateDB
+	// rewardStateDB    *statedb.StateDB
+	// featureStateDB   *statedb.StateDB
+	// slashStateDB     *statedb.StateDB
+	consensusStateDB StateDB
+	rewardStateDB    StateDB
+	featureStateDB   StateDB
+	slashStateDB     StateDB
 }
 
 func (s *BeaconView) GetAShardCommitee(shardID byte) []incognitokey.CommitteePublicKey {
@@ -240,4 +251,8 @@ func (s *BeaconView) MarshalJSON() ([]byte, error) {
 
 func (s *BeaconView) GetRootTimeSlot() uint64 {
 	return s.DB.GetGenesisBlock().GetTimeslot()
+}
+
+func (s *BeaconView) InitStateRootHash(bc *BlockChain) error {
+	panic("implement me")
 }

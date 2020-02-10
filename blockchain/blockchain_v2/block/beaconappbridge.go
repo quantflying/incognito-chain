@@ -58,7 +58,6 @@ func (s *BeaconBridgeApp) buildHeader() error {
 }
 
 func (s *BeaconBridgeApp) updateNewViewFromBlock(block *BeaconBlock) error {
-
 	return nil
 }
 

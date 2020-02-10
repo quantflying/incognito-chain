@@ -165,3 +165,7 @@ func (s *ShardView) MarshalJSON() ([]byte, error) {
 func (s *ShardView) GetRootTimeSlot() uint64 {
 	return s.DB.GetGenesisBlock().GetTimeslot()
 }
+
+func (s *ShardView) InitStateRootHash(bc *BlockChain) error {
+	panic("implement me")
+}

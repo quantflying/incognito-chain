@@ -17,7 +17,6 @@ type BlockInterface interface {
 	GetHeight() uint64
 	GetBeaconHeight() uint64
 	Hash() *common.Hash
-	// AddValidationField(validateData string) error
 	GetBlockProposer() string
 	GetProducer() string
 	GetValidationField() string
@@ -65,8 +64,6 @@ type ConsensusInterface interface {
 	Start() error
 	// Stop - stop consensus
 	Stop() error
-	// IsOngoing - check whether consensus is currently voting on a block
-	// IsOngoing() bool //TO_BE_DELETE
 	// ProcessBFTMsg - process incoming BFT message
 	ProcessBFTMsg(msg interface{}, sender NodeSender)
 	// ValidateProducerSig - validate a block producer signature
