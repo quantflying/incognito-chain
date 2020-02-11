@@ -9,12 +9,7 @@ import (
 )
 
 type BeaconBlock struct {
-	// AggregatedSig string  `json:"AggregatedSig"`
-	// R             string  `json:"R"`
-	// ValidatorsIdx [][]int `json:"ValidatorsIdx"` //[0]: r | [1]:AggregatedSig
-	// ProducerSig   string  `json:"ProducerSig"`
-
-	ValidationData  string `json:"ValidationData"`
+	// ValidationData  string `json:"ValidationData"`
 	ConsensusHeader ConsensusHeader
 	Body            BeaconBody
 	Header          BeaconHeader
@@ -63,7 +58,6 @@ func (beaconBlock BeaconBlock) GetHeight() uint64 {
 
 func (beaconBlock *BeaconBlock) UnmarshalJSON(data []byte) error {
 	tempBeaconBlock := &struct {
-		ValidationData  string `json:"ValidationData"`
 		ConsensusHeader ConsensusHeader
 		Header          BeaconHeader
 		Body            BeaconBody
@@ -72,11 +66,6 @@ func (beaconBlock *BeaconBlock) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
 	}
-	// beaconBlock.AggregatedSig = tempBlk.AggregatedSig
-	// beaconBlock.R = tempBlk.R
-	// beaconBlock.ValidatorsIdx = tempBlk.ValidatorsIdx
-	// beaconBlock.ProducerSig = tempBlk.ProducerSig
-	beaconBlock.ValidationData = tempBeaconBlock.ValidationData
 	beaconBlock.ConsensusHeader = tempBeaconBlock.ConsensusHeader
 	beaconBlock.Header = tempBeaconBlock.Header
 	beaconBlock.Body = tempBeaconBlock.Body
@@ -84,11 +73,11 @@ func (beaconBlock *BeaconBlock) UnmarshalJSON(data []byte) error {
 }
 
 func (beaconBlock *BeaconBlock) AddValidationField(validationData string) error {
-	beaconBlock.ValidationData = validationData
+	beaconBlock.ConsensusHeader.ValidationData = validationData
 	return nil
 }
 func (beaconBlock BeaconBlock) GetValidationField() string {
-	return beaconBlock.ValidationData
+	return beaconBlock.ConsensusHeader.ValidationData
 }
 
 func (beaconBlock BeaconBlock) GetRound() int {
