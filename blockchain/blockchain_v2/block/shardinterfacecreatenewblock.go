@@ -2,13 +2,14 @@ package block
 
 import (
 	"context"
+	"math/rand"
+	"time"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
-	"math/rand"
-	"time"
 )
 
 type CreateShardBlockState struct {
@@ -55,6 +56,10 @@ func (s *ShardView) NewCreateState(ctx context.Context) *CreateShardBlockState {
 
 	//ADD YOUR APP HERE
 	createState.app = append(createState.app, &ShardCoreApp{Logger: s.Logger, CreateState: createState})
+	createState.app = append(createState.app, &ShardBridgeApp{Logger: s.Logger, CreateState: createState})
+	createState.app = append(createState.app, &ShardPDEApp{Logger: s.Logger, CreateState: createState})
+	// createState.app = append(createState.app, &ShardSlashingApp{Logger: s.Logger, CreateState: createState})
+
 	return createState
 }
 

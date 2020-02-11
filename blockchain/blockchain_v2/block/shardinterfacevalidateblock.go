@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -35,6 +36,9 @@ func (s *ShardView) NewValidateState(ctx context.Context) *ValidateShardBlockSta
 
 	//ADD YOUR APP HERE
 	validateState.app = append(validateState.app, &ShardCoreApp{Logger: s.Logger, ValidateState: validateState})
+	validateState.app = append(validateState.app, &ShardPDEApp{Logger: s.Logger, ValidateState: validateState})
+	validateState.app = append(validateState.app, &ShardBridgeApp{Logger: s.Logger, ValidateState: validateState})
+	// validateState.app = append(validateState.app, &ShardSlashingApp{Logger: s.Logger, ValidateState: validateState})
 	return validateState
 }
 

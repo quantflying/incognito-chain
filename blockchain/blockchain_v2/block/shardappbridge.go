@@ -1,28 +1,49 @@
 package block
 
-import (
-	"strconv"
+import "github.com/incognitochain/incognito-chain/common"
 
-	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
-	"github.com/incognitochain/incognito-chain/metadata"
-	"github.com/pkg/errors"
-)
+type ShardBridgeApp struct {
+	Logger        common.Logger
+	CreateState   *CreateShardBlockState
+	ValidateState *ValidateShardBlockState
+	StoreState    *StoreShardDatabaseState
+	storeSuccess  bool
+}
 
-func storeBurningConfirm(block *ShardBlock, bd *[]database.BatchData, blockchain BlockChain, logger common.Logger) error {
-	for _, inst := range block.Body.Instructions {
-		if inst[0] != strconv.Itoa(metadata.BurningConfirmMeta) {
-			continue
-		}
-		logger.Infof("storeBurningConfirm for block %d, inst %v", block.Header.Height, inst)
+func (s *ShardBridgeApp) preCreateBlock() error {
+	return nil
+}
+func (s *ShardBridgeApp) buildTxFromCrossShard() error {
+	return nil
+}
+func (s *ShardBridgeApp) buildTxFromMemPool() error {
+	return nil
+}
+func (s *ShardBridgeApp) buildResponseTxFromTxWithMetadata() error {
+	return nil
+}
+func (s *ShardBridgeApp) processBeaconInstruction() error {
+	return nil
+}
+func (s *ShardBridgeApp) generateInstruction() error {
+	return nil
+}
 
-		txID, err := common.Hash{}.NewHashFromStr(inst[5])
-		if err != nil {
-			return errors.Wrap(err, "txid invalid")
-		}
-		if err := blockchain.GetDatabase().StoreBurningConfirm(*txID, block.Header.Height, bd); err != nil {
-			return errors.Wrapf(err, "store failed, txID: %x", txID)
-		}
-	}
+func (s *ShardBridgeApp) buildHeader() error {
+	return nil
+}
+
+//crete view from block
+func (s *ShardBridgeApp) updateNewViewFromBlock(block *ShardBlock) error {
+	return nil
+}
+
+//validate block
+func (s *ShardBridgeApp) preValidate() error {
+	return nil
+}
+
+//store block
+func (s *ShardBridgeApp) storeDatabase(state *StoreShardDatabaseState) error {
 	return nil
 }

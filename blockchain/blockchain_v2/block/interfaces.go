@@ -18,6 +18,7 @@ type ShardApp interface {
 	buildResponseTxFromTxWithMetadata() error // build tx from metadata tx
 	processBeaconInstruction() error          // execute beacon instruction & build tx if any
 	generateInstruction() error               //create block instruction
+
 	buildHeader() error
 
 	//crete view from block
@@ -27,7 +28,7 @@ type ShardApp interface {
 	preValidate() error
 
 	//store block
-	storeDatabase(state *StoreDatabaseState) error
+	storeDatabase(state *StoreShardDatabaseState) error
 }
 
 type BeaconApp interface {

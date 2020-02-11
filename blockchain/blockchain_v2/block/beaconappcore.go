@@ -14,6 +14,7 @@ type BeaconCoreApp struct {
 	CreateState   *CreateBeaconBlockState
 	ValidateState *ValidateBeaconBlockState
 	StoreState    *StoreBeaconDatabaseState
+	storeSuccess  bool
 }
 
 func (s *BeaconCoreApp) preCreateBlock() error {

@@ -11,6 +11,7 @@ type BeaconBridgeApp struct {
 	CreateState   *CreateBeaconBlockState
 	ValidateState *ValidateBeaconBlockState
 	StoreState    *StoreBeaconDatabaseState
+	storeSuccess  bool
 }
 
 func (s *BeaconBridgeApp) preCreateBlock() error {

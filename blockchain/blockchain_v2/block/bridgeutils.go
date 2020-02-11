@@ -164,43 +164,6 @@ func pickInstructionWithType(
 	return found
 }
 
-// pickInstructionFromBeaconBlocks extracts all instructions of a specific type
-func pickInstructionFromBeaconBlocks(beaconBlocks []*BeaconBlock, instType string) [][]string {
-	insts := [][]string{}
-	for _, block := range beaconBlocks {
-		found := pickInstructionWithType(block.Body.Instructions, instType)
-		if len(found) > 0 {
-			insts = append(insts, found...)
-		}
-	}
-	return insts
-}
-
-// pickBurningConfirmInstruction finds all BurningConfirmMeta instructions
-func pickBurningConfirmInstruction(
-	beaconBlocks []*BeaconBlock,
-	height uint64,
-) [][]string {
-	// Pick
-	instType := strconv.Itoa(metadata.BurningConfirmMeta)
-	insts := pickInstructionFromBeaconBlocks(beaconBlocks, instType)
-
-	// Replace beacon block height with shard's
-	h := big.NewInt(0).SetUint64(height)
-	for _, inst := range insts {
-		inst[len(inst)-1] = base58.Base58Check{}.Encode(h.Bytes(), 0x00)
-	}
-	return insts
-}
-
-// pickBridgeSwapConfirmInst finds all BridgeSwapConfirmMeta instructions in a shard to beacon block
-func pickBridgeSwapConfirmInst(
-	block *ShardToBeaconBlock,
-) [][]string {
-	metaType := strconv.Itoa(metadata.BridgeSwapConfirmMeta)
-	return pickInstructionWithType(block.Instructions, metaType)
-}
-
 // parseAndConcatPubkeys parses pubkeys of a commmittee (stored as string), converts them to addresses and concat them together
 func parseAndConcatPubkeys(vals []string) ([]byte, error) {
 	addrs := []byte{}
@@ -243,18 +206,4 @@ func buildSwapConfirmInstruction(meta int, currentValidators []string, startHeig
 		base58.Base58Check{}.Encode(numVals.Bytes(), 0x00),
 		base58.Base58Check{}.Encode(comm, 0x00),
 	}, nil
-}
-
-// buildBeaconSwapConfirmInstruction stores in an instruction the list of
-// new beacon validators and the block that they start signing on
-func buildBeaconSwapConfirmInstruction(currentValidators []string, blockHeight uint64) ([]string, error) {
-	// BLogger.log.Infof("New beaconComm - startHeight: %d comm: %x", blockHeight+1, currentValidators)
-	return buildSwapConfirmInstruction(metadata.BeaconSwapConfirmMeta, currentValidators, blockHeight+1)
-}
-
-// buildBridgeSwapConfirmInstruction stores in an instruction the list of
-// new bridge validators and the block that they start signing on
-func buildBridgeSwapConfirmInstruction(currentValidators []string, blockHeight uint64) ([]string, error) {
-	// BLogger.log.Infof("New bridgeComm - startHeight: %d comm: %x", blockHeight+1, currentValidators)
-	return buildSwapConfirmInstruction(metadata.BridgeSwapConfirmMeta, currentValidators, blockHeight+1)
 }

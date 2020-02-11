@@ -21,6 +21,8 @@ type ShardCoreApp struct {
 	Logger        common.Logger
 	CreateState   *CreateShardBlockState
 	ValidateState *ValidateShardBlockState
+	StoreState    *StoreShardDatabaseState
+	storeSuccess  bool
 }
 
 //==============================Create Block Logic===========================
@@ -455,7 +457,7 @@ func (s *ShardCoreApp) preValidate() error {
 }
 
 //==============================Save Database Logic===========================
-func (s *ShardCoreApp) storeDatabase(state *StoreDatabaseState) error {
+func (s *ShardCoreApp) storeDatabase(state *StoreShardDatabaseState) error {
 
 	return nil
 }

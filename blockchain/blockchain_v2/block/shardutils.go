@@ -1,16 +1,19 @@
 package block
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/transaction"
-	"reflect"
-	"strings"
-	"time"
 )
 
 const GENESIS_TIMESTAMP = "2006-01-02T15:04:05.000Z"
@@ -168,4 +171,47 @@ func checkReturnStakingTxExistence(txId string, shardBlock *ShardBlock) bool {
 		}
 	}
 	return false
+}
+
+/*
+	Create Swap Action
+	Return param:
+	#1: swap instruction
+	#2: new pending validator list after swapped
+	#3: new committees after swapped
+	#4: error
+*/
+func CreateSwapAction(
+	pendingValidator []string,
+	commitees []string,
+	maxCommitteeSize int,
+	minCommitteeSize int,
+	shardID byte,
+	producersBlackList map[string]uint8,
+	badProducersWithPunishment map[string]uint8,
+	offset int,
+	swapOffset int,
+) ([]string, []string, []string, error) {
+	newPendingValidator, newShardCommittees, shardSwapedCommittees, shardNewCommittees, err := SwapValidator(pendingValidator, commitees, maxCommitteeSize, minCommitteeSize, offset, producersBlackList, swapOffset)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	badProducersWithPunishmentBytes, err := json.Marshal(badProducersWithPunishment)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	swapInstruction := []string{"swap", strings.Join(shardNewCommittees, ","), strings.Join(shardSwapedCommittees, ","), "shard", strconv.Itoa(int(shardID)), string(badProducersWithPunishmentBytes)}
+	return swapInstruction, newPendingValidator, newShardCommittees, nil
+}
+
+// pickInstructionFromBeaconBlocks extracts all instructions of a specific type
+func pickInstructionFromBeaconBlocks(beaconBlocks []*BeaconBlock, instType string) [][]string {
+	insts := [][]string{}
+	for _, block := range beaconBlocks {
+		found := pickInstructionWithType(block.Body.Instructions, instType)
+		if len(found) > 0 {
+			insts = append(insts, found...)
+		}
+	}
+	return insts
 }

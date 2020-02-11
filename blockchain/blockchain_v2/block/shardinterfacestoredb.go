@@ -2,7 +2,7 @@ package block
 
 import "context"
 
-type StoreDatabaseState struct {
+type StoreShardDatabaseState struct {
 	ctx     context.Context
 	block   *ShardBlock
 	bc      BlockChain
@@ -12,8 +12,8 @@ type StoreDatabaseState struct {
 	app []ShardApp
 }
 
-func (s *ShardView) NewStoreDBState(ctx context.Context) *StoreDatabaseState {
-	storeDBState := &StoreDatabaseState{
+func (s *ShardView) NewStoreDBState(ctx context.Context) *StoreShardDatabaseState {
+	storeDBState := &StoreShardDatabaseState{
 		ctx:     ctx,
 		bc:      s.BC,
 		curView: s,
@@ -22,7 +22,10 @@ func (s *ShardView) NewStoreDBState(ctx context.Context) *StoreDatabaseState {
 	}
 
 	//ADD YOUR APP HERE
-	storeDBState.app = append(storeDBState.app, &ShardCoreApp{Logger: s.Logger})
+	storeDBState.app = append(storeDBState.app, &ShardCoreApp{Logger: s.Logger, StoreState: storeDBState})
+	storeDBState.app = append(storeDBState.app, &ShardPDEApp{Logger: s.Logger, StoreState: storeDBState})
+	storeDBState.app = append(storeDBState.app, &ShardBridgeApp{Logger: s.Logger, StoreState: storeDBState})
+	// storeDBState.app = append(storeDBState.app, &ShardSlashingApp{Logger: s.Logger, StoreState: storeDBState})
 
 	return storeDBState
 }

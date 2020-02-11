@@ -26,6 +26,20 @@ type ShardView struct {
 	ShardPendingValidator []incognitokey.CommitteePublicKey
 
 	StakingTx map[string]string
+
+	//================================ StateDB Method
+	// block height => root hash
+	// consensusStateDB   *statedb.StateDB
+	// transactionStateDB *statedb.StateDB
+	// featureStateDB     *statedb.StateDB
+	// rewardStateDB      *statedb.StateDB
+	// slashStateDB       *statedb.StateDB
+
+	consensusStateDB   StateDB
+	transactionStateDB StateDB
+	featureStateDB     StateDB
+	rewardStateDB      StateDB
+	slashStateDB       StateDB
 }
 
 func (s *ShardView) CreateBlockFromOldBlockData(block consensus.BlockInterface) consensus.BlockInterface {

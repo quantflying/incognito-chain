@@ -10,6 +10,7 @@ import (
 
 	rCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
 	"github.com/incognitochain/incognito-chain/transaction"
@@ -359,4 +360,28 @@ func buildETHIssuanceTx(
 
 	fmt.Println("[Decentralized bridge token issuance] Create tx ok.")
 	return resTx, nil
+}
+
+// pickBurningConfirmInstruction finds all BurningConfirmMeta instructions
+func pickBurningConfirmInstruction(
+	beaconBlocks []*BeaconBlock,
+	height uint64,
+) [][]string {
+	// Pick
+	instType := strconv.Itoa(metadata.BurningConfirmMeta)
+	insts := pickInstructionFromBeaconBlocks(beaconBlocks, instType)
+
+	// Replace beacon block height with shard's
+	h := big.NewInt(0).SetUint64(height)
+	for _, inst := range insts {
+		inst[len(inst)-1] = base58.Base58Check{}.Encode(h.Bytes(), 0x00)
+	}
+	return insts
+}
+
+// buildBridgeSwapConfirmInstruction stores in an instruction the list of
+// new bridge validators and the block that they start signing on
+func buildBridgeSwapConfirmInstruction(currentValidators []string, blockHeight uint64) ([]string, error) {
+	// BLogger.log.Infof("New bridgeComm - startHeight: %d comm: %x", blockHeight+1, currentValidators)
+	return buildSwapConfirmInstruction(metadata.BridgeSwapConfirmMeta, currentValidators, blockHeight+1)
 }

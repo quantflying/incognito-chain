@@ -122,3 +122,18 @@ func findExternalTokenID(tokenID *common.Hash, db database.DatabaseInterface) ([
 	}
 	return nil, errors.New("invalid tokenID")
 }
+
+// pickBridgeSwapConfirmInst finds all BridgeSwapConfirmMeta instructions in a shard to beacon block
+func pickBridgeSwapConfirmInst(
+	block *ShardToBeaconBlock,
+) [][]string {
+	metaType := strconv.Itoa(metadata.BridgeSwapConfirmMeta)
+	return pickInstructionWithType(block.Instructions, metaType)
+}
+
+// buildBeaconSwapConfirmInstruction stores in an instruction the list of
+// new beacon validators and the block that they start signing on
+func buildBeaconSwapConfirmInstruction(currentValidators []string, blockHeight uint64) ([]string, error) {
+	// BLogger.log.Infof("New beaconComm - startHeight: %d comm: %x", blockHeight+1, currentValidators)
+	return buildSwapConfirmInstruction(metadata.BeaconSwapConfirmMeta, currentValidators, blockHeight+1)
+}
