@@ -25,7 +25,6 @@ func (s *ShardView) NewStoreDBState(ctx context.Context) *StoreShardDatabaseStat
 	storeDBState.app = append(storeDBState.app, &ShardCoreApp{Logger: s.Logger, StoreState: storeDBState})
 	storeDBState.app = append(storeDBState.app, &ShardPDEApp{Logger: s.Logger, StoreState: storeDBState})
 	storeDBState.app = append(storeDBState.app, &ShardBridgeApp{Logger: s.Logger, StoreState: storeDBState})
-	// storeDBState.app = append(storeDBState.app, &ShardSlashingApp{Logger: s.Logger, StoreState: storeDBState})
 
 	return storeDBState
 }

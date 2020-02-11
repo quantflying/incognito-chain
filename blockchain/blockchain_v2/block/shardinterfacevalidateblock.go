@@ -38,7 +38,6 @@ func (s *ShardView) NewValidateState(ctx context.Context) *ValidateShardBlockSta
 	validateState.app = append(validateState.app, &ShardCoreApp{Logger: s.Logger, ValidateState: validateState})
 	validateState.app = append(validateState.app, &ShardPDEApp{Logger: s.Logger, ValidateState: validateState})
 	validateState.app = append(validateState.app, &ShardBridgeApp{Logger: s.Logger, ValidateState: validateState})
-	// validateState.app = append(validateState.app, &ShardSlashingApp{Logger: s.Logger, ValidateState: validateState})
 	return validateState
 }
 

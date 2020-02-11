@@ -83,7 +83,7 @@ func (s *BeaconCoreApp) buildInstructionByEpoch() error {
 
 	//build assign instruction - if getting random number and get one random
 	if curView.IsGettingRandomNumber && len(state.randomInstruction) >= 1 {
-		if err := s.buildAsssignInstruction(); err != nil {
+		if err := s.buildAssignInstruction(); err != nil {
 			panic(err)
 		}
 	}

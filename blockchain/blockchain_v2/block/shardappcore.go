@@ -251,7 +251,6 @@ func (s *ShardCoreApp) generateInstruction() error {
 		instructions          = [][]string{}
 		swapInstruction       = []string{}
 		shardPendingValidator = state.newShardPendingValidator
-		err                   error
 	)
 	if beaconHeight%state.bc.GetChainParams().Epoch == 0 && state.curView.Block.Header.BeaconHeight == beaconHeight {
 		maxShardCommitteeSize := state.bc.GetChainParams().MaxShardCommitteeSize
@@ -262,7 +261,15 @@ func (s *ShardCoreApp) generateInstruction() error {
 		s.Logger.Info("MaxShardCommitteeSize", maxShardCommitteeSize)
 		s.Logger.Info("ShardID", shardID)
 
-		swapInstruction, shardPendingValidator, shardCommittee, err = blockchain.CreateSwapAction(shardPendingValidator, shardCommittee, maxShardCommitteeSize, minShardCommitteeSize, shardID, map[string]uint8{}, map[string]uint8{}, state.bc.GetChainParams().Offset, state.bc.GetChainParams().SwapOffset)
+		producersBlackList, err := getUpdatedProducersBlackList(false, int(shardID), shardCommittee, beaconHeight, s.CreateState.bc)
+		if err != nil {
+			Logger.log.Error(err)
+			return err
+		}
+
+		badProducersWithPunishment := buildBadProducersWithPunishment(false, int(shardID), shardCommittee, s.CreateState.bc)
+
+		swapInstruction, shardPendingValidator, shardCommittee, err = blockchain.CreateSwapAction(shardPendingValidator, shardCommittee, maxShardCommitteeSize, minShardCommitteeSize, shardID, producersBlackList, badProducersWithPunishment, state.bc.GetChainParams().Offset, state.bc.GetChainParams().SwapOffset)
 		if err != nil {
 			s.Logger.Error(err)
 			return err

@@ -58,7 +58,6 @@ func (s *ShardView) NewCreateState(ctx context.Context) *CreateShardBlockState {
 	createState.app = append(createState.app, &ShardCoreApp{Logger: s.Logger, CreateState: createState})
 	createState.app = append(createState.app, &ShardBridgeApp{Logger: s.Logger, CreateState: createState})
 	createState.app = append(createState.app, &ShardPDEApp{Logger: s.Logger, CreateState: createState})
-	// createState.app = append(createState.app, &ShardSlashingApp{Logger: s.Logger, CreateState: createState})
 
 	return createState
 }

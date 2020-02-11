@@ -1,6 +1,7 @@
 package block
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -313,7 +314,7 @@ func (s *BeaconView) BuildInstRewardForIncDAO(epoch uint64, totalReward map[comm
 	return resInst, nil
 }
 
-func (s *BeaconCoreApp) buildAsssignInstruction() (err error) {
+func (s *BeaconCoreApp) buildAssignInstruction() (err error) {
 	curView := s.CreateState.curView
 	instructions := [][]string{}
 	numberOfPendingValidator := make(map[byte]int)
@@ -407,13 +408,25 @@ func (s *BeaconView) buildChangeBeaconValidatorByEpoch() (instructions [][]strin
 		return
 	}
 
-	_, _, swappedValidator, beaconNextCommittee, err := SwapValidator(beaconPendingValidatorStr, beaconCommitteeStr, s.BC.GetChainParams().MaxBeaconCommitteeSize, s.BC.GetChainParams().MinBeaconCommitteeSize, s.BC.GetChainParams().Offset, map[string]uint8{}, s.BC.GetChainParams().SwapOffset)
+	producersBlackList, err := getUpdatedProducersBlackList(true, -1, beaconCommitteeStr, s.GetHeight(), s.BC)
+	if err != nil {
+		Logger.log.Error(err)
+	}
+
+	badProducersWithPunishment := buildBadProducersWithPunishment(true, -1, beaconCommitteeStr, s.BC)
+	badProducersWithPunishmentBytes, err := json.Marshal(badProducersWithPunishment)
+	if err != nil {
+		Logger.log.Error(err)
+	}
+
+	_, _, swappedValidator, beaconNextCommittee, err := SwapValidator(beaconPendingValidatorStr, beaconCommitteeStr, s.BC.GetChainParams().MaxBeaconCommitteeSize, s.BC.GetChainParams().MinBeaconCommitteeSize, s.BC.GetChainParams().Offset, producersBlackList, s.BC.GetChainParams().SwapOffset)
 
 	if len(swappedValidator) > 0 || len(beaconNextCommittee) > 0 && err == nil {
 		swapBeaconInstructions = append(swapBeaconInstructions, "swap")
 		swapBeaconInstructions = append(swapBeaconInstructions, strings.Join(beaconNextCommittee, ","))
 		swapBeaconInstructions = append(swapBeaconInstructions, strings.Join(swappedValidator, ","))
 		swapBeaconInstructions = append(swapBeaconInstructions, "beacon")
+		swapBeaconInstructions = append(swapBeaconInstructions, string(badProducersWithPunishmentBytes))
 		instructions = append(instructions, swapBeaconInstructions)
 	}
 
