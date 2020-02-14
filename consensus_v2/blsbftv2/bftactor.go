@@ -103,7 +103,7 @@ func (e *BLSBFT) Start() error {
 					e.Logger.Info(err)
 					continue
 				}
-				blkHash := block.Hash().String()
+				blkHash := block.GetHash().String()
 				if _, ok := e.receiveBlockByHash[blkHash]; !ok {
 					e.receiveBlockByHash[blkHash] = &ProposeBlockInfo{
 						block:      block,
@@ -114,7 +114,7 @@ func (e *BLSBFT) Start() error {
 				} else {
 					e.receiveBlockByHash[blkHash].block = block
 				}
-				e.Logger.Debug("Receive block ", block.Hash().String(), "height", block.GetHeight(), ",block timeslot ", block.GetTimeslot())
+				e.Logger.Debug("Receive block ", block.GetHash().String(), "height", block.GetHeight(), ",block timeslot ", block.GetTimeslot())
 				if block.GetHeight() <= e.Chain.GetBestView().GetHeight() {
 					e.Logger.Debug("Send proposer to update views. Propose view Height less than latest height: ", block.GetHeight(), "<=", e.Chain.GetBestView().GetHeight())
 					e.Node.NotifyOutdatedView(proposeMsg.PeerID, e.Chain.GetBestView().Hash().String())
@@ -174,10 +174,10 @@ func (e *BLSBFT) Start() error {
 						if createdBlk, err := e.proposeBlock(proposeBlock); err != nil {
 							e.Logger.Critical(consensus.UnExpectedError, errors.New("can't propose block"))
 						} else {
-							e.Logger.Debug("proposer block", createdBlk.GetHeight(), "time slot ", e.currentTimeSlot, " with hash", createdBlk.Hash().String())
+							e.Logger.Debug("proposer block", createdBlk.GetHeight(), "time slot ", e.currentTimeSlot, " with hash", createdBlk.GetHash().String())
 							//if propose block is not in cache list, create new one
-							if _, ok := e.receiveBlockByHash[createdBlk.Hash().String()]; !ok {
-								e.receiveBlockByHash[createdBlk.Hash().String()] = &ProposeBlockInfo{isValid: true, block: createdBlk, votes: make(map[string]BFTVote)}
+							if _, ok := e.receiveBlockByHash[createdBlk.GetHash().String()]; !ok {
+								e.receiveBlockByHash[createdBlk.GetHash().String()] = &ProposeBlockInfo{isValid: true, block: createdBlk, votes: make(map[string]BFTVote)}
 							}
 
 						}
@@ -261,7 +261,7 @@ func (e *BLSBFT) processIfBlockGetEnoughVote(k string, v *ProposeBlockInfo) {
 	}
 
 	//already in chain
-	_, err := e.Chain.GetViewByHash(*v.block.Hash())
+	_, err := e.Chain.GetViewByHash(*v.block.GetHash())
 	if err == nil {
 		return
 	}
@@ -366,20 +366,20 @@ func (e *BLSBFT) validateAndVote(v *ProposeBlockInfo) error {
 		bytelist = append(bytelist, v.MiningPubKey[common.BlsConsensus2])
 	}
 
-	blsSig, err := e.UserKeySet.BLSSignData(v.block.Hash().GetBytes(), selfIdx, bytelist)
+	blsSig, err := e.UserKeySet.BLSSignData(v.block.GetHash().GetBytes(), selfIdx, bytelist)
 	if err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 	bridgeSig := []byte{}
 	if metadata.HasBridgeInstructions(v.block.GetInstructions()) {
-		bridgeSig, err = e.UserKeySet.BriSignData(v.block.Hash().GetBytes())
+		bridgeSig, err = e.UserKeySet.BriSignData(v.block.GetHash().GetBytes())
 		if err != nil {
 			return consensus.NewConsensusError(consensus.UnExpectedError, err)
 		}
 	}
 	Vote.BLS = blsSig
 	Vote.BRI = bridgeSig
-	Vote.BlockHash = v.block.Hash().String()
+	Vote.BlockHash = v.block.GetHash().String()
 
 	userPk := e.UserKeySet.GetPublicKey()
 	Vote.Validator = userPk.GetMiningKeyBase58(common.BlsConsensus2)
@@ -413,7 +413,7 @@ func (e *BLSBFT) proposeBlock(block consensus.BlockInterface) (consensus.BlockIn
 		block, _ = e.Chain.GetBestView().CreateNewBlock(ctx, e.currentTimeSlot, e.UserKeySet.GetPublicKeyBase58())
 		isCreateNewValidationData = true
 	} else {
-		fmt.Println(block.Hash().GetBytes())
+		fmt.Println(block.GetHash().GetBytes())
 		block = e.Chain.GetBestView().CreateBlockFromOldBlockData(block)
 		isCreateNewValidationData = false
 	}

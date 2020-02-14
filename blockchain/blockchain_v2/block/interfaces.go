@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
@@ -40,7 +41,7 @@ type BeaconApp interface {
 	buildHeader() error
 
 	//crete view from block
-	updateNewViewFromBlock(block *BeaconBlock) error
+	updateNewViewFromBlock(block blockinterface.BeaconBlockInterface) error
 
 	//validate block
 	preValidate() error
@@ -49,9 +50,9 @@ type BeaconApp interface {
 	storeDatabase() error
 }
 
-type BeaconBlockInterface interface {
-	GetConfirmedCrossShardBlockToShard() map[byte]map[byte][]*CrossShardBlock
-}
+// type BeaconBlockInterface interface {
+// 	GetConfirmedCrossShardBlockToShard() map[byte]map[byte][]*CrossShardBlock
+// }
 
 type AppData struct {
 	Logger      common.Logger
@@ -89,7 +90,7 @@ type BlockChain interface {
 	GetNextCrossShard(from byte, to byte, startHeight uint64) uint64
 
 	GetAllValidCrossShardBlockFromPool(toShard byte) map[byte][]*CrossShardBlock
-	GetValidBeaconBlockFromPool() []BeaconBlockInterface
+	GetValidBeaconBlockFromPool() []blockinterface.BeaconBlockInterface
 	GetPendingTransaction(shardID byte) (txsToAdd []metadata.Transaction, txToRemove []metadata.Transaction, totalFee uint64)
 
 	GetShardPendingCommittee(shardID byte) []incognitokey.CommitteePublicKey

@@ -15,6 +15,8 @@ const (
 	RANDOM_NUMBER              = 3
 	SHARD_BLOCK_VERSION        = 1
 	BEACON_BLOCK_VERSION       = 1
+	SHARD_BLOCK_VERSION2       = 2
+	BEACON_BLOCK_VERSION2      = 2
 	DefaultMaxBlkReqPerPeer    = 600
 	DefaultMaxBlkReqPerTime    = 1200
 	MinCommitteeSize           = 3                // min size to run bft
@@ -33,7 +35,7 @@ const (
 
 // burning addresses
 const (
-	burningAddress = "15pABFiJVeh9D5uiQEhQX4SVibGGbdAVipQxBdxkmDqAJaoG1EdFKHBrNfs"
+	burningAddress  = "15pABFiJVeh9D5uiQEhQX4SVibGGbdAVipQxBdxkmDqAJaoG1EdFKHBrNfs"
 	burningAddress2 = "12RxahVABnAVCGP3LGwCn8jkQxgw7z1x14wztHzn455TTVpi1wBq9YGwkRMQg3J4e657AbAnCvYCJSdA9czBUNuCKwGSRQt55Xwz8WA"
 )
 

@@ -6,28 +6,30 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/database"
 	"github.com/incognitochain/incognito-chain/database/lvdb"
 	"github.com/incognitochain/incognito-chain/metadata"
 )
 
-func storePDEInstructions(block *BeaconBlock, bd *[]database.BatchData, blockchain BlockChain) error {
-	if len(block.Body.Instructions) == 0 {
+func storePDEInstructions(block blockinterface.BeaconBlockInterface, bd *[]database.BatchData, blockchain BlockChain) error {
+	instructions := block.GetBody().GetInstructions()
+	if len(instructions) == 0 {
 		return nil
 	} else {
-		fmt.Println(len(block.Body.Instructions), block.Body.Instructions[0], block.Body.Instructions[1], block.Body.Instructions[2])
-		panic(block.Body.Instructions)
+		fmt.Println(len(instructions), instructions[0], instructions[1], instructions[2])
+		panic(instructions)
 	}
 
-	beaconHeight := block.Header.Height - 1
+	beaconHeight := block.GetHeader().GetHeight() - 1
 	db := blockchain.GetDatabase()
 	currentPDEState, err := InitCurrentPDEStateFromDB(db, beaconHeight)
 	if err != nil {
 		Logger.log.Error(err)
 		return nil
 	}
-	for _, inst := range block.Body.Instructions {
+	for _, inst := range instructions {
 		if len(inst) < 2 {
 			continue // Not error, just not PDE instruction
 		}

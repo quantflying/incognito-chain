@@ -1,4 +1,4 @@
-package block
+package beaconblockv2
 
 import (
 	"fmt"
@@ -28,14 +28,14 @@ type BeaconHeader struct {
 	Producer                        string      `json:"Producer"`
 }
 
-func (beaconHeader *BeaconHeader) toString() string {
+func (beaconHeader BeaconHeader) toString() string {
 	res := ""
-	// res += beaconHeader.ProducerAddress.String()
 	res += fmt.Sprintf("%v", beaconHeader.Version)
 	res += fmt.Sprintf("%v", beaconHeader.Height)
 	res += fmt.Sprintf("%v", beaconHeader.Epoch)
 	res += fmt.Sprintf("%v", beaconHeader.Round)
 	res += fmt.Sprintf("%v", beaconHeader.Timestamp)
+	res += fmt.Sprintf("%v", beaconHeader.TimeSlot)
 	res += beaconHeader.PreviousBlockHash.String()
 	res += beaconHeader.BeaconCommitteeAndValidatorRoot.String()
 	res += beaconHeader.BeaconCandidateRoot.String()
@@ -48,14 +48,69 @@ func (beaconHeader *BeaconHeader) toString() string {
 	return res
 }
 
-func (beaconHeader *BeaconHeader) MetaHash() common.Hash {
+func (beaconHeader BeaconHeader) GetMetaHash() common.Hash {
 	return common.Keccak256([]byte(beaconHeader.toString()))
 }
 
-func (beaconHeader *BeaconHeader) Hash() common.Hash {
+func (beaconHeader BeaconHeader) GetHash() *common.Hash {
 	// Block header of beacon uses Keccak256 as a hash func to check on Ethereum when relaying blocks
-	blkMetaHash := beaconHeader.MetaHash()
+	blkMetaHash := beaconHeader.GetMetaHash()
 	blkInstHash := beaconHeader.InstructionMerkleRoot
 	combined := append(blkMetaHash[:], blkInstHash[:]...)
-	return common.Keccak256(combined)
+	result := common.Keccak256(combined)
+	return &result
+}
+
+func (beaconHeader BeaconHeader) GetTimestamp() int64 {
+	return beaconHeader.Timestamp
+}
+
+func (beaconHeader BeaconHeader) GetTimeslot() uint64 {
+	return beaconHeader.TimeSlot
+}
+
+func (beaconHeader BeaconHeader) GetVersion() int {
+	return beaconHeader.Version
+}
+func (beaconHeader BeaconHeader) GetHeight() uint64 {
+	return beaconHeader.Height
+}
+func (beaconHeader BeaconHeader) GetEpoch() uint64 {
+	return beaconHeader.Epoch
+}
+func (beaconHeader BeaconHeader) GetConsensusType() string {
+	return beaconHeader.ConsensusType
+}
+func (beaconHeader BeaconHeader) GetProducer() string {
+	return beaconHeader.Producer
+}
+func (beaconHeader BeaconHeader) GetPreviousBlockHash() common.Hash {
+	return beaconHeader.PreviousBlockHash
+}
+func (beaconHeader BeaconHeader) GetRound() int {
+	return beaconHeader.Round
+}
+func (beaconHeader BeaconHeader) GetInstructionHash() common.Hash {
+	return beaconHeader.InstructionHash
+}
+func (beaconHeader BeaconHeader) GetShardStateHash() common.Hash {
+	return beaconHeader.ShardStateHash
+}
+func (beaconHeader BeaconHeader) GetInstructionMerkleRoot() common.Hash {
+	return beaconHeader.InstructionMerkleRoot
+}
+func (beaconHeader BeaconHeader) GetBeaconCommitteeAndValidatorRoot() common.Hash {
+	return beaconHeader.BeaconCommitteeAndValidatorRoot
+}
+func (beaconHeader BeaconHeader) GetBeaconCandidateRoot() common.Hash {
+	return beaconHeader.BeaconCandidateRoot
+}
+func (beaconHeader BeaconHeader) GetShardCandidateRoot() common.Hash {
+	return beaconHeader.ShardCandidateRoot
+}
+func (beaconHeader BeaconHeader) GetShardCommitteeAndValidatorRoot() common.Hash {
+	return beaconHeader.ShardCommitteeAndValidatorRoot
+}
+func (beaconHeader BeaconHeader) GetAutoStakingRoot() common.Hash {
+	return beaconHeader.AutoStakingRoot
 }

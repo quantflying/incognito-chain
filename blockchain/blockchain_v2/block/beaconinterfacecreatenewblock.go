@@ -4,6 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv2"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardstate"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 )
 
@@ -11,7 +14,7 @@ type CreateBeaconBlockState struct {
 	ctx      context.Context
 	bc       BlockChain
 	curView  *BeaconView
-	newBlock *BeaconBlock
+	newBlock blockinterface.BeaconBlockInterface
 	newView  *BeaconView
 
 	//app
@@ -30,7 +33,7 @@ type CreateBeaconBlockState struct {
 
 	rewardInstByEpoch [][]string
 
-	shardStates                      map[byte][]ShardState
+	shardStates                      map[byte][]shardstate.ShardState
 	validStakeInstructions           [][]string
 	validStakePublicKeys             []string
 	validStopAutoStakingInstructions [][]string
@@ -103,8 +106,8 @@ func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, propos
 	instructions = append(instructions, createState.bridgeInstructions...)
 	instructions = append(instructions, createState.statefulInstructions...)
 
-	createState.newBlock = &BeaconBlock{
-		Body: BeaconBody{
+	createState.newBlock = &beaconblockv2.BeaconBlock{
+		Body: beaconblockv2.BeaconBody{
 			ShardState:   createState.shardStates,
 			Instructions: instructions,
 		},

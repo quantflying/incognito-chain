@@ -1,22 +1,18 @@
-package block
+package beaconblockv2
 
 import (
 	"encoding/json"
-	"github.com/incognitochain/incognito-chain/common"
 	"strconv"
+
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardstate"
+	"github.com/incognitochain/incognito-chain/common"
 )
 
 type BeaconBody struct {
 	// Shard State extract from shard to beacon block
 	// Store all shard state == store content of all shard to beacon block
-	ShardState   map[byte][]ShardState
+	ShardState   map[byte][]shardstate.ShardState
 	Instructions [][]string
-}
-
-type ShardState struct {
-	Height     uint64
-	Hash       common.Hash
-	CrossShard []byte //In this state, shard i send cross shard tx to which shard
 }
 
 func (beaconBlock *BeaconBody) toString() string {
@@ -40,4 +36,11 @@ func (beaconBlock *BeaconBody) toString() string {
 
 func (beaconBody BeaconBody) Hash() common.Hash {
 	return common.HashH([]byte(beaconBody.toString()))
+}
+
+func (beaconBody BeaconBody) GetShardState() map[byte][]shardstate.ShardState {
+	return beaconBody.ShardState
+}
+func (beaconBody BeaconBody) GetInstructions() [][]string {
+	return beaconBody.Instructions
 }

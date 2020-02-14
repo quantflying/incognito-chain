@@ -5,6 +5,10 @@ import (
 	"fmt"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv2"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/consensusheader"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardstate"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 )
@@ -37,10 +41,10 @@ func (s *BeaconCoreApp) preCreateBlock() error {
 		}
 
 		//shardstates
-		shardStates := make(map[byte][]ShardState)
+		shardStates := make(map[byte][]shardstate.ShardState)
 		for shardID, shardBlocks := range state.s2bBlks {
 			for _, s2bBlk := range shardBlocks {
-				shardState := ShardState{}
+				shardState := shardstate.ShardState{}
 				shardState.CrossShard = make([]byte, len(s2bBlk.Header.CrossShardBitMap))
 				copy(shardState.CrossShard, s2bBlk.Header.CrossShardBitMap)
 				shardState.Hash = s2bBlk.Header.Hash()
@@ -125,23 +129,24 @@ func (s *BeaconCoreApp) buildHeader() error {
 	curView := s.CreateState.curView
 
 	newBlock := s.CreateState.newBlock
-	newBlock.Header = BeaconHeader{}
+	newBlockHeader := beaconblockv2.BeaconHeader{}
+	newBlockConsensusHeader := consensusheader.ConsensusHeader{}
 
 	//======Build Header Essential Data=======
-	newBlock.Header.Version = blockchain.BEACON_BLOCK_VERSION
-	newBlock.Header.Height = curView.GetHeight() + 1
+	newBlockHeader.Version = blockchain.BEACON_BLOCK_VERSION2
+	newBlockHeader.Height = curView.GetHeight() + 1
 	if s.CreateState.isNewEpoch {
-		newBlock.Header.Epoch = curView.GetEpoch() + 1
+		newBlockHeader.Epoch = curView.GetEpoch() + 1
 	}
-	newBlock.Header.ConsensusType = common.BlsConsensus2
-	newBlock.Header.Producer = s.CreateState.proposer
+	newBlockHeader.ConsensusType = common.BlsConsensus2
+	newBlockHeader.Producer = s.CreateState.proposer
 
-	newBlock.Header.Timestamp = s.CreateState.createTimeStamp
-	newBlock.Header.TimeSlot = s.CreateState.createTimeSlot
-	newBlock.Header.PreviousBlockHash = *curView.GetBlock().Hash()
+	newBlockHeader.Timestamp = s.CreateState.createTimeStamp
+	newBlockHeader.TimeSlot = s.CreateState.createTimeSlot
+	newBlockHeader.PreviousBlockHash = *curView.GetBlock().GetHash()
 
-	newBlock.ConsensusHeader.Proposer = s.CreateState.proposer
-	newBlock.ConsensusHeader.TimeSlot = s.CreateState.createTimeSlot
+	newBlockConsensusHeader.Proposer = s.CreateState.proposer
+	newBlockConsensusHeader.TimeSlot = s.CreateState.createTimeSlot
 
 	//============Build Header Hash=============
 	// create new view
@@ -225,7 +230,7 @@ func (s *BeaconCoreApp) buildHeader() error {
 	}
 	// Instruction Hash
 	tempInstructionArr := []string{}
-	for _, strs := range s.CreateState.newBlock.Body.Instructions {
+	for _, strs := range s.CreateState.newBlock.GetBody().GetInstructions() {
 		tempInstructionArr = append(tempInstructionArr, strs...)
 	}
 	tempInstructionHash, err := GenerateHashFromStringArray(tempInstructionArr)
@@ -234,30 +239,31 @@ func (s *BeaconCoreApp) buildHeader() error {
 		return blockchain.NewBlockChainError(blockchain.GenerateInstructionHashError, err)
 	}
 	// Instruction merkle root
-	flattenInsts, err := blockchain.FlattenAndConvertStringInst(s.CreateState.newBlock.Body.Instructions)
+	flattenInsts, err := blockchain.FlattenAndConvertStringInst(s.CreateState.newBlock.GetBody().GetInstructions())
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.FlattenAndConvertStringInstError, err)
 	}
 	// add hash to header
-	newBlock.Header.BeaconCommitteeAndValidatorRoot = tempBeaconCommitteeAndValidatorRoot
-	newBlock.Header.BeaconCandidateRoot = tempBeaconCandidateRoot
-	newBlock.Header.ShardCandidateRoot = tempShardCandidateRoot
-	newBlock.Header.ShardCommitteeAndValidatorRoot = tempShardCommitteeAndValidatorRoot
-	newBlock.Header.ShardStateHash = tempShardStateHash
-	newBlock.Header.InstructionHash = tempInstructionHash
-	newBlock.Header.AutoStakingRoot = tempAutoStakingRoot
-	copy(newBlock.Header.InstructionMerkleRoot[:], blockchain.GetKeccak256MerkleRoot(flattenInsts))
+	newBlockHeader.BeaconCommitteeAndValidatorRoot = tempBeaconCommitteeAndValidatorRoot
+	newBlockHeader.BeaconCandidateRoot = tempBeaconCandidateRoot
+	newBlockHeader.ShardCandidateRoot = tempShardCandidateRoot
+	newBlockHeader.ShardCommitteeAndValidatorRoot = tempShardCommitteeAndValidatorRoot
+	newBlockHeader.ShardStateHash = tempShardStateHash
+	newBlockHeader.InstructionHash = tempInstructionHash
+	newBlockHeader.AutoStakingRoot = tempAutoStakingRoot
+	copy(newBlockHeader.InstructionMerkleRoot[:], blockchain.GetKeccak256MerkleRoot(flattenInsts))
+
 	return nil
 }
 
-func (s *BeaconCoreApp) updateNewViewFromBlock(block *BeaconBlock) (err error) {
+func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockInterface) (err error) {
 	s.CreateState.newView.Block = block
 	newView := s.CreateState.newView
 	//curView := s.CreateState.curView
 	newShardCandidates := []incognitokey.CommitteePublicKey{}
 	newBeaconCandidates := []incognitokey.CommitteePublicKey{}
 	randomFlag := false
-	for _, inst := range block.Body.Instructions {
+	for _, inst := range block.GetBody().GetInstructions() {
 		switch instructionType(inst) {
 		case RandomInst:
 			if newView.IsGettingRandomNumber { //only process if in getting random number
@@ -562,10 +568,10 @@ func (s *BeaconCoreApp) preValidate() error {
 		}
 
 		//shardstates
-		shardStates := make(map[byte][]ShardState)
+		shardStates := make(map[byte][]shardstate.ShardState)
 		for shardID, shardBlocks := range state.s2bBlks {
 			for _, s2bBlk := range shardBlocks {
-				shardState := ShardState{}
+				shardState := shardstate.ShardState{}
 				shardState.CrossShard = make([]byte, len(s2bBlk.Header.CrossShardBitMap))
 				copy(shardState.CrossShard, s2bBlk.Header.CrossShardBitMap)
 				shardState.Hash = s2bBlk.Header.Hash()

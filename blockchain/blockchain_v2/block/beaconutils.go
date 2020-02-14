@@ -10,13 +10,14 @@ import (
 	"time"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 )
 
 //===================================Util for Beacon=============================
-func GetStakingCandidate(beaconBlock BeaconBlock) ([]string, []string) {
+func GetStakingCandidate(beaconBlock blockinterface.BeaconBlockInterface) ([]string, []string) {
 	beacon := []string{}
 	shard := []string{}
 	beaconBlockBody := beaconBlock.Body
@@ -422,7 +423,7 @@ func CreateBeaconGenesisBlock(
 	net uint16,
 	genesisBlockTime string,
 	genesisParams blockchain.GenesisParams,
-) *BeaconBlock {
+) blockinterface.BeaconBlockInterface {
 	inst := [][]string{}
 	shardAutoStaking := []string{}
 	beaconAutoStaking := []string{}

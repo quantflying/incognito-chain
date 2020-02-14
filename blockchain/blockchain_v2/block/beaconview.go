@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
@@ -20,7 +21,7 @@ type BeaconView struct {
 	Logger common.Logger
 
 	//field that copy automatically and need to update
-	Block *BeaconBlock
+	Block blockinterface.BeaconBlockInterface
 
 	BeaconCommittee        []incognitokey.CommitteePublicKey
 	BeaconPendingValidator []incognitokey.CommitteePublicKey

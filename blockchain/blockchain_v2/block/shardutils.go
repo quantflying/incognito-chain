@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -205,7 +206,7 @@ func CreateSwapAction(
 }
 
 // pickInstructionFromBeaconBlocks extracts all instructions of a specific type
-func pickInstructionFromBeaconBlocks(beaconBlocks []*BeaconBlock, instType string) [][]string {
+func pickInstructionFromBeaconBlocks(beaconBlocks []blockinterface.BeaconBlockInterface, instType string) [][]string {
 	insts := [][]string{}
 	for _, block := range beaconBlocks {
 		found := pickInstructionWithType(block.Body.Instructions, instType)

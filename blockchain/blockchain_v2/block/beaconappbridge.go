@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/database"
 )
@@ -58,7 +59,7 @@ func (s *BeaconBridgeApp) buildHeader() error {
 	return nil
 }
 
-func (s *BeaconBridgeApp) updateNewViewFromBlock(block *BeaconBlock) error {
+func (s *BeaconBridgeApp) updateNewViewFromBlock(block blockinterface.BeaconBlockInterface) error {
 	return nil
 }
 

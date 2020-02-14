@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	rCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -364,7 +365,7 @@ func buildETHIssuanceTx(
 
 // pickBurningConfirmInstruction finds all BurningConfirmMeta instructions
 func pickBurningConfirmInstruction(
-	beaconBlocks []*BeaconBlock,
+	beaconBlocks []blockinterface.BeaconBlockInterface,
 	height uint64,
 ) [][]string {
 	// Pick

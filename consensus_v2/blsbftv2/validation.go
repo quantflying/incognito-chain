@@ -44,7 +44,7 @@ func EncodeValidationData(validationData ValidationData) (string, error) {
 
 func (e BLSBFT) CreateValidationData(block consensus.BlockInterface) ValidationData {
 	var valData ValidationData
-	valData.ProducerBLSSig, _ = e.UserKeySet.BriSignData(block.Hash().GetBytes())
+	valData.ProducerBLSSig, _ = e.UserKeySet.BriSignData(block.GetHash().GetBytes())
 	return valData
 }
 
@@ -60,7 +60,7 @@ func (e BLSBFT) ValidateProducerSig(block consensus.BlockInterface) error {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 	//start := time.Now()
-	if err := validateSingleBriSig(block.Hash(), valData.ProducerBLSSig, producerKey.MiningPubKey[common.BridgeConsensus]); err != nil {
+	if err := validateSingleBriSig(block.GetHash(), valData.ProducerBLSSig, producerKey.MiningPubKey[common.BridgeConsensus]); err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 	//end := time.Now().Sub(start)
@@ -77,7 +77,7 @@ func (e BLSBFT) ValidateCommitteeSig(block consensus.BlockInterface, committee [
 	for _, member := range committee {
 		committeeBLSKeys = append(committeeBLSKeys, member.MiningPubKey[common.BlsConsensus2])
 	}
-	if err := validateBLSSig(block.Hash(), valData.AggSig, valData.ValidatiorsIdx, committeeBLSKeys); err != nil {
+	if err := validateBLSSig(block.GetHash(), valData.AggSig, valData.ValidatiorsIdx, committeeBLSKeys); err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 	return nil

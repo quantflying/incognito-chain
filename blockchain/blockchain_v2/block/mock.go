@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/database"
@@ -112,7 +113,7 @@ func (FakeBC) GetAllCoinID() ([]common.Hash, error) {
 	panic("implement me")
 }
 
-func (FakeBC) GetValidBeaconBlockFromPool() []BeaconBlockInterface {
+func (FakeBC) GetValidBeaconBlockFromPool() []blockinterface.BeaconBlockInterface {
 	panic("implement me")
 }
 

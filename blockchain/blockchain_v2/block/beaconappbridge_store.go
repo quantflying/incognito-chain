@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/database"
 
 	rCommon "github.com/ethereum/go-ethereum/common"
@@ -31,12 +32,13 @@ type BurningReqAction struct {
 	RequestedTxID *common.Hash            `json:"RequestedTxID"`
 }
 
-func storeBridgeInstructions(block *BeaconBlock, bd *[]database.BatchData, blockchain BlockChain, logger common.Logger) error {
-	if len(block.Body.Instructions) == 0 {
+func storeBridgeInstructions(block blockinterface.BeaconBlockInterface, bd *[]database.BatchData, blockchain BlockChain, logger common.Logger) error {
+	instructions := block.GetBody().GetInstructions()
+	if len(instructions) == 0 {
 		return nil
 	}
 	updatingInfoByTokenID := map[common.Hash]UpdatingInfo{}
-	for _, inst := range block.Body.Instructions {
+	for _, inst := range instructions {
 		if len(inst) < 2 {
 			continue // Not error, just not bridge instruction
 		}

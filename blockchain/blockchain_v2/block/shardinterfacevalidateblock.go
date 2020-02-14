@@ -3,6 +3,7 @@ package block
 import (
 	"context"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -18,7 +19,7 @@ type ValidateShardBlockState struct {
 	//tmp
 	isPreSign        bool
 	newView          *ShardView
-	beaconBlocks     []BeaconBlockInterface
+	beaconBlocks     []blockinterface.BeaconBlockInterface
 	crossShardBlocks map[byte][]*CrossShardBlock
 	txsToAdd         []metadata.Transaction
 

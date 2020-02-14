@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardstate"
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -20,7 +21,7 @@ import (
 func buildInstructionFromBlock(s2bBlk *ShardToBeaconBlock, curView *BeaconView) ([][]string, []string, map[byte][][]string, []string, [][]string) {
 	shardID := s2bBlk.Header.ShardID
 	instructions := s2bBlk.Instructions
-	shardStates := make(map[byte]ShardState)
+	shardStates := make(map[byte]shardstate.ShardState)
 	stakeInstructions := [][]string{}
 	swapInstructions := make(map[byte][][]string)
 	stopAutoStakingInstructions := [][]string{}
@@ -44,7 +45,7 @@ func buildInstructionFromBlock(s2bBlk *ShardToBeaconBlock, curView *BeaconView) 
 		acceptedRewardInstructions = []string{}
 	}
 
-	shardState := ShardState{}
+	shardState := shardstate.ShardState{}
 	shardState.CrossShard = make([]byte, len(s2bBlk.Header.CrossShardBitMap))
 	copy(shardState.CrossShard, s2bBlk.Header.CrossShardBitMap)
 	shardState.Hash = s2bBlk.Header.Hash()

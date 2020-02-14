@@ -4,19 +4,20 @@ import (
 	"encoding/json"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 )
 
-func storeForSlashing(block *BeaconBlock, bc BlockChain) error {
+func storeForSlashing(block blockinterface.BeaconBlockInterface, bc BlockChain) error {
 	var err error
 	db := bc.GetDatabase()
-	beaconHeight := block.GetHeight()
+	beaconHeight := block.GetHeader().GetHeight()
 	producersBlackList, err := db.GetProducersBlackList(beaconHeight - 1)
 	if err != nil {
 		return err
 	}
 
 	chainParamEpoch := bc.GetChainParams().Epoch
-	newBeaconHeight := block.GetHeight()
+	newBeaconHeight := block.GetHeader().GetHeight()
 	if newBeaconHeight%uint64(chainParamEpoch) == 0 { // end of epoch
 		punishedProducersFinished := []string{}
 		for producer := range producersBlackList {
@@ -30,7 +31,7 @@ func storeForSlashing(block *BeaconBlock, bc BlockChain) error {
 		}
 	}
 
-	for _, inst := range block.GetInstructions() {
+	for _, inst := range block.GetBody().GetInstructions() {
 		if len(inst) == 0 {
 			continue
 		}

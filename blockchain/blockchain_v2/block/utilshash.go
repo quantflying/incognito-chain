@@ -3,10 +3,12 @@ package block
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/common"
 	"sort"
 	"strconv"
+
+	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardstate"
+	"github.com/incognitochain/incognito-chain/common"
 )
 
 //=========================HASH util==================================
@@ -104,7 +106,7 @@ func GenerateHashFromMapStringBool(maps1 map[string]bool) (common.Hash, error) {
 	}
 	return GenerateHashFromStringArray(res)
 }
-func GenerateHashFromShardState(allShardState map[byte][]ShardState) (common.Hash, error) {
+func GenerateHashFromShardState(allShardState map[byte][]shardstate.ShardState) (common.Hash, error) {
 	allShardStateStr := []string{}
 	var keys []int
 	for k := range allShardState {
@@ -171,7 +173,7 @@ func VerifyHashFromMapByteString(maps1 map[byte][]string, maps2 map[byte][]strin
 	return bytes.Equal(res.GetBytes(), hash.GetBytes())
 }
 
-func VerifyHashFromShardState(allShardState map[byte][]ShardState, hash common.Hash) bool {
+func VerifyHashFromShardState(allShardState map[byte][]shardstate.ShardState, hash common.Hash) bool {
 	res, err := GenerateHashFromShardState(allShardState)
 	if err != nil {
 		return false
