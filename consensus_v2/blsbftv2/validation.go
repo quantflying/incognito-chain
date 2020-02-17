@@ -55,7 +55,7 @@ func (e BLSBFT) ValidateProducerSig(block consensus.BlockInterface) error {
 	}
 
 	producerKey := incognitokey.CommitteePublicKey{}
-	err = producerKey.FromBase58(block.GetBlockProposer())
+	err = producerKey.FromBase58(block.GetProducer())
 	if err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}

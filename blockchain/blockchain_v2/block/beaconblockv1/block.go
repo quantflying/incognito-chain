@@ -16,11 +16,15 @@ type BeaconBlock struct {
 	Header BeaconHeader
 }
 
+func (beaconBlock BeaconBlock) GetBlockType() string {
+	return "beacon"
+}
+
 func (beaconBlock BeaconBlock) GetHash() *common.Hash {
 	return beaconBlock.Header.GetHash()
 }
 
-func (beaconBlock BeaconBlock) GetCurrentEpoch() uint64 {
+func (beaconBlock BeaconBlock) GetEpoch() uint64 {
 	return beaconBlock.Header.Epoch
 }
 

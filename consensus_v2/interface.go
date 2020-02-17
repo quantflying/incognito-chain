@@ -15,20 +15,17 @@ type NodeSender interface {
 type BlockInterface interface {
 	GetBlockType() string
 	GetHeight() uint64
-	// GetBeaconHeight() uint64
 	GetHash() *common.Hash
-	GetBlockProposer() string
 	GetProducer() string
 	GetValidationField() string
 	GetRound() int
-	GetRoundKey() string
+	// GetRoundKey() string
 	GetInstructions() [][]string
 	GetConsensusType() string
-	GetCurrentEpoch() uint64
+	GetEpoch() uint64
 	GetPreviousBlockHash() common.Hash
 	GetTimeslot() uint64
-	GetCreateTimeslot() uint64
-	GetBlockTimestamp() int64
+	GetTimestamp() int64
 }
 
 type BlockChainInterface interface {

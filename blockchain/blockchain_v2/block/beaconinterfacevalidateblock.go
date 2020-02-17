@@ -6,6 +6,7 @@ import (
 
 	"github.com/incognitochain/incognito-chain/blockchain"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
@@ -94,8 +95,8 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block co
 		instructions = append(instructions, createState.bridgeInstructions...)
 		instructions = append(instructions, createState.statefulInstructions...)
 
-		createState.newBlock = &BeaconBlock{
-			Body: BeaconBody{
+		createState.newBlock = &beaconblockv2.BeaconBlock{
+			Body: beaconblockv2.BeaconBody{
 				ShardState:   createState.shardStates,
 				Instructions: instructions,
 			},
@@ -110,7 +111,7 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block co
 
 		//compare block hash
 		if !createState.newBlock.GetHash().IsEqual(validateState.newView.Block.GetHash()) {
-			fmt.Println(createState.newBlock.GetHash().String(), validateState.newView.Block.Hash().String())
+			fmt.Println(createState.newBlock.GetHash().String(), validateState.newView.Block.GetHash().String())
 			panic(1)
 			return nil, nil
 		}

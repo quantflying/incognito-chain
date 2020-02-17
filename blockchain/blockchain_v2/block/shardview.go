@@ -118,7 +118,7 @@ func (s *ShardView) GetTimeslot() uint64 {
 }
 
 func (s *ShardView) GetEpoch() uint64 {
-	return s.Block.GetCurrentEpoch()
+	return s.Block.GetEpoch()
 }
 
 func (s *ShardView) Hash() common.Hash {

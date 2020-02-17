@@ -126,7 +126,7 @@ func (FakeBC) GetCurrentBeaconHeight() (uint64, error) {
 	return 1, nil
 }
 
-func (FakeBC) GetCurrentEpoch() (uint64, error) {
+func (FakeBC) GetEpoch() (uint64, error) {
 	panic("implement me")
 }
 

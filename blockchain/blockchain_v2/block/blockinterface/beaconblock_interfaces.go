@@ -8,9 +8,7 @@ import (
 type BeaconBlockInterface interface {
 	GetHeader() BeaconHeaderInterface
 	GetBody() BeaconBodyInterface
-	GetVersion() int
-	GetHash() *common.Hash
-	// GetConfirmedCrossShardBlockToShard() map[byte]map[byte][]*CrossShardBlock
+	BeaconHeaderInterface
 
 	// SetHeader(BeaconHeaderInterface) error
 	// SetBody(BeaconBodyInterface) error

@@ -210,7 +210,7 @@ func (s *ChainViewManager) GetGenesisTime() int64 {
 func (s *ChainViewManager) GetAllTipBlocksHash() []*common.Hash {
 	var result []*common.Hash
 	for _, node := range s.manager.node {
-		result = append(result, node.view.GetBlock().Hash())
+		result = append(result, node.view.GetBlock().GetHash())
 	}
 	return result
 }

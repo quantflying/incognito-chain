@@ -407,12 +407,12 @@ func (s *ShardCoreApp) preValidate() error {
 
 	//check block proposer
 	key := incognitokey.CommitteePublicKey{}
-	err := key.FromBase58(newBlock.GetBlockProposer())
+	err := key.FromBase58(newBlock.GetProducer())
 	if err != nil {
 		return err
 	}
 	if key.GetMiningKeyBase58(common.BlsConsensus2) != state.curView.GetNextProposer(newBlock.GetTimeslot()) {
-		return errors.New("Wrong block proposer " + newBlock.GetBlockProposer() + " " + state.curView.GetNextProposer(newBlock.GetTimeslot()))
+		return errors.New("Wrong block proposer " + newBlock.GetProducer() + " " + state.curView.GetNextProposer(newBlock.GetTimeslot()))
 	}
 
 	// TODO: check block version, should be function which return version base on block height

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
@@ -66,7 +67,7 @@ func (s *BeaconView) GetActiveShard() int {
 }
 
 func (s *BeaconView) CreateBlockFromOldBlockData(block consensus.BlockInterface) consensus.BlockInterface {
-	block1 := block.(*BeaconBlock)
+	block1 := block.(*beaconblockv2.BeaconBlock)
 	block1.ConsensusHeader.TimeSlot = common.GetTimeSlot(s.GetGenesisTime(), time.Now().Unix(), blsbftv2.TIMESLOT)
 	return block1
 }
@@ -196,7 +197,7 @@ func (s BeaconView) GetTimeslot() uint64 {
 }
 
 func (s BeaconView) GetEpoch() uint64 {
-	return s.Block.GetCurrentEpoch()
+	return s.Block.GetEpoch()
 }
 
 func (s BeaconView) Hash() common.Hash {

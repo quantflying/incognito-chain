@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv1"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/consensusheader"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -20,8 +23,8 @@ import (
 func GetStakingCandidate(beaconBlock blockinterface.BeaconBlockInterface) ([]string, []string) {
 	beacon := []string{}
 	shard := []string{}
-	beaconBlockBody := beaconBlock.Body
-	for _, v := range beaconBlockBody.Instructions {
+	beaconBlockBody := beaconBlock.GetBody()
+	for _, v := range beaconBlockBody.GetInstructions() {
 		if len(v) < 1 {
 			continue
 		}
@@ -462,30 +465,58 @@ func CreateBeaconGenesisBlock(
 	if err != nil {
 		fmt.Println(err)
 	}
-	body := BeaconBody{ShardState: nil, Instructions: inst}
-	header := BeaconHeader{
-		Timestamp:                       genesisTime.Unix(),
-		Version:                         version,
-		Epoch:                           1,
-		Height:                          1,
-		Round:                           1,
-		PreviousBlockHash:               common.Hash{},
-		BeaconCommitteeAndValidatorRoot: common.Hash{},
-		BeaconCandidateRoot:             common.Hash{},
-		ShardCandidateRoot:              common.Hash{},
-		ShardCommitteeAndValidatorRoot:  common.Hash{},
-		ShardStateHash:                  common.Hash{},
-		InstructionHash:                 common.Hash{},
+
+	if version == 1 {
+
+		body := beaconblockv1.BeaconBody{ShardState: nil, Instructions: inst}
+		header := beaconblockv1.BeaconHeader{
+			Timestamp:                       genesisTime.Unix(),
+			Version:                         version,
+			Epoch:                           1,
+			Height:                          1,
+			Round:                           1,
+			PreviousBlockHash:               common.Hash{},
+			BeaconCommitteeAndValidatorRoot: common.Hash{},
+			BeaconCandidateRoot:             common.Hash{},
+			ShardCandidateRoot:              common.Hash{},
+			ShardCommitteeAndValidatorRoot:  common.Hash{},
+			ShardStateHash:                  common.Hash{},
+			InstructionHash:                 common.Hash{},
+		}
+
+		block := &beaconblockv1.BeaconBlock{
+			Body:   body,
+			Header: header,
+		}
+
+		return block
+	} else {
+		body := beaconblockv2.BeaconBody{ShardState: nil, Instructions: inst}
+		header := beaconblockv2.BeaconHeader{
+			Timestamp:                       genesisTime.Unix(),
+			Version:                         version,
+			Epoch:                           1,
+			Height:                          1,
+			Round:                           1,
+			PreviousBlockHash:               common.Hash{},
+			BeaconCommitteeAndValidatorRoot: common.Hash{},
+			BeaconCandidateRoot:             common.Hash{},
+			ShardCandidateRoot:              common.Hash{},
+			ShardCommitteeAndValidatorRoot:  common.Hash{},
+			ShardStateHash:                  common.Hash{},
+			InstructionHash:                 common.Hash{},
+		}
+
+		block := &beaconblockv2.BeaconBlock{
+			Body:   body,
+			Header: header,
+			ConsensusHeader: consensusheader.ConsensusHeader{
+				TimeSlot: common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT),
+				Proposer: "",
+			},
+		}
+
+		return block
 	}
 
-	block := &BeaconBlock{
-		Body:   body,
-		Header: header,
-		ConsensusHeader: ConsensusHeader{
-			TimeSlot: common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT),
-			Proposer: "",
-		},
-	}
-
-	return block
 }

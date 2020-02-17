@@ -80,7 +80,7 @@ type DB interface {
 type BlockChain interface {
 	//GetDB() DB
 	GetCurrentBeaconHeight() (uint64, error) //get final confirm beacon block height
-	GetCurrentEpoch() (uint64, error)        //get final confirm beacon block height
+	GetEpoch() (uint64, error)        //get final confirm beacon block height
 	GetChainParams() blockchain.Params
 
 	ValidateCrossShardBlock(block *CrossShardBlock) error

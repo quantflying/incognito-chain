@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/consensus_v2"
+	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 )
 
 type ViewNode struct {
@@ -34,8 +34,8 @@ func NewViewGraph(name string, rootView consensus.ChainViewInterface, lock *sync
 		next: make(map[common.Hash]*ViewNode),
 		prev: nil,
 	}
-	s.leaf[*rootView.GetBlock().Hash()] = s.root
-	s.node[*rootView.GetBlock().Hash()] = s.root
+	s.leaf[*rootView.GetBlock().GetHash()] = s.root
+	s.node[*rootView.GetBlock().GetHash()] = s.root
 	s.confirmView = s.root
 	s.update()
 	return s
@@ -46,7 +46,7 @@ func (s *ViewGraph) GetNodeByHash(h common.Hash) *ViewNode {
 }
 
 func (s *ViewGraph) AddView(b consensus.ChainViewInterface) {
-	newBlockHash := *b.GetBlock().Hash()
+	newBlockHash := *b.GetBlock().GetHash()
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -120,7 +120,7 @@ newrank=true;
 func (s *ViewGraph) traverse(n *ViewNode) {
 	if n.next != nil && len(n.next) != 0 {
 		for h, v := range n.next {
-			s.edgeStr += fmt.Sprintf("%s_%d_%s -> %s_%d_%s;\n", s.name, n.view.GetBlock().GetHeight(), string(n.view.GetBlock().Hash().String()[0:5]), s.name, v.view.GetBlock().GetHeight(), string(h.String()[0:5]))
+			s.edgeStr += fmt.Sprintf("%s_%d_%s -> %s_%d_%s;\n", s.name, n.view.GetBlock().GetHeight(), string(n.view.GetBlock().GetHash().String()[0:5]), s.name, v.view.GetBlock().GetHeight(), string(h.String()[0:5]))
 			s.traverse(v)
 		}
 	} else {
@@ -130,7 +130,7 @@ func (s *ViewGraph) traverse(n *ViewNode) {
 			if n.view.GetBlock().GetHeight() > s.bestView.view.GetBlock().GetHeight() {
 				s.bestView = n
 			}
-			if (n.view.GetBlock().GetHeight() == s.bestView.view.GetBlock().GetHeight()) && n.view.GetBlock().GetBlockTimestamp() < s.bestView.view.GetBlock().GetBlockTimestamp() {
+			if (n.view.GetBlock().GetHeight() == s.bestView.view.GetBlock().GetHeight()) && n.view.GetBlock().GetTimestamp() < s.bestView.view.GetBlock().GetTimestamp() {
 				s.bestView = n
 			}
 		}

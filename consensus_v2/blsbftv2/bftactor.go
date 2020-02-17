@@ -161,7 +161,7 @@ func (e *BLSBFT) Start() error {
 						e.proposeHistory.Add(fmt.Sprintf("%s%d", e.currentTimeSlot), 1)
 						//Proposer Rule: check propose block connected to bestview(longest chain rule 1) and re-propose valid block with smallest timestamp (including already propose in the past) (rule 2)
 						sort.Slice(e.receiveBlockByHeight[bestView.GetHeight()+1], func(i, j int) bool {
-							return e.receiveBlockByHeight[bestView.GetHeight()+1][i].block.GetBlockTimestamp() < e.receiveBlockByHeight[bestView.GetHeight()+1][j].block.GetBlockTimestamp()
+							return e.receiveBlockByHeight[bestView.GetHeight()+1][i].block.GetTimestamp() < e.receiveBlockByHeight[bestView.GetHeight()+1][j].block.GetTimestamp()
 						})
 						var proposeBlock consensus.BlockInterface = nil
 						for _, v := range e.receiveBlockByHeight[bestView.GetHeight()+1] {
@@ -208,12 +208,12 @@ func (e *BLSBFT) Start() error {
 					return validProposeBlock[i].block.GetRound() < validProposeBlock[j].block.GetRound()
 				})
 				for _, v := range validProposeBlock {
-					blkCreateTimeSlot := v.block.GetCreateTimeslot()
+					blkCreateTimeSlot := v.block.GetTimeslot()
 					bestViewHeight := bestView.GetHeight()
 					if lastVotedBlk, ok := e.voteHistory[bestViewHeight+1]; ok {
-						if blkCreateTimeSlot < lastVotedBlk.GetCreateTimeslot() { //blkCreateTimeSlot is smaller than voted block => vote for this blk
+						if blkCreateTimeSlot < lastVotedBlk.GetTimeslot() { //blkCreateTimeSlot is smaller than voted block => vote for this blk
 							e.validateAndVote(v)
-						} else if blkCreateTimeSlot == lastVotedBlk.GetCreateTimeslot() && v.block.GetTimeslot() > lastVotedBlk.GetTimeslot() { //blk is old block (same round), but new proposer(larger timeslot) => vote again
+						} else if blkCreateTimeSlot == lastVotedBlk.GetTimeslot() && v.block.GetTimeslot() > lastVotedBlk.GetTimeslot() { //blk is old block (same round), but new proposer(larger timeslot) => vote again
 							e.validateAndVote(v)
 						} //blkCreateTimeSlot is larger or equal than voted block => do nothing
 					} else { //there is no vote for this height yet

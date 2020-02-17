@@ -22,10 +22,6 @@ func (beaconBlock BeaconBlock) GetBeaconHeight() uint64 {
 	return beaconBlock.Header.Height
 }
 
-func (beaconBlock BeaconBlock) GetBlockProposer() string {
-	return beaconBlock.ConsensusHeader.Proposer
-}
-
 func (beaconBlock BeaconBlock) GetPreviousBlockHash() common.Hash {
 	return beaconBlock.Header.PreviousBlockHash
 }
@@ -46,7 +42,7 @@ func (beaconBlock BeaconBlock) GetHash() *common.Hash {
 	return beaconBlock.Header.GetHash()
 }
 
-func (beaconBlock BeaconBlock) GetCurrentEpoch() uint64 {
+func (beaconBlock BeaconBlock) GetEpoch() uint64 {
 	return beaconBlock.Header.Epoch
 }
 
