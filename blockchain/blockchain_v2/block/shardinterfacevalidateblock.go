@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardblockv2"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -20,7 +21,7 @@ type ValidateShardBlockState struct {
 	isPreSign        bool
 	newView          *ShardView
 	beaconBlocks     []blockinterface.BeaconBlockInterface
-	crossShardBlocks map[byte][]*CrossShardBlock
+	crossShardBlocks map[byte][]blockinterface.CrossShardBlockInterface
 	txsToAdd         []metadata.Transaction
 
 	isOldBeaconHeight bool
@@ -42,7 +43,7 @@ func (s *ShardView) NewValidateState(ctx context.Context) *ValidateShardBlockSta
 	return validateState
 }
 
-func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block consensus.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
+func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block blockinterface.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
 	validateState := s.NewValidateState(ctx)
 	validateState.newView.Block = block.(*ShardBlock)
 	validateState.isPreSign = isPreSign
@@ -87,12 +88,12 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block con
 		//TODO: compare tx field
 		//TODO: compare instruction field
 
-		createState.newBlock = &ShardBlock{
-			Body: block.(*ShardBlock).Body,
+		createState.newBlock = &shardblockv2.ShardBlock{
+			Body: block.(*shardblockv2.ShardBlock).Body,
 		}
 
 		for _, app := range createState.app {
-			if err := app.updateNewViewFromBlock(block.(*ShardBlock)); err != nil {
+			if err := app.updateNewViewFromBlock(block.(*shardblockv2.ShardBlock)); err != nil {
 				return nil, err
 			}
 		}

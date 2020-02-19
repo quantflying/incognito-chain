@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
@@ -21,7 +22,7 @@ type ShardView struct {
 
 	//field that copy automatically and need to update
 	ShardID               byte
-	Block                 *ShardBlock
+	Block                 blockinterface.ShardBlockInterface
 	ShardCommittee        []incognitokey.CommitteePublicKey
 	ShardPendingValidator []incognitokey.CommitteePublicKey
 
@@ -42,21 +43,21 @@ type ShardView struct {
 	slashStateDB       StateDB
 }
 
-func (s *ShardView) CreateBlockFromOldBlockData(block consensus.BlockInterface) consensus.BlockInterface {
+func (s *ShardView) CreateBlockFromOldBlockData(block blockinterface.BlockInterface) blockinterface.BlockInterface {
 	block1 := block.(*ShardBlock)
 	block1.ConsensusHeader.TimeSlot = common.GetTimeSlot(s.GetGenesisTime(), time.Now().Unix(), blsbftv2.TIMESLOT)
 	return block1
 }
 
-func (s *ShardView) GetBlock() consensus.BlockInterface {
+func (s *ShardView) GetBlock() blockinterface.BlockInterface {
 	return s.Block
 }
 
-func (s *ShardView) CreateNewViewFromBlock(block consensus.BlockInterface) (consensus.ChainViewInterface, error) {
+func (s *ShardView) CreateNewViewFromBlock(block blockinterface.BlockInterface) (consensus.ChainViewInterface, error) {
 	panic("implement me")
 }
 
-func (s *ShardView) UnmarshalBlock(b []byte) (consensus.BlockInterface, error) {
+func (s *ShardView) UnmarshalBlock(b []byte) (blockinterface.BlockInterface, error) {
 	var shardBlk *ShardBlock
 	err := json.Unmarshal(b, &shardBlk)
 	if err != nil {
@@ -137,7 +138,7 @@ func (s *ShardView) GetActiveShardNumber() int {
 func (s *ShardView) GetNextProposer(timeSlot uint64) string {
 	committee := s.GetCommittee()
 	idx := int(timeSlot) % len(committee)
-	return committee[idx].GetMiningKeyBase58(common.BlsConsensus2)
+	return committee[idx].GetMiningKeyBase58(common.BlsConsensus)
 }
 
 func (s *ShardView) CloneNewView() consensus.ChainViewInterface {

@@ -35,7 +35,7 @@ func (s *BeaconPDEApp) buildInstructionFromShardAction() error {
 	for shardID, shardBlocks := range s.CreateState.s2bBlks {
 		for _, block := range shardBlocks {
 			// Collect stateful actions
-			statefulActions := collectStatefulActions(block.Instructions)
+			statefulActions := collectStatefulActions(block.GetInstructions())
 			// group stateful actions by shardID
 			_, found := statefulActionsByShardID[shardID]
 			if !found {

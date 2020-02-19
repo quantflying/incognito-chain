@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/metadata"
-	"github.com/incognitochain/incognito-chain/privacy"
 	"github.com/pkg/errors"
 )
 
@@ -18,52 +19,14 @@ type ShardBlock struct {
 	Header ShardHeader
 }
 
-type ShardToBeaconBlock struct {
-	ValidationData string `json:"ValidationData"`
-
-	Instructions [][]string
-	Header       ShardHeader
-}
-
-type CrossShardBlock struct {
-	ValidationData string `json:"ValidationData"`
-
-	Header          ShardHeader
-	ToShardID       byte
-	MerklePathShard []common.Hash
-	// Cross Shard data for PRV
-	CrossOutputCoin []privacy.OutputCoin
-	// Cross Shard For Custom token privacy
-	CrossTxTokenPrivacyData []blockchain.ContentCrossShardTokenPrivacyData
-}
-
 func (shardBlock *ShardBlock) BuildShardBlockBody(instructions [][]string, crossTransaction map[byte][]blockchain.CrossTransaction, transactions []metadata.Transaction) {
 	shardBlock.Body.Instructions = append(shardBlock.Body.Instructions, instructions...)
 	shardBlock.Body.CrossTransactions = crossTransaction
 	shardBlock.Body.Transactions = append(shardBlock.Body.Transactions, transactions...)
 }
 
-func (crossShardBlock CrossShardBlock) GetEpoch() uint64 {
-	return crossShardBlock.Header.Epoch
-}
-
-func (crossShardBlock *CrossShardBlock) Hash() *common.Hash {
-	hash := crossShardBlock.Header.Hash()
-	return &hash
-}
-
-func (shardToBeaconBlock ShardToBeaconBlock) GetEpoch() uint64 {
-	return shardToBeaconBlock.Header.Epoch
-}
-
-func (shardToBeaconBlock *ShardToBeaconBlock) Hash() *common.Hash {
-	hash := shardToBeaconBlock.Header.Hash()
-	return &hash
-}
-
 func (shardBlock ShardBlock) Hash() *common.Hash {
-	hash := shardBlock.Header.Hash()
-	return &hash
+	return shardBlock.Header.GetHash()
 }
 func (shardBlock *ShardBlock) validateSanityData() (bool, error) {
 	//Check Header
@@ -257,89 +220,6 @@ func (shardBlock *ShardBlock) AddTransaction(tx metadata.Transaction) error {
 // 	return nil
 // }
 
-func (shardBlock *ShardBlock) CreateShardToBeaconBlock(bc BlockChain) *ShardToBeaconBlock {
-
-	block := ShardToBeaconBlock{}
-
-	// block.AggregatedSig = blk.AggregatedSig
-	// block.ValidatorsIdx = make([][]int, 2)                                           //multi-node
-	// block.ValidatorsIdx[0] = append(block.ValidatorsIdx[0], blk.ValidatorsIdx[0]...) //multi-node
-	// block.ValidatorsIdx[1] = append(block.ValidatorsIdx[1], blk.ValidatorsIdx[1]...) //multi-node
-	// block.R = blk.R
-	// block.ProducerSig = blk.ProducerSig
-
-	block.ValidationData = shardBlock.ValidationData
-	block.Header = shardBlock.Header
-	blockInstructions := shardBlock.Body.Instructions
-	previousShardBlockByte, err := bc.GetDatabase().FetchBlock(shardBlock.Header.PreviousBlockHash)
-	if err != nil {
-		Logger.log.Error(err)
-		return nil
-	}
-	previousShardBlock := ShardBlock{}
-	err = json.Unmarshal(previousShardBlockByte, &previousShardBlock)
-	if err != nil {
-		Logger.log.Error(err)
-		return nil
-	}
-	instructions, err := CreateShardInstructionsFromTransactionAndInstruction(shardBlock.Body.Transactions, bc, shardBlock.Header.ShardID)
-	if err != nil {
-		Logger.log.Error(err)
-		return nil
-	}
-
-	block.Instructions = append(instructions, blockInstructions...)
-	return &block
-}
-
-func (shardBlock *ShardBlock) CreateAllCrossShardBlock(activeShards int) map[byte]*CrossShardBlock {
-	allCrossShard := make(map[byte]*CrossShardBlock)
-	if activeShards == 1 {
-		return allCrossShard
-	}
-	for i := 0; i < activeShards; i++ {
-		shardID := common.GetShardIDFromLastByte(byte(i))
-		if shardID != shardBlock.Header.ShardID {
-			crossShard, err := shardBlock.CreateCrossShardBlock(shardID)
-			if crossShard != nil {
-				Logger.log.Infof("Create CrossShardBlock from Shard %+v to Shard %+v: %+v \n", shardBlock.Header.ShardID, shardID, crossShard)
-			}
-			if crossShard != nil && err == nil {
-				allCrossShard[byte(i)] = crossShard
-			}
-		}
-	}
-	return allCrossShard
-}
-
-func (shardBlock *ShardBlock) CreateCrossShardBlock(shardID byte) (*CrossShardBlock, error) {
-	crossShard := &CrossShardBlock{}
-	crossOutputCoin, crossCustomTokenPrivacyData := blockchain.GetCrossShardData(shardBlock.Body.Transactions, shardID)
-	// Return nothing if nothing to cross
-	if len(crossOutputCoin) == 0 && len(crossCustomTokenPrivacyData) == 0 {
-		return nil, blockchain.NewBlockChainError(blockchain.CreateCrossShardBlockError, errors.New("No cross Outputcoin, Cross Custom Token, Cross Custom Token Privacy"))
-	}
-	merklePathShard, merkleShardRoot := blockchain.GetMerklePathCrossShard2(shardBlock.Body.Transactions, shardID)
-	if merkleShardRoot != shardBlock.Header.ShardTxRoot {
-		return crossShard, blockchain.NewBlockChainError(blockchain.VerifyCrossShardBlockShardTxRootError, fmt.Errorf("Expect Shard Tx Root To be %+v but get %+v", shardBlock.Header.ShardTxRoot, merkleShardRoot))
-	}
-	//Copy signature and header
-	// crossShard.AggregatedSig = block.AggregatedSig
-	// crossShard.ValidatorsIdx = make([][]int, 2)                                                  //multi-node
-	// crossShard.ValidatorsIdx[0] = append(crossShard.ValidatorsIdx[0], block.ValidatorsIdx[0]...) //multi-node
-	// crossShard.ValidatorsIdx[1] = append(crossShard.ValidatorsIdx[1], block.ValidatorsIdx[1]...) //multi-node
-	// crossShard.R = block.R
-	// crossShard.ProducerSig = block.ProducerSig
-
-	crossShard.ValidationData = shardBlock.ValidationData
-	crossShard.Header = shardBlock.Header
-	crossShard.MerklePathShard = merklePathShard
-	crossShard.CrossOutputCoin = crossOutputCoin
-	crossShard.CrossTxTokenPrivacyData = crossCustomTokenPrivacyData
-	crossShard.ToShardID = shardID
-	return crossShard, nil
-}
-
 // func (block *ShardBlock) getBlockRewardInst(blockHeight uint64) ([]string, error) {
 // 	txsFee := uint64(0)
 
@@ -388,61 +268,24 @@ func (block ShardBlock) GetInstructions() [][]string {
 	return block.Body.Instructions
 }
 
-func (block CrossShardBlock) GetProducer() string {
-	return block.Header.Producer
-}
-
-func (block CrossShardBlock) GetHeight() uint64 {
-	return block.Header.Height
-}
-
-func (block CrossShardBlock) GetValidationField() string {
-	return block.ValidationData
-}
-
-func (block CrossShardBlock) GetRound() int {
-	return block.Header.Round
-}
-
-func (block CrossShardBlock) GetRoundKey() string {
-	return fmt.Sprint(block.Header.Height, "_", block.Header.Round)
-}
-
-func (block CrossShardBlock) GetInstructions() [][]string {
-	return [][]string{}
-}
-
-func (block ShardToBeaconBlock) GetValidationField() string {
-	return block.ValidationData
-}
-
-func (block ShardToBeaconBlock) GetHeight() uint64 {
-	return block.Header.Height
-}
-
-func (block ShardToBeaconBlock) GetRound() int {
-	return block.Header.Round
-}
-
-func (block ShardToBeaconBlock) GetRoundKey() string {
-	return fmt.Sprint(block.Header.Height, "_", block.Header.Round)
-}
-func (block ShardToBeaconBlock) GetInstructions() [][]string {
-	return block.Instructions
-}
-
-func (block ShardToBeaconBlock) GetProducer() string {
-	return block.Header.Producer
-}
-
 func (block ShardBlock) GetConsensusType() string {
 	return block.Header.ConsensusType
 }
 
-func (block CrossShardBlock) GetConsensusType() string {
-	return block.Header.ConsensusType
+func (block ShardBlock) GetBody() blockinterface.BlockBodyInterface {
+	return block.Body
+}
+func (block ShardBlock) GetHeader() blockinterface.BlockHeaderInterface {
+	return block.Header
 }
 
-func (block ShardToBeaconBlock) GetConsensusType() string {
-	return block.Header.ConsensusType
+func (shardBlock ShardBlock) GetBlockType() string {
+	return "shard"
+}
+
+func (shardBlock ShardBlock) GetShardHeader() blockinterface.ShardHeaderInterface {
+	return shardBlock.Header
+}
+func (shardBlock ShardBlock) GetShardBody() blockinterface.ShardBodyInterface {
+	return shardBlock.Body
 }

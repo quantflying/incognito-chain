@@ -264,9 +264,9 @@ func decodeContent(content string, action interface{}) error {
 	return json.Unmarshal(contentBytes, &action)
 }
 
-func updateBridgeIssuanceStatus(block *ShardBlock, bd *[]database.BatchData, blockchain BlockChain) error {
+func updateBridgeIssuanceStatus(block blockinterface.ShardBlockInterface, bd *[]database.BatchData, blockchain BlockChain) error {
 	db := blockchain.GetDatabase()
-	for _, tx := range block.Body.Transactions {
+	for _, tx := range block.GetShardBody().GetTransactions() {
 		metaType := tx.GetMetadataType()
 		var reqTxID common.Hash
 		if metaType == metadata.IssuingETHResponseMeta {

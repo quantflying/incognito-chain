@@ -11,6 +11,7 @@ import (
 
 	blockchainv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2"
 	shardv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 
 	"github.com/incognitochain/incognito-chain/common"
@@ -133,7 +134,7 @@ func (s *Node) NotifyOutdatedView(nodeID string, latestView string) {
 
 }
 
-func (s *Node) BroadCastBlock(block consensus.BlockInterface) {
+func (s *Node) BroadCastBlock(block blockinterface.BlockInterface) {
 	fullnode.ConnectBlockAndAddView(block)
 }
 

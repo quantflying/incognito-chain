@@ -1,6 +1,9 @@
 package block
 
-import "github.com/incognitochain/incognito-chain/common"
+import (
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+	"github.com/incognitochain/incognito-chain/common"
+)
 
 type ShardPDEApp struct {
 	Logger        common.Logger
@@ -34,7 +37,7 @@ func (s *ShardPDEApp) buildHeader() error {
 }
 
 //crete view from block
-func (s *ShardPDEApp) updateNewViewFromBlock(block *ShardBlock) error {
+func (s *ShardPDEApp) updateNewViewFromBlock(block blockinterface.ShardBlockInterface) error {
 	return nil
 }
 

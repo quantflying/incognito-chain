@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 )
@@ -17,7 +18,7 @@ func (engine *Engine) LoadMiningKeys(keysString string) error {
 		if len(keys) > 0 {
 			for _, key := range keys {
 				keyParts := strings.Split(key, ":")
-				availableConsensus := common.BlsConsensus2
+				availableConsensus := common.BlsConsensus
 				keyConsensus := keyParts[0]
 				if len(keyParts) == 2 {
 					availableConsensus = keyParts[0]
@@ -123,14 +124,14 @@ func (engine *Engine) VerifyData(data []byte, sig string, publicKey string, cons
 	return AvailableConsensus[consensusType].ValidateData(data, sig, string(mapPublicKey[common.BridgeConsensus]))
 }
 
-func (engine *Engine) ValidateProducerSig(block BlockInterface, consensusType string) error {
+func (engine *Engine) ValidateProducerSig(block blockinterface.BlockInterface, consensusType string) error {
 	if _, ok := AvailableConsensus[consensusType]; !ok {
 		return NewConsensusError(ConsensusTypeNotExistError, errors.New(consensusType))
 	}
 	return AvailableConsensus[consensusType].ValidateProducerSig(block)
 }
 
-func (engine *Engine) ValidateBlockCommitteSig(block BlockInterface, committee []incognitokey.CommitteePublicKey, consensusType string) error {
+func (engine *Engine) ValidateBlockCommitteSig(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey, consensusType string) error {
 	if _, ok := AvailableConsensus[consensusType]; !ok {
 		return NewConsensusError(ConsensusTypeNotExistError, errors.New(consensusType))
 	}

@@ -66,31 +66,30 @@ func (s *BeaconView) GetActiveShard() int {
 	return 4
 }
 
-func (s *BeaconView) CreateBlockFromOldBlockData(block consensus.BlockInterface) consensus.BlockInterface {
+func (s *BeaconView) CreateBlockFromOldBlockData(block blockinterface.BlockInterface) blockinterface.BlockInterface {
 	block1 := block.(*beaconblockv2.BeaconBlock)
 	block1.ConsensusHeader.TimeSlot = common.GetTimeSlot(s.GetGenesisTime(), time.Now().Unix(), blsbftv2.TIMESLOT)
 	return block1
 }
 
-func (s *BeaconView) GetBlock() consensus.BlockInterface {
+func (s *BeaconView) GetBlock() blockinterface.BlockInterface {
 	return s.Block
 }
 
-// func (s *BeaconView) CreateNewViewFromBlock(block consensus.BlockInterface) (consensus.ChainViewInterface, error) {
+// func (s *BeaconView) CreateNewViewFromBlock(block blockinterface.BlockInterface) (consensus.ChainViewInterface, error) {
 // 	panic("implement me")
 // }
 
-func (s *BeaconView) UnmarshalBlock(b []byte) (consensus.BlockInterface, error) {
-	var beaconBlk *BeaconBlock
-	err := json.Unmarshal(b, &beaconBlk)
+func (s *BeaconView) UnmarshalBlock(b []byte) (blockinterface.BlockInterface, error) {
+	block, err := UnmarshalBeaconBlock(b)
 	if err != nil {
 		return nil, err
 	}
-	return beaconBlk, nil
+	return block.(blockinterface.BlockInterface), nil
 }
 
 func (s *BeaconView) GetGenesisTime() int64 {
-	return s.DB.GetGenesisBlock().GetBlockTimestamp()
+	return s.DB.GetGenesisBlock().GetHeader().GetTimestamp()
 }
 
 func (s *BeaconView) GetConsensusConfig() string {
@@ -181,38 +180,41 @@ func (s BeaconView) GetCommitteeIndex(string) int {
 }
 
 func (s BeaconView) GetHeight() uint64 {
-	return s.Block.Header.Height
+	return s.Block.GetHeader().GetHeight()
 }
 
-func (s BeaconView) GetRound() int {
-	return s.Block.Header.Round
-}
+// func (s BeaconView) GetRound() int {
+// 	return s.Block.GetHeader().GetRound()
+// }
 
 func (s BeaconView) GetTimeStamp() int64 {
-	return s.Block.GetBlockTimestamp()
+	return s.Block.GetHeader().GetTimestamp()
 }
 
 func (s BeaconView) GetTimeslot() uint64 {
-	return s.Block.ConsensusHeader.TimeSlot
+	if s.Block.GetHeader().GetVersion() == 1 {
+		return 1
+	}
+	return s.Block.GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()
 }
 
 func (s BeaconView) GetEpoch() uint64 {
-	return s.Block.GetEpoch()
+	return s.Block.GetHeader().GetEpoch()
 }
 
 func (s BeaconView) Hash() common.Hash {
-	return *s.Block.Hash()
+	return *s.Block.GetHeader().GetHash()
 }
 
 func (s BeaconView) GetPreviousViewHash() common.Hash {
-	prevHash := s.Block.GetPreviousBlockHash()
+	prevHash := s.Block.GetHeader().GetPreviousBlockHash()
 	return prevHash
 }
 
 func (s BeaconView) GetNextProposer(timeSlot uint64) string {
 	committee := s.GetCommittee()
 	idx := int(timeSlot) % len(committee)
-	return committee[idx].GetMiningKeyBase58(common.BlsConsensus2)
+	return committee[idx].GetMiningKeyBase58(common.BlsConsensus)
 }
 
 func (s *BeaconView) CloneNewView() consensus.ChainViewInterface {
@@ -252,7 +254,10 @@ func (s *BeaconView) MarshalJSON() ([]byte, error) {
 }
 
 func (s *BeaconView) GetRootTimeSlot() uint64 {
-	return s.DB.GetGenesisBlock().GetTimeslot()
+	if s.DB.GetGenesisBlock().GetHeader().GetVersion() == 1 {
+		return 1
+	}
+	return s.DB.GetGenesisBlock().GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()
 }
 
 func (s *BeaconView) InitStateRootHash(bc *BlockChain) error {

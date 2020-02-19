@@ -34,7 +34,7 @@ func (s *BeaconBridgeApp) buildInstructionFromShardAction() error {
 		for _, block := range shardBlocks {
 			bridgeInstructionForBlock, err := buildBridgeInstructions(
 				shardID,
-				block.Instructions,
+				block.GetInstructions(),
 				newBeaconHeight,
 				db,
 				s.Logger,
@@ -46,7 +46,7 @@ func (s *BeaconBridgeApp) buildInstructionFromShardAction() error {
 			confirmInsts := pickBridgeSwapConfirmInst(block)
 			if len(confirmInsts) > 0 {
 				bridgeInstructionForBlock = append(bridgeInstructionForBlock, confirmInsts...)
-				s.Logger.Infof("Beacon block %d found bridge swap confirm inst in shard block %d: %s", newBeaconHeight, block.Header.Height, confirmInsts)
+				s.Logger.Infof("Beacon block %d found bridge swap confirm inst in shard block %d: %s", newBeaconHeight, block.GetShardHeader().GetHeight(), confirmInsts)
 			}
 
 			s.CreateState.bridgeInstructions = append(s.CreateState.bridgeInstructions, bridgeInstructionForBlock...)

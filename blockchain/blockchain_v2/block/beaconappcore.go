@@ -8,7 +8,6 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/consensusheader"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardstate"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 )
@@ -27,7 +26,7 @@ func (s *BeaconCoreApp) preCreateBlock() error {
 	if state.s2bBlks == nil {
 		//TODO: get s2b blocks from pool => s2bBlks
 		// -> Only accept block in one epoch
-		state.s2bBlks = make(map[byte][]*ShardToBeaconBlock)
+		state.s2bBlks = make(map[byte][]blockinterface.ShardToBeaconBlockInterface)
 
 		//newEpoch? endEpoch? finalBlockInEpoch?
 		if (curView.GetHeight()+1)%curView.BC.GetChainParams().Epoch == 1 {
@@ -41,18 +40,7 @@ func (s *BeaconCoreApp) preCreateBlock() error {
 		}
 
 		//shardstates
-		shardStates := make(map[byte][]shardstate.ShardState)
-		for shardID, shardBlocks := range state.s2bBlks {
-			for _, s2bBlk := range shardBlocks {
-				shardState := shardstate.ShardState{}
-				shardState.CrossShard = make([]byte, len(s2bBlk.Header.CrossShardBitMap))
-				copy(shardState.CrossShard, s2bBlk.Header.CrossShardBitMap)
-				shardState.Hash = s2bBlk.Header.Hash()
-				shardState.Height = s2bBlk.Header.Height
-				shardStates[shardID] = append(shardStates[shardID], shardState)
-			}
-		}
-		s.CreateState.shardStates = shardStates
+		s.CreateState.shardStates = extractShardStateFromShardBlocks(state.s2bBlks)
 	}
 
 	return nil
@@ -138,12 +126,12 @@ func (s *BeaconCoreApp) buildHeader() error {
 	if s.CreateState.isNewEpoch {
 		newBlockHeader.Epoch = curView.GetEpoch() + 1
 	}
-	newBlockHeader.ConsensusType = common.BlsConsensus2
+	newBlockHeader.ConsensusType = common.BlsConsensus
 	newBlockHeader.Producer = s.CreateState.proposer
 
 	newBlockHeader.Timestamp = s.CreateState.createTimeStamp
 	newBlockHeader.TimeSlot = s.CreateState.createTimeSlot
-	newBlockHeader.PreviousBlockHash = *curView.GetBlock().GetHash()
+	newBlockHeader.PreviousBlockHash = curView.Hash()
 
 	newBlockConsensusHeader.Proposer = s.CreateState.proposer
 	newBlockConsensusHeader.TimeSlot = s.CreateState.createTimeSlot
@@ -549,7 +537,7 @@ func (s *BeaconCoreApp) preValidate() error {
 		curView := state.curView
 		//TODO: get s2b blocks from pool => s2bBlks
 		// -> Only accept block in one epoch
-		state.s2bBlks = make(map[byte][]*ShardToBeaconBlock)
+		state.s2bBlks = make(map[byte][]blockinterface.ShardToBeaconBlockInterface)
 		// for shardID, shardState := range s.ValidateState.newView.Block.Body.ShardState {
 		// 	for _,  := range shardState {
 
@@ -568,18 +556,7 @@ func (s *BeaconCoreApp) preValidate() error {
 		}
 
 		//shardstates
-		shardStates := make(map[byte][]shardstate.ShardState)
-		for shardID, shardBlocks := range state.s2bBlks {
-			for _, s2bBlk := range shardBlocks {
-				shardState := shardstate.ShardState{}
-				shardState.CrossShard = make([]byte, len(s2bBlk.Header.CrossShardBitMap))
-				copy(shardState.CrossShard, s2bBlk.Header.CrossShardBitMap)
-				shardState.Hash = s2bBlk.Header.Hash()
-				shardState.Height = s2bBlk.Header.Height
-				shardStates[shardID] = append(shardStates[shardID], shardState)
-			}
-		}
-		s.CreateState.shardStates = shardStates
+		s.CreateState.shardStates = extractShardStateFromShardBlocks(state.s2bBlks)
 	}
 
 	return nil

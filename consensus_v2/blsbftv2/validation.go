@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
@@ -13,7 +14,7 @@ import (
 )
 
 type blockValidation interface {
-	consensus.BlockInterface
+	blockinterface.BlockInterface
 	AddValidationField(validationData string) error
 }
 
@@ -42,25 +43,25 @@ func EncodeValidationData(validationData ValidationData) (string, error) {
 	return string(result), nil
 }
 
-func (e BLSBFT) CreateValidationData(block consensus.BlockInterface) ValidationData {
+func (e BLSBFT) CreateValidationData(block blockinterface.BlockInterface) ValidationData {
 	var valData ValidationData
-	valData.ProducerBLSSig, _ = e.UserKeySet.BriSignData(block.GetHash().GetBytes())
+	valData.ProducerBLSSig, _ = e.UserKeySet.BriSignData(block.GetHeader().GetHash().GetBytes())
 	return valData
 }
 
-func (e BLSBFT) ValidateProducerSig(block consensus.BlockInterface) error {
+func (e BLSBFT) ValidateProducerSig(block blockinterface.BlockInterface) error {
 	valData, err := DecodeValidationData(block.GetValidationField())
 	if err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 
 	producerKey := incognitokey.CommitteePublicKey{}
-	err = producerKey.FromBase58(block.GetProducer())
+	err = producerKey.FromBase58(block.GetHeader().GetProducer())
 	if err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 	//start := time.Now()
-	if err := validateSingleBriSig(block.GetHash(), valData.ProducerBLSSig, producerKey.MiningPubKey[common.BridgeConsensus]); err != nil {
+	if err := validateSingleBriSig(block.GetHeader().GetHash(), valData.ProducerBLSSig, producerKey.MiningPubKey[common.BridgeConsensus]); err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 	//end := time.Now().Sub(start)
@@ -68,16 +69,16 @@ func (e BLSBFT) ValidateProducerSig(block consensus.BlockInterface) error {
 	return nil
 }
 
-func (e BLSBFT) ValidateCommitteeSig(block consensus.BlockInterface, committee []incognitokey.CommitteePublicKey) error {
+func (e BLSBFT) ValidateCommitteeSig(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey) error {
 	valData, err := DecodeValidationData(block.GetValidationField())
 	if err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 	committeeBLSKeys := []blsmultisig.PublicKey{}
 	for _, member := range committee {
-		committeeBLSKeys = append(committeeBLSKeys, member.MiningPubKey[common.BlsConsensus2])
+		committeeBLSKeys = append(committeeBLSKeys, member.MiningPubKey[common.BlsConsensus])
 	}
-	if err := validateBLSSig(block.GetHash(), valData.AggSig, valData.ValidatiorsIdx, committeeBLSKeys); err != nil {
+	if err := validateBLSSig(block.GetHeader().GetHash(), valData.AggSig, valData.ValidatiorsIdx, committeeBLSKeys); err != nil {
 		return consensus.NewConsensusError(consensus.UnExpectedError, err)
 	}
 	return nil
@@ -152,7 +153,7 @@ func validateBLSSig(
 	return nil
 }
 
-func (e BLSBFT) ValidateBlockWithConsensus(block consensus.BlockInterface) error {
+func (e BLSBFT) ValidateBlockWithConsensus(block blockinterface.BlockInterface) error {
 
 	return nil
 }

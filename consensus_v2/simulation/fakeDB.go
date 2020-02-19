@@ -1,12 +1,12 @@
 package main
 
 import (
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
-	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 )
 
 type FakeDB struct {
-	genesisBlock consensus.BlockInterface
+	genesisBlock blockinterface.BlockInterface
 }
 
 func (s *FakeDB) GetRewardOfShardByEpoch(epoch uint64, shardID byte, tokenID common.Hash) (uint64, error) {
@@ -19,6 +19,6 @@ func (s *FakeDB) GetAllTokenIDForReward(epoch uint64) ([]common.Hash, error) {
 	return []common.Hash{}, nil
 }
 
-func (s *FakeDB) GetGenesisBlock() consensus.BlockInterface {
+func (s *FakeDB) GetGenesisBlock() blockinterface.BlockInterface {
 	return s.genesisBlock
 }

@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	consensusName = common.BlsConsensus2
+	consensusName = common.BlsConsensus
 )
 
 const (

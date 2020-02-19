@@ -1,10 +1,14 @@
 package block
 
-import "context"
+import (
+	"context"
+
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+)
 
 type StoreShardDatabaseState struct {
 	ctx     context.Context
-	block   *ShardBlock
+	block   blockinterface.ShardBlockInterface
 	bc      BlockChain
 	curView *ShardView
 	newView *ShardView

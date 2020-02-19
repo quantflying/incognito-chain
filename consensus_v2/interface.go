@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	libp2p "github.com/libp2p/go-libp2p-peer"
@@ -12,21 +13,22 @@ import (
 type NodeSender interface {
 	GetID() string
 }
-type BlockInterface interface {
-	GetBlockType() string
-	GetHeight() uint64
-	GetHash() *common.Hash
-	GetProducer() string
-	GetValidationField() string
-	GetRound() int
-	// GetRoundKey() string
-	GetInstructions() [][]string
-	GetConsensusType() string
-	GetEpoch() uint64
-	GetPreviousBlockHash() common.Hash
-	GetTimeslot() uint64
-	GetTimestamp() int64
-}
+
+// type BlockInterface interface {
+// 	GetBlockType() string
+// 	GetHeight() uint64
+// 	GetHash() *common.Hash
+// 	GetProducer() string
+// 	GetValidationField() string
+// 	GetRound() int
+// 	// GetRoundKey() string
+// 	GetInstructions() [][]string
+// 	GetConsensusType() string
+// 	GetEpoch() uint64
+// 	GetPreviousBlockHash() common.Hash
+// 	GetTimeslot() uint64
+// 	GetTimestamp() int64
+// }
 
 type BlockChainInterface interface {
 	GetChain(chainName string) ChainViewManagerInterface
@@ -39,7 +41,7 @@ type BlockGenInterface interface {
 type NodeInterface interface {
 	// RequestSyncBlockByHash(blockHash *common.Hash, isUnknownView bool, tipBlocksHash []common.Hash, peerID libp2p.ID) error
 	// PushBlockToPeer(block common.BlockInterface, isShard bool, peerID libp2p.ID) error
-	BroadCastBlock(blockInterface BlockInterface)
+	BroadCastBlock(blockInterface blockinterface.BlockInterface)
 	PushMessageToChain(msg interface{}, chain ChainViewManagerInterface) error
 	PushMessageToPeer(msg interface{}, peerId libp2p.ID) error
 	RequestSyncBlock(nodeID string, fromView string, toView string)
@@ -64,9 +66,9 @@ type ConsensusInterface interface {
 	// ProcessBFTMsg - process incoming BFT message
 	ProcessBFTMsg(msg interface{}, sender NodeSender)
 	// ValidateProducerSig - validate a block producer signature
-	ValidateProducerSig(block BlockInterface) error
+	ValidateProducerSig(block blockinterface.BlockInterface) error
 	// ValidateCommitteeSig - validate a block committee signature
-	ValidateCommitteeSig(block BlockInterface, committee []incognitokey.CommitteePublicKey) error
+	ValidateCommitteeSig(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey) error
 
 	// LoadUserKey - load user mining key
 	LoadUserKey(miningKey string) error
@@ -79,7 +81,7 @@ type ConsensusInterface interface {
 	// SignData - sign data with this consensus signature scheme
 	SignData(data []byte) (string, error)
 	// ExtractBridgeValidationData - extract bridge related field in validation data of block
-	ExtractBridgeValidationData(block BlockInterface) ([][]byte, []int, error)
+	ExtractBridgeValidationData(block blockinterface.BlockInterface) ([][]byte, []int, error)
 }
 
 type BeaconManagerInterface interface {
@@ -99,13 +101,13 @@ type ChainViewManagerInterface interface {
 	GetChainName() string
 	GetShardID() int
 	GetGenesisTime() int64
-	UnmarshalBlock(blockString []byte) (BlockInterface, error)
+	UnmarshalBlock(blockString []byte) (blockinterface.BlockInterface, error)
 	GetBestView() ChainViewInterface
 	GetFinalView() ChainViewInterface
 	GetAllViews() map[string]ChainViewInterface
 	GetViewByRange(from, to string) []ChainViewInterface
 	GetViewByHash(common.Hash) (ChainViewInterface, error)
-	ConnectBlockAndAddView(block BlockInterface) error
+	ConnectBlockAndAddView(block blockinterface.BlockInterface) error
 }
 
 type ChainViewInterface interface {
@@ -118,9 +120,9 @@ type ChainViewInterface interface {
 	GetCommittee() []incognitokey.CommitteePublicKey
 	GetCommitteeHash() common.Hash
 	GetCommitteeIndex(string) int
-	GetBlock() BlockInterface
+	GetBlock() blockinterface.BlockInterface
 	GetHeight() uint64
-	GetRound() int
+	// GetRound() int
 	GetTimeStamp() int64
 	GetTimeslot() uint64
 	GetEpoch() uint64
@@ -130,11 +132,11 @@ type ChainViewInterface interface {
 	CloneNewView() ChainViewInterface
 	GetNextProposer(uint64) string
 	//CreateNewViewFromBlock(BlockInterface) ChainViewInterface
-	ValidateBlockAndCreateNewView(ctx context.Context, block BlockInterface, isPreSign bool) (ChainViewInterface, error)
-	CreateNewBlock(context.Context, uint64, string) (BlockInterface, error)
-	UnmarshalBlock(blockString []byte) (BlockInterface, error)
+	ValidateBlockAndCreateNewView(ctx context.Context, block blockinterface.BlockInterface, isPreSign bool) (ChainViewInterface, error)
+	CreateNewBlock(context.Context, uint64, string) (blockinterface.BlockInterface, error)
+	UnmarshalBlock(blockString []byte) (blockinterface.BlockInterface, error)
 	GetRootTimeSlot() uint64
-	CreateBlockFromOldBlockData(block BlockInterface) BlockInterface
+	CreateBlockFromOldBlockData(block blockinterface.BlockInterface) blockinterface.BlockInterface
 	StoreDatabase(ctx context.Context) error
 }
 

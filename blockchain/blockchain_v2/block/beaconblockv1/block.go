@@ -80,11 +80,18 @@ func (beaconBlock BeaconBlock) GetConsensusType() string {
 	return beaconBlock.Header.ConsensusType
 }
 
-func (beaconBlock BeaconBlock) GetHeader() blockinterface.BeaconHeaderInterface {
+func (beaconBlock BeaconBlock) GetHeader() blockinterface.BlockHeaderInterface {
 	return beaconBlock.Header
 }
 
-func (beaconBlock BeaconBlock) GetBody() blockinterface.BeaconBodyInterface {
+func (beaconBlock BeaconBlock) GetBody() blockinterface.BlockBodyInterface {
+	return beaconBlock.Body
+}
+
+func (beaconBlock BeaconBlock) GetBeaconHeader() blockinterface.BeaconHeaderInterface {
+	return beaconBlock.Header
+}
+func (beaconBlock BeaconBlock) GetBeaconBody() blockinterface.BeaconBodyInterface {
 	return beaconBlock.Body
 }
 

@@ -35,7 +35,6 @@ type ShardHeader struct {
 	PendingValidatorRoot  common.Hash            `json:"PendingValidatorRoot"`  // hash from public key list of all pending validators designated to this ShardID
 	StakingTxRoot         common.Hash            `json:"StakingTxRoot"`         // hash from staking transaction map in shard best state
 	InstructionMerkleRoot common.Hash            `json:"InstructionMerkleRoot"` // Merkle root of all instructions (using Keccak256 hash func) to relay to Ethreum
-	// This obsoletes InstructionMerkleRoot but for simplicity, we keep it for now
 }
 
 func (shardHeader ShardHeader) String() string {
@@ -74,15 +73,47 @@ func (shardHeader ShardHeader) String() string {
 	}
 	return res
 }
-
-func (shardHeader ShardHeader) MetaHash() common.Hash {
+func (shardHeader ShardHeader) GetMetaHash() common.Hash {
 	return common.Keccak256([]byte(shardHeader.String()))
 }
 
-func (shardHeader ShardHeader) Hash() common.Hash {
+func (shardHeader ShardHeader) GetHash() *common.Hash {
 	// Block header of bridge uses Keccak256 as a hash func to check on Ethereum when relaying blocks
-	blkMetaHash := shardHeader.MetaHash()
+	blkMetaHash := shardHeader.GetMetaHash()
 	blkInstHash := shardHeader.InstructionMerkleRoot
 	combined := append(blkMetaHash[:], blkInstHash[:]...)
-	return common.Keccak256(combined)
+	result := common.Keccak256(combined)
+	return &result
+}
+
+func (shardHeader ShardHeader) GetProducer() string { return shardHeader.Producer }
+func (shardHeader ShardHeader) GetShardID() byte    { return shardHeader.ShardID }
+func (shardHeader ShardHeader) GetVersion() int     { return shardHeader.Version }
+func (shardHeader ShardHeader) GetPreviousBlockHash() common.Hash {
+	return shardHeader.PreviousBlockHash
+}
+func (shardHeader ShardHeader) GetHeight() uint64           { return shardHeader.Height }
+func (shardHeader ShardHeader) GetRound() int               { return shardHeader.Round }
+func (shardHeader ShardHeader) GetEpoch() uint64            { return shardHeader.Epoch }
+func (shardHeader ShardHeader) GetCrossShardBitMap() []byte { return shardHeader.CrossShardBitMap }
+func (shardHeader ShardHeader) GetBeaconHeight() uint64     { return shardHeader.BeaconHeight }
+func (shardHeader ShardHeader) GetBeaconHash() common.Hash  { return shardHeader.BeaconHash }
+func (shardHeader ShardHeader) GetTotalTxsFee() map[common.Hash]uint64 {
+	return shardHeader.TotalTxsFee
+}
+func (shardHeader ShardHeader) GetConsensusType() string    { return shardHeader.ConsensusType }
+func (shardHeader ShardHeader) GetTimestamp() int64         { return shardHeader.Timestamp }
+func (shardHeader ShardHeader) GetTxRoot() common.Hash      { return shardHeader.TxRoot }
+func (shardHeader ShardHeader) GetShardTxRoot() common.Hash { return shardHeader.ShardTxRoot }
+func (shardHeader ShardHeader) GetCrossTransactionRoot() common.Hash {
+	return shardHeader.CrossTransactionRoot
+}
+func (shardHeader ShardHeader) GetInstructionsRoot() common.Hash { return shardHeader.InstructionsRoot }
+func (shardHeader ShardHeader) GetCommitteeRoot() common.Hash    { return shardHeader.CommitteeRoot }
+func (shardHeader ShardHeader) GetPendingValidatorRoot() common.Hash {
+	return shardHeader.PendingValidatorRoot
+}
+func (shardHeader ShardHeader) GetStakingTxRoot() common.Hash { return shardHeader.StakingTxRoot }
+func (shardHeader ShardHeader) GetInstructionMerkleRoot() common.Hash {
+	return shardHeader.InstructionMerkleRoot
 }

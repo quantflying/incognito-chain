@@ -8,6 +8,7 @@ import (
 
 	rCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/database"
@@ -125,10 +126,10 @@ func findExternalTokenID(tokenID *common.Hash, db database.DatabaseInterface) ([
 
 // pickBridgeSwapConfirmInst finds all BridgeSwapConfirmMeta instructions in a shard to beacon block
 func pickBridgeSwapConfirmInst(
-	block *ShardToBeaconBlock,
+	block blockinterface.ShardToBeaconBlockInterface,
 ) [][]string {
 	metaType := strconv.Itoa(metadata.BridgeSwapConfirmMeta)
-	return pickInstructionWithType(block.Instructions, metaType)
+	return pickInstructionWithType(block.GetInstructions(), metaType)
 }
 
 // buildBeaconSwapConfirmInstruction stores in an instruction the list of

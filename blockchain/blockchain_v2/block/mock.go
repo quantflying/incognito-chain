@@ -152,11 +152,11 @@ func (FakeBC) GetNextCrossShard(from byte, to byte, startHeight uint64) uint64 {
 	return 1
 }
 
-func (FakeBC) GetAllValidCrossShardBlockFromPool(toShard byte) map[byte][]*CrossShardBlock {
+func (FakeBC) GetAllValidCrossShardBlockFromPool(toShard byte) map[byte][]blockinterface.CrossShardBlockInterface {
 	return nil
 }
 
-func (FakeBC) ValidateCrossShardBlock(block *CrossShardBlock) error {
+func (FakeBC) ValidateCrossShardBlock(block blockinterface.CrossShardBlockInterface) error {
 	return nil
 }
 

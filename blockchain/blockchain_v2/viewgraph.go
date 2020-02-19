@@ -5,6 +5,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 )
@@ -34,8 +36,8 @@ func NewViewGraph(name string, rootView consensus.ChainViewInterface, lock *sync
 		next: make(map[common.Hash]*ViewNode),
 		prev: nil,
 	}
-	s.leaf[*rootView.GetBlock().GetHash()] = s.root
-	s.node[*rootView.GetBlock().GetHash()] = s.root
+	s.leaf[*rootView.GetBlock().GetHeader().GetHash()] = s.root
+	s.node[*rootView.GetBlock().GetHeader().GetHash()] = s.root
 	s.confirmView = s.root
 	s.update()
 	return s
@@ -46,7 +48,7 @@ func (s *ViewGraph) GetNodeByHash(h common.Hash) *ViewNode {
 }
 
 func (s *ViewGraph) AddView(b consensus.ChainViewInterface) {
-	newBlockHash := *b.GetBlock().GetHash()
+	newBlockHash := *b.GetBlock().GetHeader().GetHash()
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -55,7 +57,7 @@ func (s *ViewGraph) AddView(b consensus.ChainViewInterface) {
 	}
 
 	for h, v := range s.node {
-		if h == b.GetBlock().GetPreviousBlockHash() {
+		if h == b.GetBlock().GetHeader().GetPreviousBlockHash() {
 			delete(s.leaf, h)
 			s.leaf[newBlockHash] = &ViewNode{
 				view: b,
@@ -96,8 +98,8 @@ newrank=true;
 	maxTimeSlot := uint64(0)
 	for k, v := range s.node {
 		shortK := k.String()[0:5]
-		dotContent += fmt.Sprintf(`%s_%d_%s [label = "%d:%s"]`, s.name, v.view.GetBlock().GetHeight(), string(shortK), v.view.GetBlock().GetHeight(), string(shortK)) + "\n"
-		dotContent += fmt.Sprintf(`{rank=same; %s_%d_%s; slot_%d;}`, s.name, v.view.GetBlock().GetHeight(), string(shortK), v.view.GetBlock().GetTimeslot()-s.root.view.GetTimeslot()) + "\n"
+		dotContent += fmt.Sprintf(`%s_%d_%s [label = "%d:%s"]`, s.name, v.view.GetBlock().GetHeader().GetHeight(), string(shortK), v.view.GetBlock().GetHeader().GetHeight(), string(shortK)) + "\n"
+		dotContent += fmt.Sprintf(`{rank=same; %s_%d_%s; slot_%d;}`, s.name, v.view.GetBlock().GetHeader().GetHeight(), string(shortK), v.view.GetBlock().GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()-s.root.view.GetTimeslot()) + "\n"
 		if v.view.GetTimeslot() > maxTimeSlot {
 			maxTimeSlot = v.view.GetTimeslot()
 		}
@@ -120,17 +122,17 @@ newrank=true;
 func (s *ViewGraph) traverse(n *ViewNode) {
 	if n.next != nil && len(n.next) != 0 {
 		for h, v := range n.next {
-			s.edgeStr += fmt.Sprintf("%s_%d_%s -> %s_%d_%s;\n", s.name, n.view.GetBlock().GetHeight(), string(n.view.GetBlock().GetHash().String()[0:5]), s.name, v.view.GetBlock().GetHeight(), string(h.String()[0:5]))
+			s.edgeStr += fmt.Sprintf("%s_%d_%s -> %s_%d_%s;\n", s.name, n.view.GetBlock().GetHeader().GetHeight(), string(n.view.GetBlock().GetHeader().GetHash().String()[0:5]), s.name, v.view.GetBlock().GetHeader().GetHeight(), string(h.String()[0:5]))
 			s.traverse(v)
 		}
 	} else {
 		if s.bestView == nil {
 			s.bestView = n
 		} else {
-			if n.view.GetBlock().GetHeight() > s.bestView.view.GetBlock().GetHeight() {
+			if n.view.GetBlock().GetHeader().GetHeight() > s.bestView.view.GetBlock().GetHeader().GetHeight() {
 				s.bestView = n
 			}
-			if (n.view.GetBlock().GetHeight() == s.bestView.view.GetBlock().GetHeight()) && n.view.GetBlock().GetTimestamp() < s.bestView.view.GetBlock().GetTimestamp() {
+			if (n.view.GetBlock().GetHeader().GetHeight() == s.bestView.view.GetBlock().GetHeader().GetHeight()) && n.view.GetBlock().GetHeader().GetTimestamp() < s.bestView.view.GetBlock().GetHeader().GetTimestamp() {
 				s.bestView = n
 			}
 		}

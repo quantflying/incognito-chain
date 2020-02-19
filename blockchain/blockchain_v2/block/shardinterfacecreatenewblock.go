@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardblockv2"
 	"github.com/incognitochain/incognito-chain/common"
-	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
 )
@@ -16,7 +17,7 @@ type CreateShardBlockState struct {
 	ctx      context.Context
 	bc       BlockChain
 	curView  *ShardView
-	newBlock *ShardBlock
+	newBlock blockinterface.ShardBlockInterface
 	newView  *ShardView
 
 	//tmp
@@ -24,7 +25,7 @@ type CreateShardBlockState struct {
 	newConfirmBeaconHash   common.Hash
 	totalTxFee             map[common.Hash]uint64
 	beaconBlocks           []common.BlockInterface
-	crossShardBlocks       map[byte][]*CrossShardBlock
+	crossShardBlocks       map[byte][]blockinterface.CrossShardBlockInterface
 	createTimeStamp        int64
 	createTimeSlot         uint64
 	proposer               string
@@ -62,13 +63,12 @@ func (s *ShardView) NewCreateState(ctx context.Context) *CreateShardBlockState {
 	return createState
 }
 
-func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (consensus.BlockInterface, error) {
+func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (blockinterface.BlockInterface, error) {
 	s.Logger.Criticalf("Creating Shard Block %+v at timeslot %v", s.GetHeight()+1, timeslot)
 	createState := s.NewCreateState(ctx)
 	createState.createTimeStamp = time.Now().Unix()
 	createState.createTimeSlot = timeslot
 	createState.proposer = proposer
-	createState.newBlock = &ShardBlock{}
 	//pre processing
 	for _, app := range createState.app {
 		if err := app.preCreateBlock(); err != nil {
@@ -107,8 +107,8 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 		}
 	}
 
-	createState.newBlock = &ShardBlock{
-		Body: ShardBody{
+	createState.newBlock = &shardblockv2.ShardBlock{
+		Body: shardblockv2.ShardBody{
 			Transactions:      append(append(createState.txsToAddFromPool, createState.txsFromMetadataTx...), createState.txsFromBeaconInstruction...),
 			CrossTransactions: createState.crossShardTx,
 			Instructions:      createState.instruction,

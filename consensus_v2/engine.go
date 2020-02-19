@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/pubsub"
@@ -439,11 +440,11 @@ func (engine *Engine) Init(config *EngineConfig) error {
 	return nil
 }
 
-func (engine *Engine) ExtractBridgeValidationData(block BlockInterface) ([][]byte, []int, error) {
-	if _, ok := AvailableConsensus[block.GetConsensusType()]; ok {
-		return AvailableConsensus[block.GetConsensusType()].ExtractBridgeValidationData(block)
+func (engine *Engine) ExtractBridgeValidationData(block blockinterface.BlockInterface) ([][]byte, []int, error) {
+	if _, ok := AvailableConsensus[block.GetHeader().GetConsensusType()]; ok {
+		return AvailableConsensus[block.GetHeader().GetConsensusType()].ExtractBridgeValidationData(block)
 	}
-	return nil, nil, NewConsensusError(ConsensusTypeNotExistError, errors.New(block.GetConsensusType()))
+	return nil, nil, NewConsensusError(ConsensusTypeNotExistError, errors.New(block.GetHeader().GetConsensusType()))
 }
 
 func (engine *Engine) updateConsensusState() {

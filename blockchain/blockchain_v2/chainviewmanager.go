@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -31,8 +32,8 @@ func (s *ChainViewManager) CommitView(view consensus.ChainViewInterface) error {
 	return view.StoreDatabase(context.Background())
 }
 
-func (s *ChainViewManager) ConnectBlockAndAddView(block consensus.BlockInterface) error {
-	preBlkHash := block.GetPreviousBlockHash()
+func (s *ChainViewManager) ConnectBlockAndAddView(block blockinterface.BlockInterface) error {
+	preBlkHash := block.GetHeader().GetPreviousBlockHash()
 	view, err := s.GetViewByHash(preBlkHash)
 	if err != nil {
 		panic(err)
@@ -144,15 +145,15 @@ func (ChainViewManager) GetLastProposerIndex() int {
 	panic("implement me")
 }
 
-func (s *ChainViewManager) UnmarshalBlock(blockString []byte) (consensus.BlockInterface, error) {
+func (s *ChainViewManager) UnmarshalBlock(blockString []byte) (blockinterface.BlockInterface, error) {
 	return s.GetBestView().UnmarshalBlock(blockString)
 }
 
-func (ChainViewManager) ValidateBlockSignatures(block consensus.BlockInterface) error {
+func (ChainViewManager) ValidateBlockSignatures(block blockinterface.BlockInterface) error {
 	panic("implement me")
 }
 
-func (s *ChainViewManager) ValidateBlockProposer(block consensus.BlockInterface) error {
+func (s *ChainViewManager) ValidateBlockProposer(block blockinterface.BlockInterface) error {
 	return nil
 }
 
@@ -210,7 +211,7 @@ func (s *ChainViewManager) GetGenesisTime() int64 {
 func (s *ChainViewManager) GetAllTipBlocksHash() []*common.Hash {
 	var result []*common.Hash
 	for _, node := range s.manager.node {
-		result = append(result, node.view.GetBlock().GetHash())
+		result = append(result, node.view.GetBlock().GetHeader().GetHash())
 	}
 	return result
 }

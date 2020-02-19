@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardstate"
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
@@ -18,9 +19,10 @@ import (
 	"github.com/incognitochain/incognito-chain/metadata"
 )
 
-func buildInstructionFromBlock(s2bBlk *ShardToBeaconBlock, curView *BeaconView) ([][]string, []string, map[byte][][]string, []string, [][]string) {
-	shardID := s2bBlk.Header.ShardID
-	instructions := s2bBlk.Instructions
+func buildInstructionFromBlock(s2bBlk blockinterface.ShardToBeaconBlockInterface, curView *BeaconView) ([][]string, []string, map[byte][][]string, []string, [][]string) {
+	header := s2bBlk.GetShardHeader()
+	shardID := header.GetShardID()
+	instructions := s2bBlk.GetInstructions()
 	shardStates := make(map[byte]shardstate.ShardState)
 	stakeInstructions := [][]string{}
 	swapInstructions := make(map[byte][][]string)
@@ -38,7 +40,7 @@ func buildInstructionFromBlock(s2bBlk *ShardToBeaconBlock, curView *BeaconView) 
 	stakeBeaconAutoStaking := []string{}
 	stopAutoStakingPublicKeys := []string{}
 	tempValidStakePublicKeys := []string{}
-	acceptedBlockRewardInfo := metadata.NewAcceptedBlockRewardInfo(shardID, s2bBlk.Header.TotalTxsFee, s2bBlk.Header.Height)
+	acceptedBlockRewardInfo := metadata.NewAcceptedBlockRewardInfo(shardID, header.GetTotalTxsFee(), header.GetHeight())
 	acceptedRewardInstructions, err := acceptedBlockRewardInfo.GetStringFormat()
 	if err != nil {
 		// if err then ignore accepted reward instruction
@@ -46,10 +48,10 @@ func buildInstructionFromBlock(s2bBlk *ShardToBeaconBlock, curView *BeaconView) 
 	}
 
 	shardState := shardstate.ShardState{}
-	shardState.CrossShard = make([]byte, len(s2bBlk.Header.CrossShardBitMap))
-	copy(shardState.CrossShard, s2bBlk.Header.CrossShardBitMap)
-	shardState.Hash = s2bBlk.Header.Hash()
-	shardState.Height = s2bBlk.Header.Height
+	shardState.CrossShard = make([]byte, len(header.GetCrossShardBitMap()))
+	copy(shardState.CrossShard, header.GetCrossShardBitMap())
+	shardState.Hash = *header.GetHash()
+	shardState.Height = header.GetHeight()
 	shardStates[shardID] = shardState
 
 	for _, instruction := range instructions {
@@ -643,4 +645,21 @@ func extractShardSwapInstFromShard(instruction []string) (inPublickeys []string,
 	inPublickeys = strings.Split(instruction[1], ",")
 	outPublickeys = strings.Split(instruction[2], ",")
 	return
+}
+
+func extractShardStateFromShardBlocks(s2bBlks map[byte][]blockinterface.ShardToBeaconBlockInterface) map[byte][]shardstate.ShardState {
+
+	shardStates := make(map[byte][]shardstate.ShardState)
+	for shardID, shardBlocks := range s2bBlks {
+		for _, s2bBlk := range shardBlocks {
+			shardState := shardstate.ShardState{}
+			header := s2bBlk.GetShardHeader()
+			shardState.CrossShard = make([]byte, len(header.GetCrossShardBitMap()))
+			copy(shardState.CrossShard, header.GetCrossShardBitMap())
+			shardState.Hash = *header.GetHash()
+			shardState.Height = header.GetHeight()
+			shardStates[shardID] = append(shardStates[shardID], shardState)
+		}
+	}
+	return shardStates
 }

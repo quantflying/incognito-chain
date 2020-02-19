@@ -7,7 +7,6 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardstate"
-	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 )
 
 type CreateBeaconBlockState struct {
@@ -29,7 +28,7 @@ type CreateBeaconBlockState struct {
 	isEndEpoch            bool
 	isGettingRandomNumber bool
 	isRandomTime          bool
-	s2bBlks               map[byte][]*ShardToBeaconBlock
+	s2bBlks               map[byte][]blockinterface.ShardToBeaconBlockInterface
 
 	rewardInstByEpoch [][]string
 
@@ -68,7 +67,7 @@ func (s *BeaconView) NewCreateState(ctx context.Context) *CreateBeaconBlockState
 	return createState
 }
 
-func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (consensus.BlockInterface, error) {
+func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (blockinterface.BlockInterface, error) {
 	s.Logger.Criticalf("Creating Shard Block %+v at timeslot %v", s.GetHeight()+1, timeslot)
 	createState := s.NewCreateState(ctx)
 	createState.createTimeStamp = time.Now().Unix()

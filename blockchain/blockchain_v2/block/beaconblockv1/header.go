@@ -108,3 +108,11 @@ func (beaconHeader BeaconHeader) GetShardCommitteeAndValidatorRoot() common.Hash
 func (beaconHeader BeaconHeader) GetAutoStakingRoot() common.Hash {
 	return beaconHeader.AutoStakingRoot
 }
+
+func (beaconHeader BeaconHeader) GetBlockType() string {
+	return "beacon"
+}
+
+func (beaconHeader BeaconHeader) GetTimeslot() uint64 {
+	return 0
+}

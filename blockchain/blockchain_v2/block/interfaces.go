@@ -5,7 +5,6 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
-	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
@@ -23,7 +22,7 @@ type ShardApp interface {
 	buildHeader() error
 
 	//crete view from block
-	updateNewViewFromBlock(block *ShardBlock) error
+	updateNewViewFromBlock(block blockinterface.ShardBlockInterface) error
 
 	//validate block
 	preValidate() error
@@ -70,7 +69,7 @@ type AppData struct {
 }
 
 type DB interface {
-	GetGenesisBlock() consensus.BlockInterface
+	GetGenesisBlock() blockinterface.BlockInterface
 	GetAllTokenIDForReward(epoch uint64) ([]common.Hash, error)
 	GetRewardOfShardByEpoch(epoch uint64, shardID byte, tokenID common.Hash) (uint64, error)
 	//GetBeaconBlockHashByIndex(uint64) (common.Hash, error)
@@ -80,16 +79,16 @@ type DB interface {
 type BlockChain interface {
 	//GetDB() DB
 	GetCurrentBeaconHeight() (uint64, error) //get final confirm beacon block height
-	GetEpoch() (uint64, error)        //get final confirm beacon block height
+	GetEpoch() (uint64, error)               //get final confirm beacon block height
 	GetChainParams() blockchain.Params
 
-	ValidateCrossShardBlock(block *CrossShardBlock) error
+	ValidateCrossShardBlock(block blockinterface.CrossShardBlockInterface) error
 
 	GetCrossShardPool(shardID byte) blockchain.CrossShardPool
 	GetLatestCrossShard(from byte, to byte) uint64
 	GetNextCrossShard(from byte, to byte, startHeight uint64) uint64
 
-	GetAllValidCrossShardBlockFromPool(toShard byte) map[byte][]*CrossShardBlock
+	GetAllValidCrossShardBlockFromPool(toShard byte) map[byte][]blockinterface.CrossShardBlockInterface
 	GetValidBeaconBlockFromPool() []blockinterface.BeaconBlockInterface
 	GetPendingTransaction(shardID byte) (txsToAdd []metadata.Transaction, txToRemove []metadata.Transaction, totalFee uint64)
 

@@ -164,6 +164,7 @@ const (
 	NotEnoughRewardError
 	InitPDETradeResponseTransactionError
 	ProcessPDEInstructionError
+	CreateShardToBeaconBlockError
 )
 
 var ErrCodeMessage = map[int]struct {
@@ -313,6 +314,7 @@ var ErrCodeMessage = map[int]struct {
 	NotEnoughRewardError:                              {-1140, "Not enough reward Error"},
 	InitPDETradeResponseTransactionError:              {-1141, "Init PDE trade response tx Error"},
 	ProcessPDEInstructionError:                        {-1142, "Process PDE instruction Error"},
+	CreateShardToBeaconBlockError:                     {-1143, "Create ShardToBeaconBlock Error"},
 }
 
 type BlockChainError struct {

@@ -47,8 +47,8 @@ func (s *BeaconView) NewValidateState(ctx context.Context, createState *CreateBe
 	return validateState
 }
 
-func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block consensus.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
-	if block.(blockinterface.BeaconBlockInterface).GetVersion() == blockchain.BEACON_BLOCK_VERSION2 {
+func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block blockinterface.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
+	if block.GetHeader().GetVersion() == blockchain.BEACON_BLOCK_VERSION2 {
 
 	}
 	createState := &CreateBeaconBlockState{}
@@ -68,7 +68,7 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block co
 	if isPreSign {
 
 		createState.createTimeStamp = validateState.newView.Block.GetHeader().GetTimestamp()
-		createState.createTimeSlot = validateState.newView.Block.GetHeader().(blockinterface.BeaconHeaderV2Interface).GetTimeslot()
+		createState.createTimeSlot = validateState.newView.Block.GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()
 		createState.proposer = validateState.newView.Block.GetHeader().GetProducer()
 
 		for _, app := range validateState.app {
@@ -110,8 +110,8 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block co
 		}
 
 		//compare block hash
-		if !createState.newBlock.GetHash().IsEqual(validateState.newView.Block.GetHash()) {
-			fmt.Println(createState.newBlock.GetHash().String(), validateState.newView.Block.GetHash().String())
+		if !createState.newBlock.GetHeader().GetHash().IsEqual(validateState.newView.Block.GetHeader().GetHash()) {
+			fmt.Println(createState.newBlock.GetHeader().GetHash().String(), validateState.newView.Block.GetHeader().GetHash().String())
 			panic(1)
 			return nil, nil
 		}

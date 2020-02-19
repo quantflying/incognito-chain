@@ -6,25 +6,17 @@ import (
 )
 
 type BeaconBlockInterface interface {
-	GetHeader() BeaconHeaderInterface
-	GetBody() BeaconBodyInterface
-	BeaconHeaderInterface
+	BlockInterface
+
+	GetBeaconHeader() BeaconHeaderInterface
+	GetBeaconBody() BeaconBodyInterface
 
 	// SetHeader(BeaconHeaderInterface) error
 	// SetBody(BeaconBodyInterface) error
 }
 
 type BeaconHeaderInterface interface {
-	GetTimestamp() int64
-	GetMetaHash() common.Hash
-	GetHash() *common.Hash
-	GetVersion() int
-	GetHeight() uint64
-	GetEpoch() uint64
-	GetConsensusType() string
-	GetProducer() string
-	GetPreviousBlockHash() common.Hash
-
+	BlockHeaderInterface
 	// SetTimestamp(int64) error
 	// SetMetaHash(common.Hash) error
 	// SetHash(common.Hash) error
@@ -37,9 +29,8 @@ type BeaconHeaderInterface interface {
 }
 
 type BeaconHeaderV1Interface interface {
-	BeaconHeaderInterface
+	BlockHeaderV1Interface
 
-	GetRound() int
 	GetInstructionHash() common.Hash
 	GetShardStateHash() common.Hash
 	GetInstructionMerkleRoot() common.Hash
@@ -59,18 +50,9 @@ type BeaconHeaderV1Interface interface {
 	// SetShardCommitteeAndValidatorRoot(common.Hash) error
 	// SetAutoStakingRoot(common.Hash) error
 }
-
-type BeaconBodyInterface interface {
-	GetShardState() map[byte][]shardstate.ShardState
-	GetInstructions() [][]string
-	// SetShardState(map[byte][]beaconblockv1.ShardState) error
-	// SetInstructions([][]string) error
-}
-
 type BeaconHeaderV2Interface interface {
-	BeaconHeaderV1Interface
+	BlockHeaderV2Interface
 
-	GetTimeslot() uint64
 	// SetRound(int) error
 	// SetInstructionHash(common.Hash) error
 	// SetShardStateHash(common.Hash) error
@@ -80,4 +62,11 @@ type BeaconHeaderV2Interface interface {
 	// SetShardCandidateRoot(common.Hash) error
 	// SetShardCommitteeAndValidatorRoot(common.Hash) error
 	// SetAutoStakingRoot(common.Hash) error
+}
+
+type BeaconBodyInterface interface {
+	GetShardState() map[byte][]shardstate.ShardState
+	GetInstructions() [][]string
+	// SetShardState(map[byte][]beaconblockv1.ShardState) error
+	// SetInstructions([][]string) error
 }

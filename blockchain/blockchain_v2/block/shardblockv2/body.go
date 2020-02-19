@@ -140,3 +140,15 @@ func (shardBody ShardBody) ExtractOutgoingCrossShardMap() (map[byte][]common.Has
 	crossShardMap := make(map[byte][]common.Hash)
 	return crossShardMap, nil
 }
+
+func (shardBody ShardBody) GetCrossTransactions() map[byte][]blockchain.CrossTransaction {
+	return shardBody.CrossTransactions
+}
+
+func (shardBody ShardBody) GetInstructions() [][]string {
+	return shardBody.Instructions
+}
+
+func (shardBody ShardBody) GetTransactions() []metadata.Transaction {
+	return shardBody.Transactions
+}
