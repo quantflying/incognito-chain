@@ -28,8 +28,8 @@ const (
 	LowerBoundPercentForIncDAO    = 3
 	UpperBoundPercentForIncDAO    = 10
 	GetValidBlock                 = 20
-	TestRandom                    = true
-	NumberOfFixedBlockValidators  = 4
+	TestRandom                    = false
+	NumberOfFixedBlockValidators  = 22
 	BEACON_ID                     = -1         // CommitteeID of beacon chain, used for highway
 	ValidateTimeForSpamRequestTxs = 1581565837 // GMT: Thursday, February 13, 2020 3:50:37 AM. From this time, block will be checked spam request-reward tx
 )
@@ -149,7 +149,7 @@ func init() {
 		panic(err)
 	}
 
-	var IsTestNet = true
+	var IsTestNet = false
 	if IsTestNet {
 		for i := 0; i < TestNetMinBeaconCommitteeSize; i++ {
 			PreSelectBeaconNodeTestnetSerializedPubkey = append(PreSelectBeaconNodeTestnetSerializedPubkey, keylist.Beacon[i].CommitteePublicKey)
