@@ -140,6 +140,8 @@ func (blockchain *BlockChain) InsertShardBlock(shardBlock *ShardBlock, isValidat
 	beaconHeight := shardBlock.Header.BeaconHeight
 	if err := blockchain.verifyTransactionFromNewBlock(shardBlock.Body.Transactions, int64(beaconHeight)); err != nil {
 		return NewBlockChainError(TransactionFromNewBlockError, err)
+	} else {
+		Logger.log.Infof("SHARD %+v | Finish Verify %+v Transaction", shardID, shardBlock.Body.Transactions)
 	}
 	// Verify block with previous best state
 	Logger.log.Infof("SHARD %+v | Verify BestState With Shard Block, block height %+v with hash %+v \n", shardBlock.Header.ShardID, shardBlock.Header.Height, blockHash)
