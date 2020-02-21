@@ -116,7 +116,7 @@ func (s *BeaconCoreApp) buildInstructionFromShardAction() error {
 func (s *BeaconCoreApp) buildHeader() error {
 	curView := s.CreateState.curView
 
-	newBlock := s.CreateState.newBlock
+	newBlock := s.CreateState.newBlock.(beaconblockv2.BeaconBlock)
 	newBlockHeader := beaconblockv2.BeaconHeader{}
 	newBlockConsensusHeader := consensusheader.ConsensusHeader{}
 
@@ -241,6 +241,8 @@ func (s *BeaconCoreApp) buildHeader() error {
 	newBlockHeader.AutoStakingRoot = tempAutoStakingRoot
 	copy(newBlockHeader.InstructionMerkleRoot[:], blockchain.GetKeccak256MerkleRoot(flattenInsts))
 
+	newBlock.Header = newBlockHeader
+	s.CreateState.newBlock = newBlock
 	return nil
 }
 

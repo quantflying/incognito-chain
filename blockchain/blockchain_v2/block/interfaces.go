@@ -49,10 +49,6 @@ type BeaconApp interface {
 	storeDatabase() error
 }
 
-// type BeaconBlockInterface interface {
-// 	GetConfirmedCrossShardBlockToShard() map[byte]map[byte][]*CrossShardBlock
-// }
-
 type AppData struct {
 	Logger      common.Logger
 	CreateBlock struct {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardblockv2"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardstate"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -21,7 +22,7 @@ type ValidateShardBlockState struct {
 	isPreSign        bool
 	newView          *ShardView
 	beaconBlocks     []blockinterface.BeaconBlockInterface
-	crossShardBlocks map[byte][]blockinterface.CrossShardBlockInterface
+	crossShardBlocks map[byte][]shardstate.ShardState
 	txsToAdd         []metadata.Transaction
 
 	isOldBeaconHeight bool
@@ -45,7 +46,7 @@ func (s *ShardView) NewValidateState(ctx context.Context) *ValidateShardBlockSta
 
 func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block blockinterface.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
 	validateState := s.NewValidateState(ctx)
-	validateState.newView.Block = block.(*ShardBlock)
+	validateState.newView.Block = block.(blockinterface.ShardBlockInterface)
 	validateState.isPreSign = isPreSign
 
 	createState := s.NewCreateState(ctx)
@@ -118,11 +119,11 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block blo
 			return nil, err
 		}
 		createState.newView = s.CloneNewView().(*ShardView)
-		for _, app := range createState.app {
-			if err := app.updateNewViewFromBlock(block.(*ShardBlock)); err != nil {
-				return nil, err
-			}
-		}
+		// for _, app := range createState.app {
+		// 	if err := app.updateNewViewFromBlock(block.(*ShardBlock)); err != nil {
+		// 		return nil, err
+		// 	}
+		// }
 		validateState.newView = createState.newView
 		//compare header content, with newview
 	}

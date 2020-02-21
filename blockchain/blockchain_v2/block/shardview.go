@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardblockv2"
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
@@ -44,7 +45,7 @@ type ShardView struct {
 }
 
 func (s *ShardView) CreateBlockFromOldBlockData(block blockinterface.BlockInterface) blockinterface.BlockInterface {
-	block1 := block.(*ShardBlock)
+	block1 := block.(*shardblockv2.ShardBlock)
 	block1.ConsensusHeader.TimeSlot = common.GetTimeSlot(s.GetGenesisTime(), time.Now().Unix(), blsbftv2.TIMESLOT)
 	return block1
 }
@@ -58,16 +59,15 @@ func (s *ShardView) CreateNewViewFromBlock(block blockinterface.BlockInterface) 
 }
 
 func (s *ShardView) UnmarshalBlock(b []byte) (blockinterface.BlockInterface, error) {
-	var shardBlk *ShardBlock
-	err := json.Unmarshal(b, &shardBlk)
+	block, err := UnmarshalShardBlock(b)
 	if err != nil {
 		return nil, err
 	}
-	return shardBlk, nil
+	return block.(blockinterface.BlockInterface), nil
 }
 
 func (s *ShardView) GetGenesisTime() int64 {
-	return s.DB.GetGenesisBlock().GetBlockTimestamp()
+	return s.DB.GetGenesisBlock().GetHeader().GetTimestamp()
 }
 
 func (s *ShardView) GetConsensusConfig() string {
@@ -103,31 +103,34 @@ func (s *ShardView) GetCommitteeIndex(string) int {
 }
 
 func (s *ShardView) GetHeight() uint64 {
-	return s.Block.Header.Height
+	return s.Block.GetHeader().GetHeight()
 }
 
-func (s *ShardView) GetRound() int {
-	return s.Block.Header.Round
-}
+// func (s *ShardView) GetRound() int {
+// 	return s.Block.Header.Round
+// }
 
 func (s *ShardView) GetTimeStamp() int64 {
-	return s.Block.GetBlockTimestamp()
+	return s.Block.GetHeader().GetTimestamp()
 }
 
 func (s *ShardView) GetTimeslot() uint64 {
-	return s.Block.ConsensusHeader.TimeSlot
+	if s.Block.GetHeader().GetVersion() == 1 {
+		return 1
+	}
+	return s.Block.GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()
 }
 
 func (s *ShardView) GetEpoch() uint64 {
-	return s.Block.GetEpoch()
+	return s.Block.GetHeader().GetEpoch()
 }
 
 func (s *ShardView) Hash() common.Hash {
-	return *s.Block.Hash()
+	return *s.Block.GetHeader().GetHash()
 }
 
 func (s *ShardView) GetPreviousViewHash() common.Hash {
-	prevHash := s.Block.GetPreviousBlockHash()
+	prevHash := s.Block.GetHeader().GetPreviousBlockHash()
 	return prevHash
 }
 
@@ -178,7 +181,10 @@ func (s *ShardView) MarshalJSON() ([]byte, error) {
 }
 
 func (s *ShardView) GetRootTimeSlot() uint64 {
-	return s.DB.GetGenesisBlock().GetTimeslot()
+	if s.DB.GetGenesisBlock().GetHeader().GetVersion() == 1 {
+		return 1
+	}
+	return s.DB.GetGenesisBlock().GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()
 }
 
 func (s *ShardView) InitStateRootHash(bc *BlockChain) error {

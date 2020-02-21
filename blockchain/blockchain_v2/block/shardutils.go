@@ -10,6 +10,7 @@ import (
 
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/consensusheader"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardblockv1"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardblockv2"
 	"github.com/incognitochain/incognito-chain/common"
@@ -28,37 +29,68 @@ func CreateShardGenesisBlock(
 	genesisBlockTime string,
 	initTx []string,
 ) blockinterface.ShardBlockInterface {
-	body := ShardBody{}
-	genesisTime, err := time.Parse(GENESIS_TIMESTAMP, genesisBlockTime)
-	if err != nil {
-		fmt.Println(err)
-	}
-	header := ShardHeader{
-		Timestamp:         genesisTime.Unix(),
-		Version:           version,
-		BeaconHeight:      1,
-		Epoch:             1,
-		Round:             1,
-		Height:            1,
-		PreviousBlockHash: common.Hash{},
-	}
+	if version == 1 {
+		body := shardblockv1.ShardBody{}
+		genesisTime, err := time.Parse(GENESIS_TIMESTAMP, genesisBlockTime)
+		if err != nil {
+			fmt.Println(err)
+		}
+		header := shardblockv1.ShardHeader{
+			Timestamp:         genesisTime.Unix(),
+			Version:           version,
+			BeaconHeight:      1,
+			Epoch:             1,
+			Round:             1,
+			Height:            1,
+			PreviousBlockHash: common.Hash{},
+		}
 
-	for _, tx := range initTx {
-		testSalaryTX := transaction.Tx{}
-		testSalaryTX.UnmarshalJSON([]byte(tx))
-		body.Transactions = append(body.Transactions, &testSalaryTX)
-	}
+		for _, tx := range initTx {
+			testSalaryTX := transaction.Tx{}
+			testSalaryTX.UnmarshalJSON([]byte(tx))
+			body.Transactions = append(body.Transactions, &testSalaryTX)
+		}
 
-	block := &ShardBlock{
-		Body:   body,
-		Header: header,
-		ConsensusHeader: ConsensusHeader{
-			TimeSlot: common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT),
-			Proposer: "",
-		},
-	}
+		block := &shardblockv1.ShardBlock{
+			Body:   body,
+			Header: header,
+		}
 
-	return block
+		return block
+	} else {
+		body := shardblockv2.ShardBody{}
+		genesisTime, err := time.Parse(GENESIS_TIMESTAMP, genesisBlockTime)
+		if err != nil {
+			fmt.Println(err)
+		}
+		header := shardblockv2.ShardHeader{
+			Timestamp:         genesisTime.Unix(),
+			Version:           version,
+			BeaconHeight:      1,
+			Epoch:             1,
+			Round:             1,
+			Height:            1,
+			PreviousBlockHash: common.Hash{},
+		}
+
+		for _, tx := range initTx {
+			testSalaryTX := transaction.Tx{}
+			testSalaryTX.UnmarshalJSON([]byte(tx))
+			body.Transactions = append(body.Transactions, &testSalaryTX)
+		}
+
+		block := &shardblockv2.ShardBlock{
+			Body:   body,
+			Header: header,
+			ConsensusHeader: consensusheader.ConsensusHeader{
+				TimeSlot: common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT),
+				Proposer: "",
+			},
+		}
+
+		return block
+	}
+	return nil
 }
 
 /*
@@ -163,7 +195,7 @@ func CreateShardInstructionsFromTransactionAndInstruction(transactions []metadat
 }
 
 func checkReturnStakingTxExistence(txId string, shardBlock blockinterface.ShardBlockInterface) bool {
-	for _, tx := range shardBlock.Body.Transactions {
+	for _, tx := range shardBlock.GetShardBody().GetTransactions() {
 		if tx.GetMetadata() != nil {
 			if tx.GetMetadata().GetType() == metadata.ReturnStakingMeta {
 				if returnStakingMeta, ok := tx.GetMetadata().(*metadata.ReturnStakingMetadata); ok {
@@ -220,7 +252,7 @@ func pickInstructionFromBeaconBlocks(beaconBlocks []blockinterface.BeaconBlockIn
 	return insts
 }
 
-func CreateShardToBeaconBlock(shardBlock blockinterface.ShardBlockInterface, bc blockchain.BlockChain) (blockinterface.ShardToBeaconBlockInterface, error) {
+func CreateShardToBeaconBlock(shardBlock blockinterface.ShardBlockInterface, bc *blockchain.BlockChain) (blockinterface.ShardToBeaconBlockInterface, error) {
 	blockVersion := shardBlock.GetHeader().GetVersion()
 
 	instructions, err := CreateShardInstructionsFromTransactionAndInstruction(shardBlock.GetShardBody().GetTransactions(), bc, shardBlock.GetShardHeader().GetShardID())
@@ -269,21 +301,21 @@ func CreateAllCrossShardBlock(activeShards int, shardBlock blockinterface.ShardB
 
 func CreateCrossShardBlock(shardBlock blockinterface.ShardBlockInterface, shardID byte) (blockinterface.CrossShardBlockInterface, error) {
 	blockVersion := shardBlock.GetHeader().GetVersion()
-	crossOutputCoin, crossCustomTokenPrivacyData := blockchain.GetCrossShardData(shardBlock.Body.Transactions, shardID)
+	crossOutputCoin, crossCustomTokenPrivacyData := blockchain.GetCrossShardData(shardBlock.GetShardBody().GetTransactions(), shardID)
 	// Return nothing if nothing to cross
 	if len(crossOutputCoin) == 0 && len(crossCustomTokenPrivacyData) == 0 {
 		return nil, blockchain.NewBlockChainError(blockchain.CreateCrossShardBlockError, errors.New("No cross Outputcoin, Cross Custom Token, Cross Custom Token Privacy"))
 	}
-	merklePathShard, merkleShardRoot := blockchain.GetMerklePathCrossShard2(shardBlock.Body.Transactions, shardID)
-	if merkleShardRoot != shardBlock.Header.ShardTxRoot {
-		return crossShard, blockchain.NewBlockChainError(blockchain.VerifyCrossShardBlockShardTxRootError, fmt.Errorf("Expect Shard Tx Root To be %+v but get %+v", shardBlock.Header.ShardTxRoot, merkleShardRoot))
+	merklePathShard, merkleShardRoot := blockchain.GetMerklePathCrossShard2(shardBlock.GetShardBody().GetTransactions(), shardID)
+	if merkleShardRoot != shardBlock.GetShardHeader().GetShardTxRoot() {
+		return nil, blockchain.NewBlockChainError(blockchain.VerifyCrossShardBlockShardTxRootError, fmt.Errorf("Expect Shard Tx Root To be %+v but get %+v", shardBlock.GetShardHeader().GetShardTxRoot(), merkleShardRoot))
 	}
 
 	switch blockVersion {
 	case blockchain.SHARD_BLOCK_VERSION:
 		crossShard := &shardblockv1.CrossShardBlock{}
-		crossShard.ValidationData = shardBlock.ValidationData
-		crossShard.Header = shardBlock.Header
+		crossShard.ValidationData = shardBlock.GetValidationField()
+		crossShard.Header = shardBlock.GetHeader().(shardblockv1.ShardHeader)
 		crossShard.MerklePathShard = merklePathShard
 		crossShard.CrossOutputCoin = crossOutputCoin
 		crossShard.CrossTxTokenPrivacyData = crossCustomTokenPrivacyData
