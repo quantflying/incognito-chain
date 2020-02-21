@@ -44,6 +44,7 @@ func (s *ChainViewManager) ConnectBlockAndAddView(block blockinterface.BlockInte
 		panic(err)
 		return err
 	}
+
 	s.manager.AddView(newView)
 	s.manager.Print()
 
@@ -51,7 +52,6 @@ func (s *ChainViewManager) ConnectBlockAndAddView(block blockinterface.BlockInte
 	if err := s.CommitView(newView); err != nil {
 		panic(err)
 	}
-
 	return nil
 }
 

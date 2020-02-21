@@ -116,7 +116,7 @@ func (s *BeaconCoreApp) buildInstructionFromShardAction() error {
 func (s *BeaconCoreApp) buildHeader() error {
 	curView := s.CreateState.curView
 
-	newBlock := s.CreateState.newBlock.(beaconblockv2.BeaconBlock)
+	newBlock := s.CreateState.newBlock.(*beaconblockv2.BeaconBlock)
 	newBlockHeader := beaconblockv2.BeaconHeader{}
 	newBlockConsensusHeader := consensusheader.ConsensusHeader{}
 
@@ -242,6 +242,11 @@ func (s *BeaconCoreApp) buildHeader() error {
 	copy(newBlockHeader.InstructionMerkleRoot[:], blockchain.GetKeccak256MerkleRoot(flattenInsts))
 
 	newBlock.Header = newBlockHeader
+	newBlock.ConsensusHeader = consensusheader.ConsensusHeader{
+		TimeSlot:       s.CreateState.createTimeSlot,
+		Proposer:       s.CreateState.proposer,
+		ValidationData: "",
+	}
 	s.CreateState.newBlock = newBlock
 	return nil
 }

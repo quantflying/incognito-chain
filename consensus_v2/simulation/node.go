@@ -11,7 +11,7 @@ import (
 
 	blockchainv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2"
 	shardv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv2"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv1"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardblockv2"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
@@ -265,10 +265,10 @@ func NewNodeBeacon(committeePkStruct []incognitokey.CommitteePublicKey, committe
 
 	node := Node{id: fmt.Sprintf("%d", index)}
 	db := &FakeDB{}
-	db.genesisBlock = shardv2.CreateBeaconGenesisBlock(2, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.GenesisParamsTestnetNew)
+	db.genesisBlock = shardv2.CreateBeaconGenesisBlock(1, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.GenesisParamsTestnetNew)
 	node.chain = blockchainv2.InitNewChainViewManager(fmt.Sprintf("beacon_%d", index), -1, &shardv2.BeaconView{
 		BC:              &shardv2.FakeBC{},
-		Block:           db.genesisBlock.(*beaconblockv2.BeaconBlock),
+		Block:           db.genesisBlock.(*beaconblockv1.BeaconBlock),
 		BeaconCommittee: committeePkStruct,
 		DB:              db,
 		Logger:          chainViewLogger,
@@ -276,10 +276,10 @@ func NewNodeBeacon(committeePkStruct []incognitokey.CommitteePublicKey, committe
 
 	if fullnode == nil {
 		db := &FakeDB{}
-		db.genesisBlock = shardv2.CreateBeaconGenesisBlock(2, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.GenesisParamsTestnetNew)
+		db.genesisBlock = shardv2.CreateBeaconGenesisBlock(1, blockchain.Testnet, blockchain.TestnetGenesisBlockTime, blockchain.GenesisParamsTestnetNew)
 		backendLog := common.NewBackend(nil).Logger("Fullnode", false)
 		fullnode = blockchainv2.InitNewChainViewManager("fullnode", -1, &shardv2.BeaconView{
-			Block:           db.genesisBlock.(*beaconblockv2.BeaconBlock),
+			Block:           db.genesisBlock.(*beaconblockv1.BeaconBlock),
 			BeaconCommittee: committeePkStruct,
 			DB:              db,
 			Logger:          backendLog,

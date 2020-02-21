@@ -68,7 +68,7 @@ func (s *BeaconView) NewCreateState(ctx context.Context) *CreateBeaconBlockState
 }
 
 func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (blockinterface.BlockInterface, error) {
-	s.Logger.Criticalf("Creating Shard Block %+v at timeslot %v", s.GetHeight()+1, timeslot)
+	s.Logger.Criticalf("Creating Beacon Block %+v at timeslot %v", s.GetHeight()+1, timeslot)
 	createState := s.NewCreateState(ctx)
 	createState.createTimeStamp = time.Now().Unix()
 	createState.createTimeSlot = timeslot
@@ -124,6 +124,5 @@ func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, propos
 			return nil, err
 		}
 	}
-
 	return createState.newBlock, nil
 }

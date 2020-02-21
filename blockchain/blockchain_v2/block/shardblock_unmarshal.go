@@ -18,7 +18,7 @@ func UnmarshalShardBlock(data []byte) (blockinterface.ShardBlockInterface, error
 	if v, ok := jsonMap["Header"]; ok {
 		header := v.(map[string]interface{})
 		if version, ok := header["Version"]; ok {
-			switch version.(int) {
+			switch int(version.(float64)) {
 			case blockchain.SHARD_BLOCK_VERSION:
 				shardBlk := &shardblockv1.ShardBlock{}
 				err := json.Unmarshal(data, &shardBlk)
@@ -48,7 +48,7 @@ func UnmarshalShardToBeaconBlock(data []byte) (blockinterface.ShardToBeaconBlock
 	if v, ok := jsonMap["Header"]; ok {
 		header := v.(map[string]interface{})
 		if version, ok := header["Version"]; ok {
-			switch version.(int) {
+			switch int(version.(float64)) {
 			case blockchain.SHARD_BLOCK_VERSION:
 				s2bBlock := &shardblockv1.ShardToBeaconBlock{}
 				err := json.Unmarshal(data, &s2bBlock)
@@ -78,7 +78,7 @@ func UnmarshalCrossShardBlock(data []byte) (blockinterface.CrossShardBlockInterf
 	if v, ok := jsonMap["Header"]; ok {
 		header := v.(map[string]interface{})
 		if version, ok := header["Version"]; ok {
-			switch version.(int) {
+			switch int(version.(float64)) {
 			case blockchain.SHARD_BLOCK_VERSION:
 				shardBlk := &shardblockv1.CrossShardBlock{}
 				err := json.Unmarshal(data, &shardBlk)

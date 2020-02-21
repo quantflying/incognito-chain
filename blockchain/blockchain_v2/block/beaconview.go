@@ -240,8 +240,10 @@ func (s *BeaconView) MarshalJSON() ([]byte, error) {
 		Lock   interface{}
 		Logger interface{}
 		BC     interface{}
+		Block  interface{}
 	}{
 		(*Alias)(s),
+		nil,
 		nil,
 		nil,
 		nil,

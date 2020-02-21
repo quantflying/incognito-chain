@@ -20,7 +20,7 @@ func UnmarshalBeaconBlock(data []byte) (blockinterface.BeaconBlockInterface, err
 	if v, ok := jsonMap["Header"]; ok {
 		header := v.(map[string]interface{})
 		if version, ok := header["Version"]; ok {
-			switch version.(int) {
+			switch int(version.(float64)) {
 			case blockchain.BEACON_BLOCK_VERSION:
 				beaconBlk := &beaconblockv1.BeaconBlock{}
 				err := json.Unmarshal(data, &beaconBlk)
