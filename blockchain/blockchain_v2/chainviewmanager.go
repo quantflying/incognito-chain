@@ -36,6 +36,7 @@ func (s *ChainViewManager) ConnectBlockAndAddView(block blockinterface.BlockInte
 	preBlkHash := block.GetHeader().GetPreviousBlockHash()
 	view, err := s.GetViewByHash(preBlkHash)
 	if err != nil {
+		fmt.Println(preBlkHash)
 		panic(err)
 		return err
 	}

@@ -49,9 +49,7 @@ func Test_Main4BeaconCommittee(t *testing.T) {
 	GetSimulation().nodeList = nodeList
 	//simulation
 	rootTimeSlot := nodeList[0].chain.GetBestView().GetRootTimeSlot()
-
 	currentTimeSlot := common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), 3)
-
 	startTimeSlot := rootTimeSlot + currentTimeSlot + 1
 	fmt.Println("root Time slot", rootTimeSlot)
 	GetSimulation().setStartTimeSlot(startTimeSlot)
@@ -166,7 +164,8 @@ func Test_Main4BeaconCommittee_ScenarioA(t *testing.T) {
 	GetSimulation().nodeList = nodeList
 	//simulation
 	rootTimeSlot := nodeList[0].chain.GetBestView().GetRootTimeSlot()
-	startTimeSlot := rootTimeSlot + 1
+	currentTimeSlot := common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), 3)
+	startTimeSlot := rootTimeSlot + currentTimeSlot + 1
 	fmt.Println("root Time slot", rootTimeSlot)
 	GetSimulation().setStartTimeSlot(startTimeSlot)
 	var setTimeSlot = func(s int) uint64 {
@@ -306,7 +305,8 @@ func Test_Main4BeaconCommittee_ScenarioB(t *testing.T) {
 	GetSimulation().nodeList = nodeList
 	//simulation
 	rootTimeSlot := nodeList[0].chain.GetBestView().GetRootTimeSlot()
-	startTimeSlot := rootTimeSlot + 1
+	currentTimeSlot := common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), 3)
+	startTimeSlot := rootTimeSlot + currentTimeSlot + 1
 	fmt.Println("root Time slot", rootTimeSlot)
 	GetSimulation().setStartTimeSlot(startTimeSlot)
 	var setTimeSlot = func(s int) uint64 {
@@ -444,7 +444,8 @@ func Test_Main4BeaconCommittee_ScenarioC(t *testing.T) {
 	GetSimulation().nodeList = nodeList
 	//simulation
 	rootTimeSlot := nodeList[0].chain.GetBestView().GetRootTimeSlot()
-	startTimeSlot := rootTimeSlot + 1
+	currentTimeSlot := common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), 3)
+	startTimeSlot := rootTimeSlot + currentTimeSlot + 1
 	fmt.Println("root Time slot", rootTimeSlot)
 	GetSimulation().setStartTimeSlot(startTimeSlot)
 	var setTimeSlot = func(s int) uint64 {
