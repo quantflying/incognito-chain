@@ -27,7 +27,7 @@ func Test_Main4BeaconCommittee(t *testing.T) {
 		committeePkStruct = append(committeePkStruct, m.GetPublicKey())
 	}
 	nodeList := []*Node{}
-	genesisTime, _ := time.Parse(block.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
+	genesisTime, _ := time.Parse(app.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
 	for {
 		if int(common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT))%len(committee) == len(committee)-1 {
 			break
@@ -141,7 +141,7 @@ func Test_Main4BeaconCommittee_ScenarioA(t *testing.T) {
 		committeePkStruct = append(committeePkStruct, m.GetPublicKey())
 	}
 	nodeList := []*Node{}
-	genesisTime, _ := time.Parse(block.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
+	genesisTime, _ := time.Parse(app.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
 	for {
 		if int(common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT))%len(committee) == len(committee)-1 {
 			break
@@ -281,7 +281,7 @@ func Test_Main4BeaconCommittee_ScenarioB(t *testing.T) {
 		committeePkStruct = append(committeePkStruct, m.GetPublicKey())
 	}
 	nodeList := []*Node{}
-	genesisTime, _ := time.Parse(block.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
+	genesisTime, _ := time.Parse(app.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
 	for {
 		if int(common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT))%len(committee) == len(committee)-1 {
 			break
@@ -419,7 +419,7 @@ func Test_Main4BeaconCommittee_ScenarioC(t *testing.T) {
 		committeePkStruct = append(committeePkStruct, m.GetPublicKey())
 	}
 	nodeList := []*Node{}
-	genesisTime, _ := time.Parse(block.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
+	genesisTime, _ := time.Parse(app.GENESIS_TIMESTAMP, blockchain.TestnetGenesisBlockTime)
 	for {
 		if int(common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), blsbftv2.TIMESLOT))%len(committee) == len(committee)-1 {
 			break

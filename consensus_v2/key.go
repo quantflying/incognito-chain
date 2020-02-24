@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 )

@@ -11,9 +11,9 @@ import (
 
 	blockchainv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2"
 	shardv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/beaconblockv1"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/blockinterface"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block/shardblockv2"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/beaconblockv1"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/shardblockv2"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 
 	"github.com/incognitochain/incognito-chain/common"
