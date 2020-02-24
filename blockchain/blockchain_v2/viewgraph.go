@@ -103,9 +103,9 @@ newrank=true;
 		}
 	}
 
-	for i := s.root.view.GetTimeslot(); i < maxTimeSlot; i++ {
-		dotContent += fmt.Sprintf("slot_%d -> slot_%d;", i-s.root.view.GetTimeslot(), i+1-s.root.view.GetTimeslot()) + "\n"
-	}
+	// for i := s.root.view.GetTimeslot(); i < maxTimeSlot; i++ {
+	// 	dotContent += fmt.Sprintf("slot_%d -> slot_%d;", i-s.root.view.GetTimeslot(), i+1-s.root.view.GetTimeslot()) + "\n"
+	// }
 
 	dotContent += s.edgeStr
 	dotContent += `}`
