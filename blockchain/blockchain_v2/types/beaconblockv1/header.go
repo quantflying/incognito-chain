@@ -112,7 +112,3 @@ func (beaconHeader BeaconHeader) GetAutoStakingRoot() common.Hash {
 func (beaconHeader BeaconHeader) GetBlockType() string {
 	return "beacon"
 }
-
-func (beaconHeader BeaconHeader) GetTimeslot() uint64 {
-	return 0
-}

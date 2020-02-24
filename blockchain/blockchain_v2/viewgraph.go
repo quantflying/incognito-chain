@@ -5,8 +5,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/blockinterface"
-
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 )
@@ -99,7 +97,7 @@ newrank=true;
 	for k, v := range s.node {
 		shortK := k.String()[0:5]
 		dotContent += fmt.Sprintf(`%s_%d_%s [label = "%d:%s"]`, s.name, v.view.GetBlock().GetHeader().GetHeight(), string(shortK), v.view.GetBlock().GetHeader().GetHeight(), string(shortK)) + "\n"
-		dotContent += fmt.Sprintf(`{rank=same; %s_%d_%s; slot_%d;}`, s.name, v.view.GetBlock().GetHeader().GetHeight(), string(shortK), v.view.GetBlock().GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()-s.root.view.GetTimeslot()) + "\n"
+		dotContent += fmt.Sprintf(`{rank=same; %s_%d_%s; slot_%d;}`, s.name, v.view.GetBlock().GetHeader().GetHeight(), string(shortK), v.view.GetTimeslot()-s.root.view.GetTimeslot()) + "\n"
 		if v.view.GetTimeslot() > maxTimeSlot {
 			maxTimeSlot = v.view.GetTimeslot()
 		}
