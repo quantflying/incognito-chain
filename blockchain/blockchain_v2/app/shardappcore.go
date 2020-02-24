@@ -370,10 +370,9 @@ func (s *ShardCoreApp) buildHeader() error {
 	newBlock.Header = shardblockv2.ShardHeader{
 		Producer:             state.proposer,
 		ShardID:              shardID,
-		Version:              blockchain.SHARD_BLOCK_VERSION,
+		Version:              blockchain.SHARD_BLOCK_VERSION2,
 		PreviousBlockHash:    *state.curView.Block.GetHeader().GetHash(),
 		Height:               state.curView.Block.GetHeader().GetHeight() + 1,
-		Round:                1,
 		TimeSlot:             state.createTimeSlot,
 		Epoch:                state.newBlockEpoch,
 		CrossShardBitMap:     blockchain.CreateCrossShardByteArray(newBlock.Body.Transactions, shardID),

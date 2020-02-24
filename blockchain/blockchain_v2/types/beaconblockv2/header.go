@@ -10,7 +10,6 @@ type BeaconHeader struct {
 	Version           int         `json:"Version"`
 	Height            uint64      `json:"Height"`
 	Epoch             uint64      `json:"Epoch"`
-	Round             int         `json:"Round"`
 	Timestamp         int64       `json:"Timestamp"`
 	TimeSlot          uint64      `json:"Timeslot"`
 	PreviousBlockHash common.Hash `json:"PreviousBlockHash"`
@@ -33,7 +32,6 @@ func (beaconHeader BeaconHeader) toString() string {
 	res += fmt.Sprintf("%v", beaconHeader.Version)
 	res += fmt.Sprintf("%v", beaconHeader.Height)
 	res += fmt.Sprintf("%v", beaconHeader.Epoch)
-	res += fmt.Sprintf("%v", beaconHeader.Round)
 	res += fmt.Sprintf("%v", beaconHeader.Timestamp)
 	res += fmt.Sprintf("%v", beaconHeader.TimeSlot)
 	res += beaconHeader.PreviousBlockHash.String()
@@ -86,9 +84,6 @@ func (beaconHeader BeaconHeader) GetProducer() string {
 }
 func (beaconHeader BeaconHeader) GetPreviousBlockHash() common.Hash {
 	return beaconHeader.PreviousBlockHash
-}
-func (beaconHeader BeaconHeader) GetRound() int {
-	return beaconHeader.Round
 }
 func (beaconHeader BeaconHeader) GetInstructionHash() common.Hash {
 	return beaconHeader.InstructionHash

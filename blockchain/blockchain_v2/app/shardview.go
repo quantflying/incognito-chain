@@ -174,6 +174,7 @@ func (s *ShardView) MarshalJSON() ([]byte, error) {
 		nil,
 		nil,
 		nil,
+		nil,
 	})
 	if err != nil {
 		Logger.log.Error(err)

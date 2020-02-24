@@ -10,7 +10,7 @@ import (
 	"os"
 
 	blockchainv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2"
-	shardv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block"
+	shardv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/app"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/beaconblockv1"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/shardblockv2"

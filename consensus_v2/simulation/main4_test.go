@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/app"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
-	"testing"
-	"time"
 )
 
 func Test_Main4Committee(t *testing.T) {

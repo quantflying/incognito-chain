@@ -1,8 +1,6 @@
 package shardblockv2
 
 import (
-	"fmt"
-
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/consensusheader"
 	"github.com/incognitochain/incognito-chain/common"
@@ -25,14 +23,6 @@ func (block ShardToBeaconBlock) GetValidationField() string {
 
 func (block ShardToBeaconBlock) GetHeight() uint64 {
 	return block.Header.Height
-}
-
-func (block ShardToBeaconBlock) GetRound() int {
-	return block.Header.Round
-}
-
-func (block ShardToBeaconBlock) GetRoundKey() string {
-	return fmt.Sprint(block.Header.Height, "_", block.Header.Round)
 }
 func (block ShardToBeaconBlock) GetInstructions() [][]string {
 	return block.Instructions

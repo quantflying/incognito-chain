@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/block"
-	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
-	"github.com/incognitochain/incognito-chain/incognitokey"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/app"
+	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
+	"github.com/incognitochain/incognito-chain/incognitokey"
 )
 
 func Test_Main7Committee_ScenarioC(t *testing.T) {

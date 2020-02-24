@@ -118,13 +118,13 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block blo
 			panic(1)
 			return nil, err
 		}
-		createState.newView = s.CloneNewView().(*ShardView)
+		// createState.newView = s.CloneNewView().(*ShardView)
 		// for _, app := range createState.app {
 		// 	if err := app.updateNewViewFromBlock(block.(*ShardBlock)); err != nil {
 		// 		return nil, err
 		// 	}
 		// }
-		validateState.newView = createState.newView
+		// validateState.newView = createState.newView
 		//compare header content, with newview
 	}
 

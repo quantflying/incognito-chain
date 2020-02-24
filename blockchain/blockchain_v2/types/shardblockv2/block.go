@@ -86,7 +86,7 @@ func (shardBlock *ShardBlock) validateSanityData() (bool, error) {
 	if shardBlock.Header.Height > 1 && shardBlock.Header.PreviousBlockHash.IsEqual(&common.Hash{}) {
 		return false, blockchain.NewBlockChainError(blockchain.ShardBlockSanityError, fmt.Errorf("Expect Shard Block with Height greater than 1 have Non-Zero Hash Value"))
 	}
-	if shardBlock.Header.Round < 1 {
+	if shardBlock.Header.TimeSlot < 1 {
 		return false, blockchain.NewBlockChainError(blockchain.ShardBlockSanityError, fmt.Errorf("Expect Shard Block Round greater or equal than 1"))
 	}
 	if shardBlock.Header.Epoch < 1 {
@@ -281,14 +281,6 @@ func (block ShardBlock) GetHeight() uint64 {
 
 func (block ShardBlock) GetBeaconHeight() uint64 {
 	return block.Header.BeaconHeight
-}
-
-func (block ShardBlock) GetRound() int {
-	return block.Header.Round
-}
-
-func (block ShardBlock) GetRoundKey() string {
-	return fmt.Sprint(block.Header.Height, "_", block.Header.Round)
 }
 
 func (block ShardBlock) GetInstructions() [][]string {

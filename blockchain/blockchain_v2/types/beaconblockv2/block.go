@@ -1,8 +1,6 @@
 package beaconblockv2
 
 import (
-	"fmt"
-
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/consensusheader"
 	"github.com/incognitochain/incognito-chain/common"
@@ -56,13 +54,6 @@ func (beaconBlock *BeaconBlock) AddValidationField(validationData string) error 
 }
 func (beaconBlock BeaconBlock) GetValidationField() string {
 	return beaconBlock.ConsensusHeader.ValidationData
-}
-
-func (beaconBlock BeaconBlock) GetRound() int {
-	return beaconBlock.Header.Round
-}
-func (beaconBlock BeaconBlock) GetRoundKey() string {
-	return fmt.Sprint(beaconBlock.Header.Height, "_", beaconBlock.Header.Round)
 }
 
 func (beaconBlock BeaconBlock) GetInstructions() [][]string {

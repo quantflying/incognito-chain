@@ -18,7 +18,6 @@ type ShardHeader struct {
 	Version               int                    `json:"Version"`               // version of block structure
 	PreviousBlockHash     common.Hash            `json:"PreviousBlockHash"`     // previous block hash or Parent block hash
 	Height                uint64                 `json:"Height"`                // block height
-	Round                 int                    `json:"Round"`                 // bpft consensus round
 	Epoch                 uint64                 `json:"Epoch"`                 // epoch of block (according to current beacon height)
 	CrossShardBitMap      []byte                 `json:"CrossShardBitMap"`      // crossShards bitmap for beacon
 	BeaconHeight          uint64                 `json:"BeaconHeight"`          // beacon check point height
@@ -45,7 +44,6 @@ func (shardHeader ShardHeader) String() string {
 	res += fmt.Sprintf("%v", shardHeader.Version)
 	res += shardHeader.PreviousBlockHash.String()
 	res += fmt.Sprintf("%v", shardHeader.Height)
-	res += fmt.Sprintf("%v", shardHeader.Round)
 	res += fmt.Sprintf("%v", shardHeader.Epoch)
 	res += fmt.Sprintf("%v", shardHeader.Timestamp)
 	res += shardHeader.TxRoot.String()
@@ -95,7 +93,6 @@ func (shardHeader ShardHeader) GetPreviousBlockHash() common.Hash {
 	return shardHeader.PreviousBlockHash
 }
 func (shardHeader ShardHeader) GetHeight() uint64           { return shardHeader.Height }
-func (shardHeader ShardHeader) GetRound() int               { return shardHeader.Round }
 func (shardHeader ShardHeader) GetEpoch() uint64            { return shardHeader.Epoch }
 func (shardHeader ShardHeader) GetCrossShardBitMap() []byte { return shardHeader.CrossShardBitMap }
 func (shardHeader ShardHeader) GetBeaconHeight() uint64     { return shardHeader.BeaconHeight }

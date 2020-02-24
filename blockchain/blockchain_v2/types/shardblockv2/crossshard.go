@@ -1,8 +1,6 @@
 package shardblockv2
 
 import (
-	"fmt"
-
 	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/blockinterface"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
@@ -41,15 +39,6 @@ func (block CrossShardBlock) GetHeight() uint64 {
 func (block CrossShardBlock) GetValidationField() string {
 	return block.ConsensusHeader.ValidationData
 }
-
-func (block CrossShardBlock) GetRound() int {
-	return block.Header.Round
-}
-
-func (block CrossShardBlock) GetRoundKey() string {
-	return fmt.Sprint(block.Header.Height, "_", block.Header.Round)
-}
-
 func (block CrossShardBlock) GetInstructions() [][]string {
 	return [][]string{}
 }
