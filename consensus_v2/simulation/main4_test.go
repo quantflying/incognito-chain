@@ -50,11 +50,11 @@ func Test_Main4Committee(t *testing.T) {
 	//simulation
 	rootTimeSlot := nodeList[0].chain.GetBestView().GetRootTimeSlot()
 	currentTimeSlot := common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), 3)
-	startTimeSlot := rootTimeSlot + currentTimeSlot + 1
+	startTimeSlot := rootTimeSlot + currentTimeSlot
 	fmt.Println("root Time slot", rootTimeSlot)
 	GetSimulation().setStartTimeSlot(startTimeSlot)
 	var setTimeSlot = func(s int) uint64 {
-		return startTimeSlot + uint64(s) - 1
+		return startTimeSlot + uint64(s)
 	}
 	var setProposeCommunication = func(timeslot uint64, nodeID int, scenario []int) {
 		if GetSimulation().scenario.proposeComm[timeslot] == nil {
@@ -160,11 +160,11 @@ func Test_Main4Committee_ScenarioA(t *testing.T) {
 	//simulation
 	rootTimeSlot := nodeList[0].chain.GetBestView().GetRootTimeSlot()
 	currentTimeSlot := common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), 3)
-	startTimeSlot := rootTimeSlot + currentTimeSlot + 1
+	startTimeSlot := rootTimeSlot + currentTimeSlot
 	fmt.Println("root Time slot", rootTimeSlot)
 	GetSimulation().setStartTimeSlot(startTimeSlot)
 	var setTimeSlot = func(s int) uint64 {
-		return startTimeSlot + uint64(s) - 1
+		return startTimeSlot + uint64(s)
 	}
 	var setProposeCommunication = func(timeslot uint64, nodeID int, scenario []int) {
 		if GetSimulation().scenario.proposeComm[timeslot] == nil {
@@ -296,11 +296,11 @@ func Test_Main4Committee_ScenarioB(t *testing.T) {
 	//simulation
 	rootTimeSlot := nodeList[0].chain.GetBestView().GetRootTimeSlot()
 	currentTimeSlot := common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), 3)
-	startTimeSlot := rootTimeSlot + currentTimeSlot + 1
+	startTimeSlot := rootTimeSlot + currentTimeSlot
 	fmt.Println("root Time slot", rootTimeSlot)
 	GetSimulation().setStartTimeSlot(startTimeSlot)
 	var setTimeSlot = func(s int) uint64 {
-		return startTimeSlot + uint64(s) - 1
+		return startTimeSlot + uint64(s)
 	}
 	var setProposeCommunication = func(timeslot uint64, nodeID int, scenario []int) {
 		if GetSimulation().scenario.proposeComm[timeslot] == nil {
@@ -435,11 +435,11 @@ func Test_Main4Committee_ScenarioC(t *testing.T) {
 	//simulation
 	rootTimeSlot := nodeList[0].chain.GetBestView().GetRootTimeSlot()
 	currentTimeSlot := common.GetTimeSlot(genesisTime.Unix(), time.Now().Unix(), 3)
-	startTimeSlot := rootTimeSlot + currentTimeSlot + 1
+	startTimeSlot := rootTimeSlot + currentTimeSlot
 	fmt.Println("root Time slot", rootTimeSlot)
 	GetSimulation().setStartTimeSlot(startTimeSlot)
 	var setTimeSlot = func(s int) uint64 {
-		return startTimeSlot + uint64(s) - 1
+		return startTimeSlot + uint64(s)
 	}
 	var setProposeCommunication = func(timeslot uint64, nodeID int, scenario []int) {
 		if GetSimulation().scenario.proposeComm[timeslot] == nil {

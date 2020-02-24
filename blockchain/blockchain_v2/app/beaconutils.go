@@ -497,7 +497,7 @@ func CreateBeaconGenesisBlock(
 			Version:                         version,
 			Epoch:                           1,
 			Height:                          1,
-			TimeSlot:                        1,
+			TimeSlot:                        0,
 			PreviousBlockHash:               common.Hash{},
 			BeaconCommitteeAndValidatorRoot: common.Hash{},
 			BeaconCandidateRoot:             common.Hash{},

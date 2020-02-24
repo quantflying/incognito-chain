@@ -68,7 +68,7 @@ func CreateShardGenesisBlock(
 			Version:           version,
 			BeaconHeight:      1,
 			Epoch:             1,
-			TimeSlot:          1,
+			TimeSlot:          0,
 			Height:            1,
 			PreviousBlockHash: common.Hash{},
 		}
