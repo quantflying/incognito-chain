@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -24,7 +22,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
-	"github.com/incognitochain/incognito-chain/consensus"
+	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/memcache"
 	"github.com/incognitochain/incognito-chain/pubsub"
@@ -41,7 +39,6 @@ import (
 	"github.com/incognitochain/incognito-chain/mempool"
 	"github.com/incognitochain/incognito-chain/netsync"
 	"github.com/incognitochain/incognito-chain/peer"
-	"github.com/incognitochain/incognito-chain/rpcserver"
 	"github.com/incognitochain/incognito-chain/wallet"
 	"github.com/incognitochain/incognito-chain/wire"
 	libp2p "github.com/libp2p/go-libp2p-peer"
@@ -55,14 +52,14 @@ type Server struct {
 	started     int32
 	startupTime int64
 
-	protocolVersion   string
-	isEnableMining    bool
-	chainParams       *blockchain.Params
-	connManager       *connmanager.ConnManager
-	blockChain        *blockchain.BlockChain
-	dataBase          database.DatabaseInterface
-	memCache          *memcache.MemoryCache
-	rpcServer         *rpcserver.RpcServer
+	protocolVersion string
+	isEnableMining  bool
+	chainParams     *blockchain.Params
+	connManager     *connmanager.ConnManager
+	blockChain      *blockchain.BlockChain
+	dataBase        database.DatabaseInterface
+	memCache        *memcache.MemoryCache
+	// rpcServer         *rpcserver.RpcServer
 	memPool           *mempool.TxPool
 	tempMemPool       *mempool.TxPool
 	beaconPool        *mempool.BeaconPool
@@ -93,97 +90,99 @@ type Server struct {
 // addresses and TLS.
 func (serverObj *Server) setupRPCListeners() ([]net.Listener, error) {
 	// Setup TLS if not disabled.
-	listenFunc := net.Listen
-	if !cfg.DisableTLS {
-		Logger.log.Debug("Disable TLS for RPC is false")
-		// Generate the TLS cert and key file if both don't already
-		// exist.
-		if !fileExists(cfg.RPCKey) && !fileExists(cfg.RPCCert) {
-			err := rpcserver.GenCertPair(cfg.RPCCert, cfg.RPCKey)
-			if err != nil {
-				return nil, err
-			}
-		}
-		keyPair, err := tls.LoadX509KeyPair(cfg.RPCCert, cfg.RPCKey)
-		if err != nil {
-			return nil, err
-		}
+	// listenFunc := net.Listen
+	// if !cfg.DisableTLS {
+	// 	Logger.log.Debug("Disable TLS for RPC is false")
+	// 	// Generate the TLS cert and key file if both don't already
+	// 	// exist.
+	// 	if !fileExists(cfg.RPCKey) && !fileExists(cfg.RPCCert) {
+	// 		err := rpcserver.GenCertPair(cfg.RPCCert, cfg.RPCKey)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 	}
+	// 	keyPair, err := tls.LoadX509KeyPair(cfg.RPCCert, cfg.RPCKey)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-		tlsConfig := tls.Config{
-			Certificates: []tls.Certificate{keyPair},
-			MinVersion:   tls.VersionTLS12,
-		}
+	// 	tlsConfig := tls.Config{
+	// 		Certificates: []tls.Certificate{keyPair},
+	// 		MinVersion:   tls.VersionTLS12,
+	// 	}
 
-		// Change the standard net.Listen function to the tls one.
-		listenFunc = func(net string, laddr string) (net.Listener, error) {
-			return tls.Listen(net, laddr, &tlsConfig)
-		}
-	} else {
-		Logger.log.Debug("Disable TLS for RPC is true")
-	}
+	// 	// Change the standard net.Listen function to the tls one.
+	// 	listenFunc = func(net string, laddr string) (net.Listener, error) {
+	// 		return tls.Listen(net, laddr, &tlsConfig)
+	// 	}
+	// } else {
+	// 	Logger.log.Debug("Disable TLS for RPC is true")
+	// }
 
-	netAddrs, err := common.ParseListeners(cfg.RPCListeners, "tcp")
-	if err != nil {
-		return nil, err
-	}
+	// netAddrs, err := common.ParseListeners(cfg.RPCListeners, "tcp")
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	listeners := make([]net.Listener, 0, len(netAddrs))
-	for _, addr := range netAddrs {
-		listener, err := listenFunc(addr.Network(), addr.String())
-		if err != nil {
-			log.Printf("Can't listen on %s: %v", addr, err)
-			continue
-		}
-		listeners = append(listeners, listener)
-	}
-	return listeners, nil
+	// listeners := make([]net.Listener, 0, len(netAddrs))
+	// for _, addr := range netAddrs {
+	// 	listener, err := listenFunc(addr.Network(), addr.String())
+	// 	if err != nil {
+	// 		log.Printf("Can't listen on %s: %v", addr, err)
+	// 		continue
+	// 	}
+	// 	listeners = append(listeners, listener)
+	// }
+	// return listeners, nil
+	return nil, nil
 }
 func (serverObj *Server) setupRPCWsListeners() ([]net.Listener, error) {
 	// Setup TLS if not disabled.
-	listenFunc := net.Listen
-	if !cfg.DisableTLS {
-		Logger.log.Debug("Disable TLS for RPC is false")
-		// Generate the TLS cert and key file if both don't already
-		// exist.
-		if !fileExists(cfg.RPCKey) && !fileExists(cfg.RPCCert) {
-			err := rpcserver.GenCertPair(cfg.RPCCert, cfg.RPCKey)
-			if err != nil {
-				return nil, err
-			}
-		}
-		keyPair, err := tls.LoadX509KeyPair(cfg.RPCCert, cfg.RPCKey)
-		if err != nil {
-			return nil, err
-		}
+	// listenFunc := net.Listen
+	// if !cfg.DisableTLS {
+	// 	Logger.log.Debug("Disable TLS for RPC is false")
+	// 	// Generate the TLS cert and key file if both don't already
+	// 	// exist.
+	// 	if !fileExists(cfg.RPCKey) && !fileExists(cfg.RPCCert) {
+	// 		err := rpcserver.GenCertPair(cfg.RPCCert, cfg.RPCKey)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 	}
+	// 	keyPair, err := tls.LoadX509KeyPair(cfg.RPCCert, cfg.RPCKey)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-		tlsConfig := tls.Config{
-			Certificates: []tls.Certificate{keyPair},
-			MinVersion:   tls.VersionTLS12,
-		}
+	// 	tlsConfig := tls.Config{
+	// 		Certificates: []tls.Certificate{keyPair},
+	// 		MinVersion:   tls.VersionTLS12,
+	// 	}
 
-		// Change the standard net.Listen function to the tls one.
-		listenFunc = func(net string, laddr string) (net.Listener, error) {
-			return tls.Listen(net, laddr, &tlsConfig)
-		}
-	} else {
-		Logger.log.Debug("Disable TLS for RPC is true")
-	}
+	// 	// Change the standard net.Listen function to the tls one.
+	// 	listenFunc = func(net string, laddr string) (net.Listener, error) {
+	// 		return tls.Listen(net, laddr, &tlsConfig)
+	// 	}
+	// } else {
+	// 	Logger.log.Debug("Disable TLS for RPC is true")
+	// }
 
-	netAddrs, err := common.ParseListeners(cfg.RPCWSListeners, "tcp")
-	if err != nil {
-		return nil, err
-	}
+	// netAddrs, err := common.ParseListeners(cfg.RPCWSListeners, "tcp")
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	listeners := make([]net.Listener, 0, len(netAddrs))
-	for _, addr := range netAddrs {
-		listener, err := listenFunc(addr.Network(), addr.String())
-		if err != nil {
-			log.Printf("Can't listen on %s: %v", addr, err)
-			continue
-		}
-		listeners = append(listeners, listener)
-	}
-	return listeners, nil
+	// listeners := make([]net.Listener, 0, len(netAddrs))
+	// for _, addr := range netAddrs {
+	// 	listener, err := listenFunc(addr.Network(), addr.String())
+	// 	if err != nil {
+	// 		log.Printf("Can't listen on %s: %v", addr, err)
+	// 		continue
+	// 	}
+	// 	listeners = append(listeners, listener)
+	// }
+	// return listeners, nil
+	return nil, nil
 }
 
 /*
@@ -510,47 +509,47 @@ func (serverObj *Server) NewServer(listenAddrs string, db database.DatabaseInter
 			return errors.New("RPCS: No valid listen address")
 		}
 
-		rpcConfig := rpcserver.RpcServerConfig{
-			HttpListenters:  httpListeners,
-			WsListenters:    wsListeners,
-			RPCQuirks:       cfg.RPCQuirks,
-			RPCMaxClients:   cfg.RPCMaxClients,
-			RPCMaxWSClients: cfg.RPCMaxWSClients,
-			ChainParams:     chainParams,
-			BlockChain:      serverObj.blockChain,
-			Blockgen:        serverObj.blockgen,
-			TxMemPool:       serverObj.memPool,
-			Server:          serverObj,
-			Wallet:          serverObj.wallet,
-			ConnMgr:         serverObj.connManager,
-			AddrMgr:         serverObj.addrManager,
-			RPCUser:         cfg.RPCUser,
-			RPCPass:         cfg.RPCPass,
-			RPCLimitUser:    cfg.RPCLimitUser,
-			RPCLimitPass:    cfg.RPCLimitPass,
-			DisableAuth:     cfg.RPCDisableAuth,
-			NodeMode:        cfg.NodeMode,
-			FeeEstimator:    serverObj.feeEstimator,
-			ProtocolVersion: serverObj.protocolVersion,
-			Database:        &serverObj.dataBase,
-			MiningKeys:      cfg.MiningKeys,
-			NetSync:         serverObj.netSync,
-			PubSubManager:   pubsubManager,
-			ConsensusEngine: serverObj.consensusEngine,
-			MemCache:        serverObj.memCache,
-		}
-		serverObj.rpcServer = &rpcserver.RpcServer{}
-		serverObj.rpcServer.Init(&rpcConfig)
+		// rpcConfig := rpcserver.RpcServerConfig{
+		// 	HttpListenters:  httpListeners,
+		// 	WsListenters:    wsListeners,
+		// 	RPCQuirks:       cfg.RPCQuirks,
+		// 	RPCMaxClients:   cfg.RPCMaxClients,
+		// 	RPCMaxWSClients: cfg.RPCMaxWSClients,
+		// 	ChainParams:     chainParams,
+		// 	BlockChain:      serverObj.blockChain,
+		// 	Blockgen:        serverObj.blockgen,
+		// 	TxMemPool:       serverObj.memPool,
+		// 	Server:          serverObj,
+		// 	Wallet:          serverObj.wallet,
+		// 	ConnMgr:         serverObj.connManager,
+		// 	AddrMgr:         serverObj.addrManager,
+		// 	RPCUser:         cfg.RPCUser,
+		// 	RPCPass:         cfg.RPCPass,
+		// 	RPCLimitUser:    cfg.RPCLimitUser,
+		// 	RPCLimitPass:    cfg.RPCLimitPass,
+		// 	DisableAuth:     cfg.RPCDisableAuth,
+		// 	NodeMode:        cfg.NodeMode,
+		// 	FeeEstimator:    serverObj.feeEstimator,
+		// 	ProtocolVersion: serverObj.protocolVersion,
+		// 	Database:        &serverObj.dataBase,
+		// 	MiningKeys:      cfg.MiningKeys,
+		// 	NetSync:         serverObj.netSync,
+		// 	PubSubManager:   pubsubManager,
+		// 	ConsensusEngine: serverObj.consensusEngine,
+		// 	MemCache:        serverObj.memCache,
+		// }
+		// serverObj.rpcServer = &rpcserver.RpcServer{}
+		// serverObj.rpcServer.Init(&rpcConfig)
 
-		// init rpc client instance and stick to Blockchain object
-		// in order to communicate to external services (ex. eth light node)
-		//serverObj.blockChain.SetRPCClientChain(rpccaller.NewRPCClient())
+		// // init rpc client instance and stick to Blockchain object
+		// // in order to communicate to external services (ex. eth light node)
+		// //serverObj.blockChain.SetRPCClientChain(rpccaller.NewRPCClient())
 
-		// Signal process shutdown when the RPC server requests it.
-		go func() {
-			<-serverObj.rpcServer.RequestedProcessShutdown()
-			shutdownRequestChannel <- struct{}{}
-		}()
+		// // Signal process shutdown when the RPC server requests it.
+		// go func() {
+		// 	<-serverObj.rpcServer.RequestedProcessShutdown()
+		// 	shutdownRequestChannel <- struct{}{}
+		// }()
 	}
 
 	//Init Metric Tool
@@ -602,9 +601,9 @@ func (serverObj *Server) Stop() error {
 	}
 
 	// Shutdown the RPC server if it's not disabled.
-	if !cfg.DisableRPC && serverObj.rpcServer != nil {
-		serverObj.rpcServer.Stop()
-	}
+	// if !cfg.DisableRPC && serverObj.rpcServer != nil {
+	// 	serverObj.rpcServer.Stop()
+	// }
 
 	// Save fee estimator in the db
 	for shardID, feeEstimator := range serverObj.feeEstimator {
@@ -705,15 +704,15 @@ func (serverObj Server) Start() {
 
 	go serverObj.highway.Start(serverObj.netSync)
 
-	if !cfg.DisableRPC && serverObj.rpcServer != nil {
-		serverObj.waitGroup.Add(1)
+	// if !cfg.DisableRPC && serverObj.rpcServer != nil {
+	// 	serverObj.waitGroup.Add(1)
 
-		// Start the rebroadcastHandler, which ensures user tx received by
-		// the RPC server are rebroadcast until being included in a block.
-		//go serverObj.rebroadcastHandler()
+	// 	// Start the rebroadcastHandler, which ensures user tx received by
+	// 	// the RPC server are rebroadcast until being included in a block.
+	// 	//go serverObj.rebroadcastHandler()
 
-		serverObj.rpcServer.Start()
-	}
+	// 	serverObj.rpcServer.Start()
+	// }
 	err := serverObj.consensusEngine.Start()
 	if err != nil {
 		Logger.log.Error(err)
