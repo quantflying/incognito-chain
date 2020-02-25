@@ -130,3 +130,15 @@ const (
 	PDEWithdrawalAcceptedChainStatus = "accepted"
 	PDEWithdrawalRejectedChainStatus = "rejected"
 )
+
+const (
+	MININGKEY_STATUS_COMMITTEE = "committee"
+	MININGKEY_STATUS_PENDING   = "pending"
+	MININGKEY_STATUS_WAITING   = "waiting"
+	MININGKEY_STATUS_OUTSIDER  = "outsider"
+)
+
+const (
+	TYPES_BEACON_BLOCK = "beacon"
+	TYPES_SHARD_BLOCK  = "shard"
+)

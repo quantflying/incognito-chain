@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"

@@ -9,11 +9,11 @@ import (
 
 	"os"
 
-	blockchainv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2"
-	shardv2 "github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/app"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/beaconblockv1"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/blockinterface"
-	"github.com/incognitochain/incognito-chain/blockchain/blockchain_v2/types/shardblockv2"
+	blockchainv2 "github.com/incognitochain/incognito-chain/blockchain_v2"
+	shardv2 "github.com/incognitochain/incognito-chain/blockchain_v2/app"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv1"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv2"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 
 	"github.com/incognitochain/incognito-chain/common"
