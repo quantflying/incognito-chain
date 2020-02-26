@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"reflect"
 	"strconv"
 
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
 	"github.com/incognitochain/incognito-chain/wallet"
 )
 
@@ -94,17 +94,12 @@ func NewPDEContribution(
 	return pdeContribution, nil
 }
 
-func (pc PDEContribution) ValidateTxWithBlockChain(
-	txr Transaction,
-	bcr BlockchainRetriever,
-	shardID byte,
-	db database.DatabaseInterface,
-) (bool, error) {
+func (pc PDEContribution) ValidateTxWithBlockChain(txr Transaction, bcr BlockchainRetriever, shardID byte, db *statedb.StateDB) (bool, error) {
 	// NOTE: verify supported tokens pair as needed
 	return true, nil
 }
 
-func (pc PDEContribution) ValidateSanityData(bcr BlockchainRetriever, txr Transaction) (bool, bool, error) {
+func (pc PDEContribution) ValidateSanityData(bcr BlockchainRetriever, txr Transaction, beaconHeight uint64) (bool, bool, error) {
 	// Note: the metadata was already verified with *transaction.TxCustomToken level so no need to verify with *transaction.Tx level again as *transaction.Tx is embedding property of *transaction.TxCustomToken
 	if txr.GetType() == common.TxCustomTokenPrivacyType && reflect.TypeOf(txr).String() == "*transaction.Tx" {
 		return true, true, nil
@@ -122,7 +117,7 @@ func (pc PDEContribution) ValidateSanityData(bcr BlockchainRetriever, txr Transa
 	if len(contributorAddr.Pk) == 0 {
 		return false, false, errors.New("Wrong request info's contributed address")
 	}
-	if !txr.IsCoinsBurning(bcr) {
+	if !txr.IsCoinsBurning(bcr, beaconHeight) {
 		return false, false, errors.New("Must send coin to burning address")
 	}
 	if pc.ContributedAmount == 0 {

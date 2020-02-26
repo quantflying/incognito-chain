@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"reflect"
 
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/wallet"
 )
@@ -41,14 +41,12 @@ func (stopAutoStakingMetadata *StopAutoStakingMetadata) ValidateMetadataByItself
 	return (stopAutoStakingMetadata.Type == StopAutoStakingMeta)
 }
 
-/*
-	Validate Condition to Request Stop AutoStaking With Blockchain
-	- Requested Committee Publickey is in candidate, pending validator,
-	- Requested Committee Publickey is in staking tx list,
-	- Requester (sender of tx) must be address, which create staking transaction for current requested committee public key
-	- Not yet requested to stop auto-restaking
-*/
-func (stopAutoStakingMetadata StopAutoStakingMetadata) ValidateTxWithBlockChain(txr Transaction, bcr BlockchainRetriever, shardID byte, db database.DatabaseInterface) (bool, error) {
+//ValidateTxWithBlockChain Validate Condition to Request Stop AutoStaking With Blockchain
+//- Requested Committee Publickey is in candidate, pending validator,
+//- Requested Committee Publickey is in staking tx list,
+//- Requester (sender of tx) must be address, which create staking transaction for current requested committee public key
+//- Not yet requested to stop auto-restaking
+func (stopAutoStakingMetadata StopAutoStakingMetadata) ValidateTxWithBlockChain(txr Transaction, bcr BlockchainRetriever, shardID byte, stateDB *statedb.StateDB) (bool, error) {
 	stopStakingMetadata, ok := txr.GetMetadata().(*StopAutoStakingMetadata)
 	if !ok {
 		return false, NewMetadataTxError(StopAutoStakingRequestTypeAssertionError, fmt.Errorf("Expect *StopAutoStakingMetadata type but get %+v", reflect.TypeOf(txr.GetMetadata())))
@@ -95,7 +93,7 @@ func (stopAutoStakingMetadata StopAutoStakingMetadata) ValidateTxWithBlockChain(
 	// Receiver Is Burning Address
 	//
 */
-func (stopAutoStakingMetadata StopAutoStakingMetadata) ValidateSanityData(bcr BlockchainRetriever, txr Transaction) (bool, bool, error) {
+func (stopAutoStakingMetadata StopAutoStakingMetadata) ValidateSanityData(bcr BlockchainRetriever, txr Transaction, beaconHeight uint64) (bool, bool, error) {
 	if txr.IsPrivacy() {
 		return false, false, errors.New("Stop AutoStaking Request Transaction Is No Privacy Transaction")
 	}
@@ -105,7 +103,7 @@ func (stopAutoStakingMetadata StopAutoStakingMetadata) ValidateSanityData(bcr Bl
 	}
 
 	// get burning address
-	burningAddress := bcr.GetBurningAddress(0)
+	burningAddress := bcr.GetBurningAddress(beaconHeight)
 	keyWalletBurningAdd, err := wallet.Base58CheckDeserialize(burningAddress)
 	if err != nil {
 		return false, false, err

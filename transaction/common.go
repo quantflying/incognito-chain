@@ -2,15 +2,16 @@ package transaction
 
 import (
 	"errors"
-	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/common/base58"
-	"github.com/incognitochain/incognito-chain/database"
-	"github.com/incognitochain/incognito-chain/metadata"
-	"github.com/incognitochain/incognito-chain/privacy"
-	"github.com/incognitochain/incognito-chain/privacy/zeroknowledge/utils"
 	"math"
 	"math/big"
 	"math/rand"
+
+	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/common/base58"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
+	"github.com/incognitochain/incognito-chain/metadata"
+	"github.com/incognitochain/incognito-chain/privacy"
+	"github.com/incognitochain/incognito-chain/privacy/zeroknowledge/utils"
 )
 
 // ConvertOutputCoinToInputCoin - convert output coin from old tx to input coin for new tx
@@ -28,17 +29,16 @@ func ConvertOutputCoinToInputCoin(usableOutputsOfOld []*privacy.OutputCoin) []*p
 type RandomCommitmentsProcessParam struct {
 	usableInputCoins []*privacy.InputCoin
 	randNum          int
-	db               database.DatabaseInterface
+	stateDB          *statedb.StateDB
 	shardID          byte
 	tokenID          *common.Hash
 }
 
-func NewRandomCommitmentsProcessParam(usableInputCoins []*privacy.InputCoin, randNum int,
-	db database.DatabaseInterface, shardID byte, tokenID *common.Hash) *RandomCommitmentsProcessParam {
+func NewRandomCommitmentsProcessParam(usableInputCoins []*privacy.InputCoin, randNum int, stateDB *statedb.StateDB, shardID byte, tokenID *common.Hash) *RandomCommitmentsProcessParam {
 	result := &RandomCommitmentsProcessParam{
 		tokenID:          tokenID,
 		shardID:          shardID,
-		db:               db,
+		stateDB:          stateDB,
 		randNum:          randNum,
 		usableInputCoins: usableInputCoins,
 	}
@@ -54,23 +54,23 @@ func RandomCommitmentsProcess(param *RandomCommitmentsProcessParam) (commitmentI
 	commitmentIndexs = []uint64{} // : list commitment indexes which: random from full db commitments + commitments of usableInputCoins
 	commitments = [][]byte{}
 	myCommitmentIndexs = []uint64{} // : list indexes of commitments(usableInputCoins) in {commitmentIndexs}
+	if len(param.usableInputCoins) == 0 {
+		return
+	}
 	if param.randNum == 0 {
 		param.randNum = privacy.CommitmentRingSize // default
 	}
-
 	// loop to create list usable commitments from usableInputCoins
 	listUsableCommitments := make(map[common.Hash][]byte)
 	listUsableCommitmentsIndices := make([]common.Hash, len(param.usableInputCoins))
 	// tick index of each usable commitment with full db commitments
 	mapIndexCommitmentsInUsableTx := make(map[string]*big.Int)
-
 	for i, in := range param.usableInputCoins {
 		usableCommitment := in.CoinDetails.GetCoinCommitment().ToBytesS()
 		commitmentInHash := common.HashH(usableCommitment)
 		listUsableCommitments[commitmentInHash] = usableCommitment
 		listUsableCommitmentsIndices[i] = commitmentInHash
-
-		index, err := param.db.GetCommitmentIndex(*param.tokenID, usableCommitment, param.shardID)
+		index, err := statedb.GetCommitmentIndex(param.stateDB, *param.tokenID, usableCommitment, param.shardID)
 		if err != nil {
 			Logger.log.Error(err)
 			return
@@ -78,11 +78,10 @@ func RandomCommitmentsProcess(param *RandomCommitmentsProcessParam) (commitmentI
 		commitmentInBase58Check := base58.Base58Check{}.Encode(usableCommitment, common.ZeroByte)
 		mapIndexCommitmentsInUsableTx[commitmentInBase58Check] = index
 	}
-
 	// loop to random commitmentIndexs
 	cpRandNum := (len(listUsableCommitments) * param.randNum) - len(listUsableCommitments)
 	//fmt.Printf("cpRandNum: %d\n", cpRandNum)
-	lenCommitment, err1 := param.db.GetCommitmentLength(*param.tokenID, param.shardID)
+	lenCommitment, err1 := statedb.GetCommitmentLength(param.stateDB, *param.tokenID, param.shardID)
 	if err1 != nil {
 		Logger.log.Error(err1)
 		return
@@ -91,18 +90,18 @@ func RandomCommitmentsProcess(param *RandomCommitmentsProcessParam) (commitmentI
 		Logger.log.Error(errors.New("Commitments is empty"))
 		return
 	}
-	if lenCommitment.Uint64() == 1 {
+	if lenCommitment.Uint64() == 1 && len(param.usableInputCoins) == 1 {
 		commitmentIndexs = []uint64{0, 0, 0, 0, 0, 0, 0}
 		temp := param.usableInputCoins[0].CoinDetails.GetCoinCommitment().ToBytesS()
 		commitments = [][]byte{temp, temp, temp, temp, temp, temp, temp}
 	} else {
 		for i := 0; i < cpRandNum; i++ {
 			for {
-				lenCommitment, _ = param.db.GetCommitmentLength(*param.tokenID, param.shardID)
+				lenCommitment, _ = statedb.GetCommitmentLength(param.stateDB, *param.tokenID, param.shardID)
 				index, _ := common.RandBigIntMaxRange(lenCommitment)
-				ok, err := param.db.HasCommitmentIndex(*param.tokenID, index.Uint64(), param.shardID)
+				ok, err := statedb.HasCommitmentIndex(param.stateDB, *param.tokenID, index.Uint64(), param.shardID)
 				if ok && err == nil {
-					temp, _ := param.db.GetCommitmentByIndex(*param.tokenID, index.Uint64(), param.shardID)
+					temp, _ := statedb.GetCommitmentByIndex(param.stateDB, *param.tokenID, index.Uint64(), param.shardID)
 					if _, found := listUsableCommitments[common.HashH(temp)]; !found {
 						// random commitment not in commitments of usableinputcoin
 						commitmentIndexs = append(commitmentIndexs, index.Uint64())
@@ -115,7 +114,6 @@ func RandomCommitmentsProcess(param *RandomCommitmentsProcessParam) (commitmentI
 			}
 		}
 	}
-
 	// loop to insert usable commitments into commitmentIndexs for every group
 	j := 0
 	for _, commitmentInHash := range listUsableCommitmentsIndices {
@@ -132,8 +130,8 @@ func RandomCommitmentsProcess(param *RandomCommitmentsProcessParam) (commitmentI
 }
 
 // CheckSNDerivatorExistence return true if snd exists in snDerivators list
-func CheckSNDerivatorExistence(tokenID *common.Hash, snd *privacy.Scalar, db database.DatabaseInterface) (bool, error) {
-	ok, err := db.HasSNDerivator(*tokenID, snd.ToBytesS())
+func CheckSNDerivatorExistence(tokenID *common.Hash, snd *privacy.Scalar, stateDB *statedb.StateDB) (bool, error) {
+	ok, err := statedb.HasSNDerivator(stateDB, *tokenID, snd.ToBytesS())
 	if err != nil {
 		return false, err
 	}
@@ -141,24 +139,24 @@ func CheckSNDerivatorExistence(tokenID *common.Hash, snd *privacy.Scalar, db dat
 }
 
 type EstimateTxSizeParam struct {
-	inputCoins               []*privacy.OutputCoin
-	payments                 []*privacy.PaymentInfo
+	numInputCoins            int
+	numPayments              int
 	hasPrivacy               bool
 	metadata                 metadata.Metadata
 	privacyCustomTokenParams *CustomTokenPrivacyParamTx
 	limitFee                 uint64
 }
 
-func NewEstimateTxSizeParam(inputCoins []*privacy.OutputCoin, payments []*privacy.PaymentInfo,
+func NewEstimateTxSizeParam(numInputCoins, numPayments int,
 	hasPrivacy bool, metadata metadata.Metadata,
 	privacyCustomTokenParams *CustomTokenPrivacyParamTx,
 	limitFee uint64) *EstimateTxSizeParam {
 	estimateTxSizeParam := &EstimateTxSizeParam{
-		inputCoins:               inputCoins,
+		numInputCoins:            numInputCoins,
+		numPayments:              numPayments,
 		hasPrivacy:               hasPrivacy,
 		limitFee:                 limitFee,
 		metadata:                 metadata,
-		payments:                 payments,
 		privacyCustomTokenParams: privacyCustomTokenParams,
 	}
 	return estimateTxSizeParam
@@ -181,8 +179,8 @@ func EstimateTxSize(estimateTxSizeParam *EstimateTxSizeParam) uint64 {
 	}
 
 	sizeProof := uint64(0)
-	if len(estimateTxSizeParam.inputCoins) != 0 || len(estimateTxSizeParam.payments) != 0 {
-		sizeProof = utils.EstimateProofSize(len(estimateTxSizeParam.inputCoins), len(estimateTxSizeParam.payments), estimateTxSizeParam.hasPrivacy)
+	if estimateTxSizeParam.numInputCoins != 0 || estimateTxSizeParam.numPayments != 0 {
+		sizeProof = utils.EstimateProofSize(estimateTxSizeParam.numInputCoins, estimateTxSizeParam.numPayments, estimateTxSizeParam.hasPrivacy)
 	} else {
 		if estimateTxSizeParam.limitFee > 0 {
 			sizeProof = utils.EstimateProofSize(1, 1, estimateTxSizeParam.hasPrivacy)
@@ -230,48 +228,40 @@ func EstimateTxSize(estimateTxSizeParam *EstimateTxSizeParam) uint64 {
 	return uint64(math.Ceil(float64(sizeTx) / 1024))
 }
 
-// SortTxsByLockTime sorts txs by lock time
-/*func SortTxsByLockTime(txs []metadata.Transaction, isDesc bool) []metadata.Transaction {
-	sort.Slice(txs, func(i, j int) bool {
-		if isDesc {
-			return txs[i].GetLockTime() > txs[j].GetLockTime()
-		}
-		return txs[i].GetLockTime() <= txs[j].GetLockTime()
-	})
-	return txs
-}*/
-
 type BuildCoinBaseTxByCoinIDParams struct {
-	payToAddress    *privacy.PaymentAddress
-	amount          uint64
-	payByPrivateKey *privacy.PrivateKey
-	db              database.DatabaseInterface
-	meta            metadata.Metadata
-	coinID          common.Hash
-	txType          int
-	coinName        string
-	shardID         byte
+	payToAddress       *privacy.PaymentAddress
+	amount             uint64
+	payByPrivateKey    *privacy.PrivateKey
+	transactionStateDB *statedb.StateDB
+	bridgeStateDB      *statedb.StateDB
+	meta               metadata.Metadata
+	coinID             common.Hash
+	txType             int
+	coinName           string
+	shardID            byte
 }
 
 func NewBuildCoinBaseTxByCoinIDParams(payToAddress *privacy.PaymentAddress,
 	amount uint64,
 	payByPrivateKey *privacy.PrivateKey,
-	db database.DatabaseInterface,
+	stateDB *statedb.StateDB,
 	meta metadata.Metadata,
 	coinID common.Hash,
 	txType int,
 	coinName string,
-	shardID byte) *BuildCoinBaseTxByCoinIDParams {
+	shardID byte,
+	bridgeStateDB *statedb.StateDB) *BuildCoinBaseTxByCoinIDParams {
 	params := &BuildCoinBaseTxByCoinIDParams{
-		db:              db,
-		shardID:         shardID,
-		meta:            meta,
-		amount:          amount,
-		coinID:          coinID,
-		coinName:        coinName,
-		payByPrivateKey: payByPrivateKey,
-		payToAddress:    payToAddress,
-		txType:          txType,
+		transactionStateDB: stateDB,
+		bridgeStateDB:      bridgeStateDB,
+		shardID:            shardID,
+		meta:               meta,
+		amount:             amount,
+		coinID:             coinID,
+		coinName:           coinName,
+		payByPrivateKey:    payByPrivateKey,
+		payToAddress:       payToAddress,
+		txType:             txType,
 	}
 	return params
 }
@@ -280,7 +270,7 @@ func BuildCoinBaseTxByCoinID(params *BuildCoinBaseTxByCoinIDParams) (metadata.Tr
 	switch params.txType {
 	case NormalCoinType:
 		tx := &Tx{}
-		err := tx.InitTxSalary(params.amount, params.payToAddress, params.payByPrivateKey, params.db, params.meta)
+		err := tx.InitTxSalary(params.amount, params.payToAddress, params.payByPrivateKey, params.transactionStateDB, params.meta)
 		return tx, err
 	case CustomTokenPrivacyType:
 		var propertyID [common.HashSize]byte
@@ -307,12 +297,13 @@ func BuildCoinBaseTxByCoinID(params *BuildCoinBaseTxByCoinIDParams) (metadata.Tr
 				nil,
 				0,
 				tokenParams,
-				params.db,
+				params.transactionStateDB,
 				params.meta,
 				false,
 				false,
 				params.shardID,
-				nil))
+				nil,
+				params.bridgeStateDB))
 		if err != nil {
 			return nil, errors.New(err.Error())
 		}

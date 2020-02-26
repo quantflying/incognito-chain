@@ -10,7 +10,7 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/connmanager"
-	"github.com/incognitochain/incognito-chain/database"
+	"github.com/incognitochain/incognito-chain/incdb"
 	"github.com/incognitochain/incognito-chain/memcache"
 	"github.com/incognitochain/incognito-chain/mempool"
 	"github.com/incognitochain/incognito-chain/netsync"
@@ -64,7 +64,7 @@ type RpcServerConfig struct {
 	BlockChain      *blockchain.BlockChain
 	Blockgen        *blockchain.BlockGenerator
 	MemCache        *memcache.MemoryCache
-	Database        *database.DatabaseInterface
+	Database        incdb.Database
 	Wallet          *wallet.Wallet
 	ConnMgr         *connmanager.ConnManager
 	AddrMgr         *addrmanager.AddrManager
@@ -90,12 +90,14 @@ type RpcServerConfig struct {
 		GetAllMiningPublicKeys() []string
 		ExtractBridgeValidationData(block common.BlockInterface) ([][]byte, []int, error)
 	}
-	TxMemPool         *mempool.TxPool
-	ShardToBeaconPool *mempool.ShardToBeaconPool
-	CrossShardPool    *mempool.CrossShardPool
-	RPCMaxClients     int
-	RPCMaxWSClients   int
-	RPCQuirks         bool
+	TxMemPool                   *mempool.TxPool
+	ShardToBeaconPool           *mempool.ShardToBeaconPool
+	CrossShardPool              *mempool.CrossShardPool
+	RPCMaxClients               int
+	RPCMaxWSClients             int
+	RPCLimitRequestPerDay       int
+	RPCLimitRequestErrorPerHour int
+	RPCQuirks                   bool
 	// Authentication
 	RPCUser      string
 	RPCPass      string

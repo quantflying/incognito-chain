@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -14,9 +15,7 @@ import (
 	"github.com/incognitochain/incognito-chain/wallet"
 )
 
-/*
 // handleCreateTransaction handles createtransaction commands.
-*/
 func (httpServer *HttpServer) handleCreateRawTransaction(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
 	Logger.log.Debugf("handleCreateRawTransaction params: %+v", params)
 
@@ -26,7 +25,7 @@ func (httpServer *HttpServer) handleCreateRawTransaction(params interface{}, clo
 		return nil, rpcservice.NewRPCError(rpcservice.RPCInvalidParamsError, errNewParam)
 	}
 
-	txHash, txBytes, txShardID, err := httpServer.txService.CreateRawTransaction(createRawTxParam, nil, *httpServer.config.Database)
+	txHash, txBytes, txShardID, err := httpServer.txService.CreateRawTransaction(createRawTxParam, nil, httpServer.GetDatabase())
 	if err != nil {
 		// return hex for a new tx
 		return nil, err
@@ -37,12 +36,10 @@ func (httpServer *HttpServer) handleCreateRawTransaction(params interface{}, clo
 	return result, nil
 }
 
-/*
 // handleSendTransaction implements the sendtransaction command.
-Parameter #1—a serialized transaction to broadcast
-Parameter #2–whether to allow high fees
-Result—a TXID or error Message
-*/
+// Parameter #1—a serialized transaction to broadcast
+// Parameter #2–whether to allow high fees
+// Result—a TXID or error Message
 func (httpServer *HttpServer) handleSendRawTransaction(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
 	Logger.log.Debugf("handleSendRawTransaction params: %+v", params)
 	arrayParams := common.InterfaceSlice(params)
@@ -62,8 +59,10 @@ func (httpServer *HttpServer) handleSendRawTransaction(params interface{}, close
 
 	err2 := httpServer.config.Server.PushMessageToAll(txMsg)
 	if err2 == nil {
-		Logger.log.Infof("handleSendRawTransaction result: %+v, err: %+v", nil, err2)
+		Logger.log.Info("handleSendRawTransaction broadcast message to all successfully")
 		httpServer.config.TxMemPool.MarkForwardedTransaction(*txHash)
+	} else {
+		Logger.log.Errorf("handleSendRawTransaction broadcast message to all with error %+v", err2)
 	}
 
 	result := jsonresult.NewCreateTransactionResult(txHash, common.EmptyString, nil, common.GetShardIDFromLastByte(LastBytePubKeySender))
@@ -71,9 +70,7 @@ func (httpServer *HttpServer) handleSendRawTransaction(params interface{}, close
 	return result, nil
 }
 
-/*
-handleCreateAndSendTx - RPC creates transaction and send to network
-*/
+// handleCreateAndSendTx - RPC creates transaction and send to network
 func (httpServer *HttpServer) handleCreateAndSendTx(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
 	Logger.log.Debugf("handleCreateAndSendTx params: %+v", params)
 	var err error
@@ -291,6 +288,10 @@ func (httpServer *HttpServer) handleRandomCommitments(params interface{}, closeC
 		Logger.log.Debugf("handleRandomCommitments result: %+v", nil)
 		return nil, rpcservice.NewRPCError(rpcservice.RPCInvalidParamsError, errors.New("outputs is invalid"))
 	}
+	if len(outputs) == 0 {
+		Logger.log.Debugf("handleRandomCommitments result: %+v", nil)
+		return nil, rpcservice.NewRPCError(rpcservice.RPCInvalidParamsError, errors.New("len of outputs must be greater than zero"))
+	}
 
 	//#3 - tokenID - default PRV
 	tokenID := &common.Hash{}
@@ -307,7 +308,7 @@ func (httpServer *HttpServer) handleRandomCommitments(params interface{}, closeC
 		tokenID, err = common.Hash{}.NewHashFromStr(tokenIDTemp)
 		if err != nil {
 			Logger.log.Debugf("handleRandomCommitments result: %+v, err: %+v", nil, err)
-			return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+			return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 		}
 	}
 
@@ -340,7 +341,7 @@ func (httpServer *HttpServer) handleListSerialNumbers(params interface{}, closeC
 			tokenID, err = (common.Hash{}).NewHashFromStr(tokenIDTemp)
 			if err != nil {
 				Logger.log.Debugf("handleHasSerialNumbers result: %+v, err: %+v", err)
-				return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+				return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 			}
 		}
 	}
@@ -351,10 +352,9 @@ func (httpServer *HttpServer) handleListSerialNumbers(params interface{}, closeC
 			shardID = int(shardIDParam)
 		}
 	}
-
-	result, err := httpServer.databaseService.ListSerialNumbers(*tokenID, byte(shardID))
+	result, err := httpServer.txService.ListSerialNumbers(*tokenID, byte(shardID))
 	if err != nil {
-		return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+		return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 	}
 	return result, nil
 }
@@ -378,14 +378,20 @@ func (httpServer *HttpServer) handleListSNDerivator(params interface{}, closeCha
 			tokenID, err = (common.Hash{}).NewHashFromStr(tokenIDTemp)
 			if err != nil {
 				Logger.log.Debugf("handleListSNDerivator result: %+v, err: %+v", err)
-				return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+				return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 			}
 		}
 	}
-
-	result, err := httpServer.databaseService.ListSNDerivator(*tokenID)
+	shardID := 0
+	if len(arrayParams) > 1 {
+		shardIDParam, ok := arrayParams[1].(float64)
+		if ok {
+			shardID = int(shardIDParam)
+		}
+	}
+	result, err := httpServer.txService.ListSNDerivator(*tokenID, byte(shardID))
 	if err != nil {
-		return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+		return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 	}
 	return result, nil
 }
@@ -402,28 +408,27 @@ func (httpServer *HttpServer) handleListCommitments(params interface{}, closeCha
 	if len(arrayParams) > 0 {
 		tokenIDTemp, ok := arrayParams[0].(string)
 		if !ok {
-			Logger.log.Debugf("handleHasSerialNumbers result: %+v", nil)
+			Logger.log.Debugf("handleListCommitments result: %+v", nil)
 			return nil, rpcservice.NewRPCError(rpcservice.RPCInvalidParamsError, errors.New("serialNumbers is invalid"))
 		}
 		if len(tokenIDTemp) > 0 {
 			tokenID, err = (common.Hash{}).NewHashFromStr(tokenIDTemp)
 			if err != nil {
-				Logger.log.Debugf("handleHasSerialNumbers result: %+v, err: %+v", err)
-				return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+				Logger.log.Debugf("handleListCommitments result: %+v, err: %+v", err)
+				return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 			}
 		}
 	}
-	shardID := 0
+	shardID := byte(0)
 	if len(arrayParams) > 1 {
 		shardIDParam, ok := arrayParams[1].(float64)
 		if ok {
-			shardID = int(shardIDParam)
+			shardID = byte(shardIDParam)
 		}
 	}
-
-	result, err := httpServer.databaseService.ListCommitments(*tokenID, byte(shardID))
+	result, err := httpServer.txService.ListCommitments(*tokenID, shardID)
 	if err != nil {
-		return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+		return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 	}
 	return result, nil
 }
@@ -440,14 +445,14 @@ func (httpServer *HttpServer) handleListCommitmentIndices(params interface{}, cl
 	if len(arrayParams) > 0 {
 		tokenIDTemp, ok := arrayParams[0].(string)
 		if !ok {
-			Logger.log.Debugf("handleHasSerialNumbers result: %+v", nil)
+			Logger.log.Debugf("handleListCommitmentIndices result: %+v", nil)
 			return nil, rpcservice.NewRPCError(rpcservice.RPCInvalidParamsError, errors.New("serialNumbers is invalid"))
 		}
 		if len(tokenIDTemp) > 0 {
 			tokenID, err = (common.Hash{}).NewHashFromStr(tokenIDTemp)
 			if err != nil {
-				Logger.log.Debugf("handleHasSerialNumbers result: %+v, err: %+v", err)
-				return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+				Logger.log.Debugf("handleListCommitmentIndices result: %+v, err: %+v", err)
+				return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 			}
 		}
 	}
@@ -459,9 +464,9 @@ func (httpServer *HttpServer) handleListCommitmentIndices(params interface{}, cl
 		}
 	}
 
-	result, err := httpServer.databaseService.ListCommitmentIndices(*tokenID, shardID)
+	result, err := httpServer.txService.ListCommitmentIndices(*tokenID, shardID)
 	if err != nil {
-		return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+		return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 	}
 	return result, nil
 }
@@ -503,14 +508,14 @@ func (httpServer *HttpServer) handleHasSerialNumbers(params interface{}, closeCh
 		tokenID, err = (common.Hash{}).NewHashFromStr(tokenIDTemp)
 		if err != nil {
 			Logger.log.Debugf("handleHasSerialNumbers result: %+v, err: %+v", err)
-			return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+			return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 		}
 	}
 
-	result, err := httpServer.databaseService.HasSerialNumbers(paymentAddressStr, serialNumbersStr, *tokenID)
+	result, err := httpServer.txService.HasSerialNumbers(paymentAddressStr, serialNumbersStr, *tokenID)
 	if err != nil {
 		Logger.log.Debugf("handleHasSerialNumbers result: %+v, err: %+v", err)
-		return nil, rpcservice.NewRPCError(rpcservice.ListCustomTokenNotFoundError, err)
+		return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 	}
 
 	Logger.log.Debugf("handleHasSerialNumbers result: %+v", result)
@@ -557,7 +562,7 @@ func (httpServer *HttpServer) handleHasSnDerivators(params interface{}, closeCha
 			return nil, rpcservice.NewRPCError(rpcservice.UnexpectedError, err)
 		}
 	}
-	result, err := httpServer.databaseService.HasSnDerivators(paymentAddressStr, snDerivatorStr, *tokenID)
+	result, err := httpServer.txService.HasSnDerivators(paymentAddressStr, snDerivatorStr, *tokenID)
 	if err != nil {
 		Logger.log.Debugf("handleHasSnDerivators result: %+v, err: %+v", nil, err)
 		return nil, rpcservice.NewRPCError(rpcservice.UnexpectedError, err)
@@ -571,7 +576,7 @@ func (httpServer *HttpServer) handleHasSnDerivators(params interface{}, closeCha
 func (httpServer *HttpServer) handleCreateRawPrivacyCustomTokenTransaction(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
 	Logger.log.Debugf("handleCreateRawPrivacyCustomTokenTransaction params: %+v", params)
 	var err error
-	tx, err := httpServer.txService.BuildRawPrivacyCustomTokenTransaction(params, nil, *httpServer.config.Database)
+	tx, err := httpServer.txService.BuildRawPrivacyCustomTokenTransaction(params, nil)
 	if err.(*rpcservice.RPCError) != nil {
 		Logger.log.Error(err)
 		return nil, rpcservice.NewRPCError(rpcservice.CreateTxDataError, err)
@@ -650,9 +655,7 @@ func (httpServer *HttpServer) handleCreateAndSendPrivacyCustomTokenTransaction(p
 	return tx, nil
 }
 
-/*
 // handleCreateRawStakingTransaction handles create staking
-*/
 func (httpServer *HttpServer) handleCreateRawStakingTransaction(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
 	// get component
 	Logger.log.Debugf("handleCreateRawStakingTransaction params: %+v", params)
@@ -738,7 +741,7 @@ func (httpServer *HttpServer) handleCreateRawStakingTransaction(params interface
 		return nil, rpcservice.NewRPCError(rpcservice.RPCInvalidParamsError, err)
 	}
 
-	txID, txBytes, txShardID, err := httpServer.txService.CreateRawTransaction(createRawTxParam, stakingMetadata, *httpServer.config.Database)
+	txID, txBytes, txShardID, err := httpServer.txService.CreateRawTransaction(createRawTxParam, stakingMetadata, httpServer.GetDatabase())
 	if err.(*rpcservice.RPCError) != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.CreateTxDataError, err)
 	}
@@ -752,9 +755,7 @@ func (httpServer *HttpServer) handleCreateRawStakingTransaction(params interface
 	return result, nil
 }
 
-/*
-handleCreateAndSendStakingTx - RPC creates staking transaction and send to network
-*/
+// handleCreateAndSendStakingTx - RPC creates staking transaction and send to network
 func (httpServer *HttpServer) handleCreateAndSendStakingTx(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
 	Logger.log.Infof("handleCreateAndSendStakingTx params: %+v", params)
 
@@ -778,6 +779,7 @@ func (httpServer *HttpServer) handleCreateAndSendStakingTx(params interface{}, c
 	return result, nil
 }
 
+// handleCreateRawStopAutoStakingTransaction - RPC create stop auto stake tx
 func (httpServer *HttpServer) handleCreateRawStopAutoStakingTransaction(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
 	// get component
 	Logger.log.Debugf("handleCreateRawStopAutoStakingTransaction params: %+v", params)
@@ -845,7 +847,7 @@ func (httpServer *HttpServer) handleCreateRawStopAutoStakingTransaction(params i
 	if err != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.RPCInvalidParamsError, err)
 	}
-	txID, txBytes, txShardID, err := httpServer.txService.CreateRawTransaction(createRawTxParam, stakingMetadata, *httpServer.config.Database)
+	txID, txBytes, txShardID, err := httpServer.txService.CreateRawTransaction(createRawTxParam, stakingMetadata, httpServer.GetDatabase())
 	if err.(*rpcservice.RPCError) != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.CreateTxDataError, err)
 	}
@@ -859,6 +861,7 @@ func (httpServer *HttpServer) handleCreateRawStopAutoStakingTransaction(params i
 	return result, nil
 }
 
+// handleCreateRawStopAutoStakingTransaction - RPC create and send stop auto stake tx to network
 func (httpServer *HttpServer) handleCreateAndSendStopAutoStakingTransaction(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
 	Logger.log.Debugf("handleCreateAndSendStopAutoStakingTransaction params: %+v", params)
 	var err error

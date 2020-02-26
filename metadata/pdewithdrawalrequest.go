@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"github.com/incognitochain/incognito-chain/wallet"
 )
 
@@ -62,13 +62,13 @@ func (pc PDEWithdrawalRequest) ValidateTxWithBlockChain(
 	txr Transaction,
 	bcr BlockchainRetriever,
 	shardID byte,
-	db database.DatabaseInterface,
+	db *statedb.StateDB,
 ) (bool, error) {
 	// NOTE: verify supported tokens pair as needed
 	return true, nil
 }
 
-func (pc PDEWithdrawalRequest) ValidateSanityData(bcr BlockchainRetriever, txr Transaction) (bool, bool, error) {
+func (pc PDEWithdrawalRequest) ValidateSanityData(bcr BlockchainRetriever, txr Transaction, beaconHeight uint64) (bool, bool, error) {
 	keyWallet, err := wallet.Base58CheckDeserialize(pc.WithdrawerAddressStr)
 	if err != nil {
 		return false, false, NewMetadataTxError(PDEWithdrawalRequestFromMapError, errors.New("WithdrawerAddressStr incorrect"))

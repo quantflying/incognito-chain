@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"github.com/incognitochain/incognito-chain/wallet"
 	"github.com/pkg/errors"
 )
@@ -32,17 +32,17 @@ func NewPDEWithdrawalResponse(
 	}
 }
 
-func (iRes PDEWithdrawalResponse) CheckTransactionFee(tr Transaction, minFee uint64, beaconHeight int64, db database.DatabaseInterface) bool {
+func (iRes PDEWithdrawalResponse) CheckTransactionFee(tr Transaction, minFee uint64, beaconHeight int64, db *statedb.StateDB) bool {
 	// no need to have fee for this tx
 	return true
 }
 
-func (iRes PDEWithdrawalResponse) ValidateTxWithBlockChain(txr Transaction, bcr BlockchainRetriever, shardID byte, db database.DatabaseInterface) (bool, error) {
+func (iRes PDEWithdrawalResponse) ValidateTxWithBlockChain(txr Transaction, bcr BlockchainRetriever, shardID byte, db *statedb.StateDB) (bool, error) {
 	// no need to validate tx with blockchain, just need to validate with requested tx (via RequestedTxID)
 	return false, nil
 }
 
-func (iRes PDEWithdrawalResponse) ValidateSanityData(bcr BlockchainRetriever, txr Transaction) (bool, bool, error) {
+func (iRes PDEWithdrawalResponse) ValidateSanityData(bcr BlockchainRetriever, txr Transaction, beaconHeight uint64) (bool, bool, error) {
 	return false, true, nil
 }
 

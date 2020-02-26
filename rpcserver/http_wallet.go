@@ -7,7 +7,6 @@ import (
 
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
-	"github.com/incognitochain/incognito-chain/database/lvdb"
 	"github.com/incognitochain/incognito-chain/rpcserver/jsonresult"
 	"github.com/incognitochain/incognito-chain/rpcserver/rpcservice"
 )
@@ -298,58 +297,40 @@ func (httpServer *HttpServer) handleSetTxFee(params interface{}, closeChan <-cha
 }
 
 func (httpServer *HttpServer) handleListPrivacyCustomToken(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
-	listPrivacyToken, listPrivacyTokenCrossShard, err := httpServer.blockService.ListPrivacyCustomTokenCached()
+	//listPrivacyToken, listPrivacyTokenCrossShard, err := httpServer.blockService.ListPrivacyCustomTokenCached()
+	//if err != nil {
+	//	return nil, rpcservice.NewRPCError(rpcservice.UnexpectedError, err)
+	//}
+	listPrivacyToken, err := httpServer.blockService.ListPrivacyCustomToken()
 	if err != nil {
-		return nil, rpcservice.NewRPCError(rpcservice.UnexpectedError, err)
+		return nil, rpcservice.NewRPCError(rpcservice.ListTokenNotFoundError, err)
 	}
-
-	arrayParams := common.InterfaceSlice(params)
-	getCountTxs := false
-	if len(arrayParams) == 1 {
-		getCountTxs = true
-	}
-
 	result := jsonresult.ListCustomToken{ListCustomToken: []jsonresult.CustomToken{}}
-	tokenIDs := make(map[common.Hash]interface{})
-	for tokenID, token := range listPrivacyToken {
-		item := jsonresult.NewPrivacyToken(token)
-		if item.Name == "" {
-			txs, _, err := httpServer.txService.PrivacyCustomTokenDetail(tokenID.String())
-			if err != nil {
-				Logger.log.Error(err)
-			} else {
-				if len(txs) > 1 {
-					for _, initTx := range txs {
-						var err2 *rpcservice.RPCError
-						tx, err2 := httpServer.txService.GetTransactionByHash(initTx.String())
-						if err2 != nil {
-							Logger.log.Error(err)
-						} else {
-							if tx.PrivacyCustomTokenName != "" {
-								item.Name = tx.PrivacyCustomTokenName
-								item.Symbol = tx.PrivacyCustomTokenSymbol
-								break
-							}
-						}
-					}
-				}
-			}
-		}
-		tokenIDs[tokenID] = 0
+	for _, tokenState := range listPrivacyToken {
+		item := jsonresult.NewPrivacyToken(tokenState)
 		result.ListCustomToken = append(result.ListCustomToken, *item)
 	}
-	for tokenID, token := range listPrivacyTokenCrossShard {
-		if _, ok := tokenIDs[tokenID]; ok {
+	// overwrite amounts with bridge tokens
+	allBridgeTokens, err := httpServer.blockService.GetAllBridgeTokens()
+	if err != nil {
+		return false, rpcservice.NewRPCError(rpcservice.UnexpectedError, err)
+	}
+	for _, bridgeToken := range allBridgeTokens {
+		if _, ok := listPrivacyToken[*bridgeToken.TokenID]; ok {
 			continue
 		}
-		item := jsonresult.NewPrivacyForCrossShard(token)
+		item := jsonresult.CustomToken{
+			ID:            bridgeToken.TokenID.String(),
+			IsPrivacy:     true,
+			IsBridgeToken: true,
+		}
 		if item.Name == "" {
 			txs, _, err := httpServer.txService.PrivacyCustomTokenDetail(item.ID)
 			if err != nil {
 				Logger.log.Error(err)
 			} else {
 				if len(txs) > 1 {
-					initTx := txs[len(txs)-1]
+					initTx := txs[0]
 					var err2 *rpcservice.RPCError
 					tx, err2 := httpServer.txService.GetTransactionByHash(initTx.String())
 					if err2 != nil {
@@ -376,28 +357,14 @@ func (httpServer *HttpServer) handleListPrivacyCustomToken(params interface{}, c
 				}
 			}
 		}
-		result.ListCustomToken = append(result.ListCustomToken, *item)
+		result.ListCustomToken = append(result.ListCustomToken, item)
 	}
-
-	// overwrite amounts with bridge tokens'
-	allBridgeTokensBytes, err := httpServer.databaseService.GetAllBridgeTokens()
-	if err != nil {
-		return false, rpcservice.NewRPCError(rpcservice.UnexpectedError, err)
-	}
-	var allBridgeTokens []*lvdb.BridgeTokenInfo
-	err = json.Unmarshal(allBridgeTokensBytes, &allBridgeTokens)
-	if err != nil {
-		return false, rpcservice.NewRPCError(rpcservice.UnexpectedError, err)
-	}
-
-	for idx, token := range result.ListCustomToken {
-		if getCountTxs {
-			txs, _, _ := httpServer.txService.PrivacyCustomTokenDetail(token.ID)
-			result.ListCustomToken[idx].CountTxs = len(txs)
-		}
+	for index, _ := range result.ListCustomToken {
+		result.ListCustomToken[index].Image = common.Render([]byte(result.ListCustomToken[index].ID))
 		for _, bridgeToken := range allBridgeTokens {
-			if result.ListCustomToken[idx].ID == bridgeToken.TokenID.String() {
-				result.ListCustomToken[idx].Amount = bridgeToken.Amount
+			if result.ListCustomToken[index].ID == bridgeToken.TokenID.String() {
+				result.ListCustomToken[index].Amount = bridgeToken.Amount
+				result.ListCustomToken[index].IsBridgeToken = true
 				break
 			}
 		}
@@ -458,7 +425,7 @@ func (httpServer *HttpServer) handleDefragmentAccount(params interface{}, closeC
 */
 func (httpServer *HttpServer) createRawDefragmentAccountTransaction(params interface{}, closeChan <-chan struct{}) (interface{}, *rpcservice.RPCError) {
 	var err error
-	tx, err := httpServer.txService.BuildRawDefragmentAccountTransaction(params, nil, *httpServer.config.Database)
+	tx, err := httpServer.txService.BuildRawDefragmentAccountTransaction(params, nil, httpServer.GetDatabase())
 	if err.(*rpcservice.RPCError) != nil {
 		Logger.log.Critical(err)
 		return nil, rpcservice.NewRPCError(rpcservice.CreateTxDataError, err)

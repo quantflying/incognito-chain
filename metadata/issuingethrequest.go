@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/incognitochain/incognito-chain/metadata/rpccaller"
 	"strconv"
 	"strings"
 
@@ -16,7 +15,8 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
+	"github.com/incognitochain/incognito-chain/metadata/rpccaller"
 	"github.com/pkg/errors"
 )
 
@@ -112,7 +112,7 @@ func (iReq IssuingETHRequest) ValidateTxWithBlockChain(
 	txr Transaction,
 	bcr BlockchainRetriever,
 	shardID byte,
-	db database.DatabaseInterface,
+	db *statedb.StateDB,
 ) (bool, error) {
 	ethReceipt, err := iReq.verifyProofAndParseReceipt()
 	if err != nil {
@@ -124,7 +124,7 @@ func (iReq IssuingETHRequest) ValidateTxWithBlockChain(
 	return true, nil
 }
 
-func (iReq IssuingETHRequest) ValidateSanityData(bcr BlockchainRetriever, txr Transaction) (bool, bool, error) {
+func (iReq IssuingETHRequest) ValidateSanityData(bcr BlockchainRetriever, txr Transaction, beaconHeight uint64) (bool, bool, error) {
 	if len(iReq.ProofStrs) == 0 {
 		return false, false, NewMetadataTxError(IssuingEthRequestValidateSanityDataError, errors.New("Wrong request info's proof"))
 	}
@@ -175,7 +175,7 @@ func (iReq *IssuingETHRequest) BuildReqActions(tx Transaction, bcr BlockchainRet
 	action := []string{strconv.Itoa(IssuingETHRequestMeta), actionContentBase64Str}
 
 	Logger.log.Debug("hahaha txreqid: ", txReqID)
-	err = bcr.GetDatabase().TrackBridgeReqWithStatus(txReqID, byte(common.BridgeRequestProcessingStatus), nil)
+	err = statedb.TrackBridgeReqWithStatus(bcr.GetBeaconFeatureStateDB(), txReqID, byte(common.BridgeRequestProcessingStatus))
 	if err != nil {
 		return [][]string{}, NewMetadataTxError(IssuingEthRequestBuildReqActionsError, err)
 	}

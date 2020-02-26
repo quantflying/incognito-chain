@@ -2,11 +2,11 @@ package metadata
 
 import (
 	"fmt"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"math"
 	"strconv"
 
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
 )
 
 type MetadataBase struct {
@@ -45,22 +45,18 @@ func (mb MetadataBase) GetType() int {
 
 func (mb MetadataBase) Hash() *common.Hash {
 	record := strconv.Itoa(mb.Type)
-	hash := common.HashH([]byte(record))
+	data := []byte(record)
+	hash := common.HashH(data)
 	return &hash
 }
 
-func (mb MetadataBase) CheckTransactionFee(
-	tx Transaction,
-	minFeePerKbTx uint64,
-	beaconHeight int64,
-	db database.DatabaseInterface,
-) bool {
+func (mb MetadataBase) CheckTransactionFee(tx Transaction, minFeePerKbTx uint64, beaconHeight int64, stateDB *statedb.StateDB) bool {
 	if tx.GetType() == common.TxCustomTokenPrivacyType {
 		feeNativeToken := tx.GetTxFee()
 		feePToken := tx.GetTxFeeToken()
 		if feePToken > 0 {
 			tokenID := tx.GetTokenID()
-			feePTokenToNativeTokenTmp, err := ConvertPrivacyTokenToNativeToken(feePToken, tx.GetTokenID(), beaconHeight, db)
+			feePTokenToNativeTokenTmp, err := ConvertPrivacyTokenToNativeToken(feePToken, tx.GetTokenID(), beaconHeight, stateDB)
 			if err != nil {
 				fmt.Printf("transaction %+v: %+v %v can not convert to native token",
 					tx.Hash().String(), feePToken, tokenID)

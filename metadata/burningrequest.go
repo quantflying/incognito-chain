@@ -6,11 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"reflect"
 	"strconv"
 
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
 	"github.com/incognitochain/incognito-chain/privacy"
 )
 
@@ -50,9 +50,9 @@ func (bReq BurningRequest) ValidateTxWithBlockChain(
 	txr Transaction,
 	bcr BlockchainRetriever,
 	shardID byte,
-	db database.DatabaseInterface,
+	db *statedb.StateDB,
 ) (bool, error) {
-	bridgeTokenExisted, err := db.IsBridgeTokenExistedByType(bReq.TokenID, false)
+	bridgeTokenExisted, err := statedb.IsBridgeTokenExistedByType(bcr.GetBeaconFeatureStateDB(), bReq.TokenID, false)
 	if err != nil {
 		return false, err
 	}
@@ -62,7 +62,7 @@ func (bReq BurningRequest) ValidateTxWithBlockChain(
 	return true, nil
 }
 
-func (bReq BurningRequest) ValidateSanityData(bcr BlockchainRetriever, txr Transaction) (bool, bool, error) {
+func (bReq BurningRequest) ValidateSanityData(bcr BlockchainRetriever, txr Transaction, beaconHeight uint64) (bool, bool, error) {
 	// Note: the metadata was already verified with *transaction.TxCustomToken level so no need to verify with *transaction.Tx level again as *transaction.Tx is embedding property of *transaction.TxCustomToken
 	if reflect.TypeOf(txr).String() == "*transaction.Tx" {
 		return true, true, nil
@@ -80,7 +80,7 @@ func (bReq BurningRequest) ValidateSanityData(bcr BlockchainRetriever, txr Trans
 	if bReq.BurningAmount == 0 {
 		return false, false, errors.New("Wrong request info's burned amount")
 	}
-	if !txr.IsCoinsBurning(bcr) {
+	if !txr.IsCoinsBurning(bcr, beaconHeight) {
 		return false, false, errors.New("Must send coin to burning address")
 	}
 	if bReq.BurningAmount != txr.CalculateTxValue() {

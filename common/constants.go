@@ -58,7 +58,8 @@ var (
 
 // special token ids (aka. PropertyID in custom token)
 var (
-	PRVCoinID = Hash{4} // To send PRV in custom token
+	PRVCoinID   = Hash{4} // To send PRV in custom token
+	PRVCoinName = "PRV"   // To send PRV in custom token
 )
 
 // CONSENSUS
@@ -75,7 +76,7 @@ const (
 	ValidatorRole  = "validator"
 	PendingRole    = "pending"
 	WaitingRole    = "waiting"
-	MaxShardNumber = 8
+	MaxShardNumber = 2
 
 	BlsConsensus    = "bls"
 	BridgeConsensus = "dsa"
@@ -114,7 +115,8 @@ const (
 	PDEWithdrawalAcceptedStatus = 1
 	PDEWithdrawalRejectedStatus = 2
 
-	MinTxFeesOnTokenRequirement = 10000000000000 // 10000 prv
+	MinTxFeesOnTokenRequirement                             = 10000000000000 // 10000 prv, this requirement is applied from beacon height 87301 mainnet
+	BeaconBlockHeighMilestoneForMinTxFeesOnTokenRequirement = 87301          // milestone of beacon height, when apply min fee on token requirement
 )
 
 // PDE statuses for chain
@@ -129,6 +131,10 @@ const (
 
 	PDEWithdrawalAcceptedChainStatus = "accepted"
 	PDEWithdrawalRejectedChainStatus = "rejected"
+)
+
+var (
+	EmptyRoot = HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 )
 
 const (

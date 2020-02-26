@@ -46,7 +46,6 @@ func (tp *TxPool) addTransactionToDatabaseMempool(txHash *common.Hash, txDesc Tx
 				return err
 			}
 		}
-	//==================For PRV & TxNormalToken Transfer
 	case common.TxCustomTokenPrivacyType:
 		{
 			customTokenPrivacyTx := tx.(*transaction.TxCustomTokenPrivacy)
@@ -119,7 +118,7 @@ func (tp *TxPool) loadDatabaseMP() ([]TxDesc, error) {
 			}
 		}
 		//if not validated by current blockchain db then remove
-		err = tp.validateTransaction(txDesc.Desc.Tx, -1)
+		err = tp.validateTransaction(txDesc.Desc.Tx, -1, false, false)
 		if err != nil {
 			Logger.log.Error(err)
 			err1 := tp.removeTransactionFromDatabaseMP(txDesc.Desc.Tx.Hash())

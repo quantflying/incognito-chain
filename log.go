@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/incognitochain/incognito-chain/dataaccessobject"
 	"os"
 	"path/filepath"
 
@@ -11,8 +12,8 @@ import (
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/connmanager"
 	"github.com/incognitochain/incognito-chain/consensus"
-	"github.com/incognitochain/incognito-chain/database"
 	"github.com/incognitochain/incognito-chain/databasemp"
+	"github.com/incognitochain/incognito-chain/incdb"
 	"github.com/incognitochain/incognito-chain/mempool"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/netsync"
@@ -22,6 +23,7 @@ import (
 	"github.com/incognitochain/incognito-chain/rpcserver"
 	"github.com/incognitochain/incognito-chain/rpcserver/rpcservice"
 	"github.com/incognitochain/incognito-chain/transaction"
+	"github.com/incognitochain/incognito-chain/trie"
 	"github.com/incognitochain/incognito-chain/wallet"
 	"github.com/jrick/logrotate/rotator"
 )
@@ -32,16 +34,16 @@ var (
 	logRotator *rotator.Rotator
 
 	backendLog             = common.NewBackend(logWriter{})
-	addrManagerLoger       = backendLog.Logger("Address Log", true)
-	connManagerLogger      = backendLog.Logger("Connection Manager Log", true)
-	mainLogger             = backendLog.Logger("Server Log", false)
-	rpcLogger              = backendLog.Logger("RPC Log", false)
-	rpcServiceLogger       = backendLog.Logger("RPC service Log", false)
-	rpcServiceBridgeLogger = backendLog.Logger("RPC service DeBridge Log", false)
-	netsyncLogger          = backendLog.Logger("Netsync Log", true)
-	peerLogger             = backendLog.Logger("Peer Log", true)
-	dbLogger               = backendLog.Logger("Database Log", false)
-	dbmpLogger             = backendLog.Logger("Mempool Persistence DB Log", false)
+	addrManagerLoger       = backendLog.Logger("Address log", true)
+	connManagerLogger      = backendLog.Logger("Connection Manager log", true)
+	mainLogger             = backendLog.Logger("Server log", false)
+	rpcLogger              = backendLog.Logger("RPC log", false)
+	rpcServiceLogger       = backendLog.Logger("RPC service log", false)
+	rpcServiceBridgeLogger = backendLog.Logger("RPC service DeBridge log", false)
+	netsyncLogger          = backendLog.Logger("Netsync log", true)
+	peerLogger             = backendLog.Logger("Peer log", true)
+	dbLogger               = backendLog.Logger("Database log", false)
+	dbmpLogger             = backendLog.Logger("Mempool Persistence DB log", false)
 	walletLogger           = backendLog.Logger("Wallet log", false)
 	blockchainLogger       = backendLog.Logger("BlockChain log", false)
 	consensusLogger        = backendLog.Logger("Consensus log", false)
@@ -51,7 +53,9 @@ var (
 	randomLogger           = backendLog.Logger("RandomAPI log", false)
 	bridgeLogger           = backendLog.Logger("DeBridge log", false)
 	metadataLogger         = backendLog.Logger("Metadata log", false)
+	trieLogger             = backendLog.Logger("Trie log", false)
 	peerv2Logger           = backendLog.Logger("Peerv2 log", false)
+	daov2Logger            = backendLog.Logger("DAO log", false)
 )
 
 // logWriter implements an io.Writer that outputs to both standard output and
@@ -76,7 +80,7 @@ func init() {
 	rpcservice.BLogger.Init(rpcServiceBridgeLogger)
 	netsync.Logger.Init(netsyncLogger)
 	peer.Logger.Init(peerLogger)
-	database.Logger.Init(dbLogger)
+	incdb.Logger.Init(dbLogger)
 	wallet.Logger.Init(walletLogger)
 	blockchain.Logger.Init(blockchainLogger)
 	consensus.Logger.Init(consensusLogger)
@@ -88,7 +92,9 @@ func init() {
 	blockchain.BLogger.Init(bridgeLogger)
 	rpcserver.BLogger.Init(bridgeLogger)
 	metadata.Logger.Init(metadataLogger)
+	trie.Logger.Init(trieLogger)
 	peerv2.Logger.Init(peerv2Logger)
+	dataaccessobject.Logger.Init(daov2Logger)
 
 }
 
@@ -114,7 +120,9 @@ var subsystemLoggers = map[string]common.Logger{
 	"DBMP":              dbmpLogger,
 	"DEBR":              bridgeLogger,
 	"META":              metadataLogger,
+	"TRIE":              trieLogger,
 	"PEERV2":            peerv2Logger,
+	"DAO":               daov2Logger,
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

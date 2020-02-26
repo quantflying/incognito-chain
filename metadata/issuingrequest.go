@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"github.com/incognitochain/incognito-chain/privacy"
 	"github.com/incognitochain/incognito-chain/wallet"
 )
@@ -107,7 +107,7 @@ func (iReq IssuingRequest) ValidateTxWithBlockChain(
 	txr Transaction,
 	bcr BlockchainRetriever,
 	shardID byte,
-	db database.DatabaseInterface,
+	db *statedb.StateDB,
 ) (bool, error) {
 	keySet, err := wallet.Base58CheckDeserialize(bcr.GetCentralizedWebsitePaymentAddress())
 	if err != nil || !bytes.Equal(txr.GetSigPubKey(), keySet.KeySet.PaymentAddress.Pk) {
@@ -116,7 +116,7 @@ func (iReq IssuingRequest) ValidateTxWithBlockChain(
 	return true, nil
 }
 
-func (iReq IssuingRequest) ValidateSanityData(bcr BlockchainRetriever, txr Transaction) (bool, bool, error) {
+func (iReq IssuingRequest) ValidateSanityData(bcr BlockchainRetriever, txr Transaction, beaconHeight uint64) (bool, bool, error) {
 	if len(iReq.ReceiverAddress.Pk) == 0 {
 		return false, false, NewMetadataTxError(IssuingRequestValidateSanityDataError, errors.New("Wrong request info's receiver address"))
 	}
@@ -161,7 +161,7 @@ func (iReq *IssuingRequest) BuildReqActions(tx Transaction, bcr BlockchainRetrie
 	actionContentBase64Str := base64.StdEncoding.EncodeToString(actionContentBytes)
 	action := []string{strconv.Itoa(IssuingRequestMeta), actionContentBase64Str}
 	// track the request status to leveldb
-	err = bcr.GetDatabase().TrackBridgeReqWithStatus(txReqID, byte(common.BridgeRequestProcessingStatus), nil)
+	err = statedb.TrackBridgeReqWithStatus(bcr.GetBeaconFeatureStateDB(), txReqID, byte(common.BridgeRequestProcessingStatus))
 	if err != nil {
 		return [][]string{}, NewMetadataTxError(IssuingRequestBuildReqActionsError, err)
 	}
