@@ -37,7 +37,7 @@ func (blockchain *BlockChain) processPDEInstructions(pdexStateDB *statedb.StateD
 		}
 	}
 	// store updated currentPDEState to leveldb with new beacon height
-	err = storePDEStateToDBV2(pdexStateDB, beaconHeight+1, currentPDEState)
+	err = storePDEStateToDB(pdexStateDB, beaconHeight+1, currentPDEState)
 	if err != nil {
 		Logger.log.Error(err)
 	}

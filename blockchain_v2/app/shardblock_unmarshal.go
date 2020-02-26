@@ -5,8 +5,6 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv1"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv2"
-
-	"github.com/incognitochain/incognito-chain/blockchain"
 )
 
 func UnmarshalShardBlock(data []byte) (blockinterface.ShardBlockInterface, error) {
@@ -19,18 +17,18 @@ func UnmarshalShardBlock(data []byte) (blockinterface.ShardBlockInterface, error
 		header := v.(map[string]interface{})
 		if version, ok := header["Version"]; ok {
 			switch int(version.(float64)) {
-			case blockchain.SHARD_BLOCK_VERSION:
+			case SHARD_BLOCK_VERSION:
 				shardBlk := &shardblockv1.ShardBlock{}
 				err := json.Unmarshal(data, &shardBlk)
 				if err != nil {
-					return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+					return nil, NewAppError(UnmashallJsonShardBlockError, err)
 				}
 				return shardBlk, nil
-			case blockchain.SHARD_BLOCK_VERSION2:
+			case SHARD_BLOCK_VERSION_2:
 				shardBlk := &shardblockv2.ShardBlock{}
 				err := json.Unmarshal(data, &shardBlk)
 				if err != nil {
-					return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+					return nil, NewAppError(UnmashallJsonShardBlockError, err)
 				}
 				return shardBlk, nil
 			}
@@ -49,18 +47,18 @@ func UnmarshalShardToBeaconBlock(data []byte) (blockinterface.ShardToBeaconBlock
 		header := v.(map[string]interface{})
 		if version, ok := header["Version"]; ok {
 			switch int(version.(float64)) {
-			case blockchain.SHARD_BLOCK_VERSION:
+			case SHARD_BLOCK_VERSION:
 				s2bBlock := &shardblockv1.ShardToBeaconBlock{}
 				err := json.Unmarshal(data, &s2bBlock)
 				if err != nil {
-					return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+					return nil, NewAppError(UnmashallJsonShardBlockError, err)
 				}
 				return s2bBlock, nil
-			case blockchain.SHARD_BLOCK_VERSION2:
+			case SHARD_BLOCK_VERSION_2:
 				s2bBlock := &shardblockv2.ShardToBeaconBlock{}
 				err := json.Unmarshal(data, &s2bBlock)
 				if err != nil {
-					return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+					return nil, NewAppError(UnmashallJsonShardBlockError, err)
 				}
 				return s2bBlock, nil
 			}
@@ -79,18 +77,18 @@ func UnmarshalCrossShardBlock(data []byte) (blockinterface.CrossShardBlockInterf
 		header := v.(map[string]interface{})
 		if version, ok := header["Version"]; ok {
 			switch int(version.(float64)) {
-			case blockchain.SHARD_BLOCK_VERSION:
+			case SHARD_BLOCK_VERSION:
 				shardBlk := &shardblockv1.CrossShardBlock{}
 				err := json.Unmarshal(data, &shardBlk)
 				if err != nil {
-					return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+					return nil, NewAppError(UnmashallJsonShardBlockError, err)
 				}
 				return shardBlk, nil
-			case blockchain.SHARD_BLOCK_VERSION2:
+			case SHARD_BLOCK_VERSION_2:
 				shardBlk := &shardblockv2.CrossShardBlock{}
 				err := json.Unmarshal(data, &shardBlk)
 				if err != nil {
-					return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+					return nil, NewAppError(UnmashallJsonShardBlockError, err)
 				}
 				return shardBlk, nil
 			}

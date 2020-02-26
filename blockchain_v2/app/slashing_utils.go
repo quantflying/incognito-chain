@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"sort"
 
 	"github.com/incognitochain/incognito-chain/blockchain"
@@ -11,13 +12,10 @@ func getUpdatedProducersBlackList(
 	shardID int,
 	committee []string,
 	beaconHeight uint64,
-	blockchain BlockChain,
+	blockchain *blockchainV2,
+	slashStateDB *statedb.StateDB,
 ) (map[string]uint8, error) {
-	db := blockchain.GetDatabase()
-	producersBlackList, err := db.GetProducersBlackList(beaconHeight)
-	if err != nil {
-		return nil, err
-	}
+	producersBlackList := statedb.GetProducersBlackList(slashStateDB, beaconHeight)
 	if isBeacon {
 		punishedProducersFinished := []string{}
 		for producer, punishedEpoches := range producersBlackList {
@@ -44,9 +42,9 @@ func buildBadProducersWithPunishment(
 	isBeacon bool,
 	shardID int,
 	committee []string,
-	bc BlockChain,
+	bc *blockchainV2,
 ) map[string]uint8 {
-	slashLevels := GetChainParams().SlashLevels
+	slashLevels := bc.chainParams.SlashLevels
 	numOfBlocksByProducers := map[string]uint64{}
 	//TODO: refactor this
 	// if isBeacon {

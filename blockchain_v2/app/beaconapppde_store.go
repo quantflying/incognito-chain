@@ -3,44 +3,37 @@ package app
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"strconv"
 
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
-	"github.com/incognitochain/incognito-chain/database/lvdb"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"github.com/incognitochain/incognito-chain/metadata"
 )
 
-func storePDEInstructions(block blockinterface.BeaconBlockInterface, bd *[]database.BatchData, blockchain BlockChain) error {
-	instructions := block.GetBody().GetInstructions()
-	if len(instructions) == 0 {
-		return nil
-	} else {
-		fmt.Println(len(instructions), instructions[0], instructions[1], instructions[2])
-		panic(instructions)
-	}
-
-	beaconHeight := block.GetHeader().GetHeight() - 1
-	db := blockchain.GetDatabase()
-	currentPDEState, err := InitCurrentPDEStateFromDB(db, beaconHeight)
+func storePDEInstructions(
+	pdexStateDB *statedb.StateDB,
+	beaconBlock blockinterface.BeaconBlockInterface,
+) error {
+	beaconHeight := beaconBlock.GetHeader().GetHeight() - 1
+	currentPDEState, err := InitCurrentPDEStateFromDB(pdexStateDB, beaconHeight)
 	if err != nil {
 		Logger.log.Error(err)
 		return nil
 	}
-	for _, inst := range instructions {
+	for _, inst := range beaconBlock.GetBody().GetInstructions() {
 		if len(inst) < 2 {
 			continue // Not error, just not PDE instruction
 		}
 		var err error
 		switch inst[0] {
 		case strconv.Itoa(metadata.PDEContributionMeta):
-			err = processPDEContributionV2(beaconHeight, inst, currentPDEState, blockchain)
+			err = processPDEContributionV2(pdexStateDB, beaconHeight, inst, currentPDEState)
 		case strconv.Itoa(metadata.PDETradeRequestMeta):
-			err = processPDETrade(beaconHeight, inst, currentPDEState, blockchain)
+			err = processPDETrade(pdexStateDB, beaconHeight, inst, currentPDEState)
 		case strconv.Itoa(metadata.PDEWithdrawalRequestMeta):
-			err = processPDEWithdrawal(beaconHeight, inst, currentPDEState, blockchain)
+			err = processPDEWithdrawal(pdexStateDB, beaconHeight, inst, currentPDEState)
 		}
 		if err != nil {
 			Logger.log.Error(err)
@@ -48,11 +41,7 @@ func storePDEInstructions(block blockinterface.BeaconBlockInterface, bd *[]datab
 		}
 	}
 	// store updated currentPDEState to leveldb with new beacon height
-	err = storePDEStateToDB(
-		db,
-		beaconHeight+1,
-		currentPDEState,
-	)
+	err = storePDEStateToDB(pdexStateDB, beaconHeight+1, currentPDEState)
 	if err != nil {
 		Logger.log.Error(err)
 	}
@@ -67,7 +56,7 @@ func storePDEPoolForPair(
 	token2PoolValue uint64,
 	currentPDEState *CurrentPDEState,
 ) {
-	pdePoolForPair := &lvdb.PDEPoolForPair{
+	pdePoolForPair := &rawdbv2.PDEPoolForPair{
 		Token1IDStr:     token1IDStr,
 		Token1PoolValue: token1PoolValue,
 		Token2IDStr:     token2IDStr,
@@ -77,10 +66,10 @@ func storePDEPoolForPair(
 }
 
 func processPDEContributionV2(
+	pdexStateDB *statedb.StateDB,
 	beaconHeight uint64,
 	instruction []string,
 	currentPDEState *CurrentPDEState,
-	blockchain BlockChain,
 ) error {
 	if currentPDEState == nil {
 		Logger.log.Warn("WARN - [processPDEContribution]: Current PDE state is null.")
@@ -89,7 +78,6 @@ func processPDEContributionV2(
 	if len(instruction) != 4 {
 		return nil // skip the instruction
 	}
-	db := blockchain.GetDatabase()
 	contributionStatus := instruction[2]
 	if contributionStatus == common.PDEContributionWaitingChainStatus {
 		var waitingContribution metadata.PDEWaitingContribution
@@ -98,8 +86,8 @@ func processPDEContributionV2(
 			Logger.log.Errorf("ERROR: an error occured while unmarshaling content string of pde waiting contribution instruction: %+v", err)
 			return nil
 		}
-		waitingContribPairKey := string(lvdb.BuildWaitingPDEContributionKey(beaconHeight, waitingContribution.PDEContributionPairID))
-		currentPDEState.WaitingPDEContributions[waitingContribPairKey] = &lvdb.PDEContribution{
+		waitingContribPairKey := string(rawdbv2.BuildWaitingPDEContributionKey(beaconHeight, waitingContribution.PDEContributionPairID))
+		currentPDEState.WaitingPDEContributions[waitingContribPairKey] = &rawdbv2.PDEContribution{
 			ContributorAddressStr: waitingContribution.ContributorAddressStr,
 			TokenIDStr:            waitingContribution.TokenIDStr,
 			Amount:                waitingContribution.ContributedAmount,
@@ -109,8 +97,9 @@ func processPDEContributionV2(
 			Status: byte(common.PDEContributionWaitingStatus),
 		}
 		contribStatusBytes, _ := json.Marshal(contribStatus)
-		err = db.TrackPDEContributionStatus(
-			lvdb.PDEContributionStatusPrefix,
+		err = statedb.TrackPDEContributionStatus(
+			pdexStateDB,
+			rawdbv2.PDEContributionStatusPrefix,
 			[]byte(waitingContribution.PDEContributionPairID),
 			contribStatusBytes,
 		)
@@ -126,18 +115,18 @@ func processPDEContributionV2(
 			Logger.log.Errorf("ERROR: an error occured while unmarshaling content string of pde refund contribution instruction: %+v", err)
 			return nil
 		}
-		waitingContribPairKey := string(lvdb.BuildWaitingPDEContributionKey(beaconHeight, refundContribution.PDEContributionPairID))
+		waitingContribPairKey := string(rawdbv2.BuildWaitingPDEContributionKey(beaconHeight, refundContribution.PDEContributionPairID))
 		_, found := currentPDEState.WaitingPDEContributions[waitingContribPairKey]
 		if found {
 			delete(currentPDEState.WaitingPDEContributions, waitingContribPairKey)
 		}
-
 		contribStatus := metadata.PDEContributionStatus{
 			Status: byte(common.PDEContributionRefundStatus),
 		}
 		contribStatusBytes, _ := json.Marshal(contribStatus)
-		err = db.TrackPDEContributionStatus(
-			lvdb.PDEContributionStatusPrefix,
+		err = statedb.TrackPDEContributionStatus(
+			pdexStateDB,
+			rawdbv2.PDEContributionStatusPrefix,
 			[]byte(refundContribution.PDEContributionPairID),
 			contribStatusBytes,
 		)
@@ -153,13 +142,13 @@ func processPDEContributionV2(
 			Logger.log.Errorf("ERROR: an error occured while unmarshaling content string of pde matched contribution instruction: %+v", err)
 			return nil
 		}
-		waitingContribPairKey := string(lvdb.BuildWaitingPDEContributionKey(beaconHeight, matchedContribution.PDEContributionPairID))
+		waitingContribPairKey := string(rawdbv2.BuildWaitingPDEContributionKey(beaconHeight, matchedContribution.PDEContributionPairID))
 		existingWaitingContribution, found := currentPDEState.WaitingPDEContributions[waitingContribPairKey]
 		if !found || existingWaitingContribution == nil {
 			Logger.log.Errorf("ERROR: could not find out existing waiting contribution with unique pair id: %s", matchedContribution.PDEContributionPairID)
 			return nil
 		}
-		incomingWaitingContribution := &lvdb.PDEContribution{
+		incomingWaitingContribution := &rawdbv2.PDEContribution{
 			ContributorAddressStr: matchedContribution.ContributorAddressStr,
 			TokenIDStr:            matchedContribution.TokenIDStr,
 			Amount:                matchedContribution.ContributedAmount,
@@ -176,8 +165,9 @@ func processPDEContributionV2(
 			Status: byte(common.PDEContributionAcceptedStatus),
 		}
 		contribStatusBytes, _ := json.Marshal(contribStatus)
-		err = db.TrackPDEContributionStatus(
-			lvdb.PDEContributionStatusPrefix,
+		err = statedb.TrackPDEContributionStatus(
+			pdexStateDB,
+			rawdbv2.PDEContributionStatusPrefix,
 			[]byte(matchedContribution.PDEContributionPairID),
 			contribStatusBytes,
 		)
@@ -193,16 +183,16 @@ func processPDEContributionV2(
 			Logger.log.Errorf("ERROR: an error occured while unmarshaling content string of pde matched and returned contribution instruction: %+v", err)
 			return nil
 		}
-		waitingContribPairKey := string(lvdb.BuildWaitingPDEContributionKey(beaconHeight, matchedNReturnedContrib.PDEContributionPairID))
+		waitingContribPairKey := string(rawdbv2.BuildWaitingPDEContributionKey(beaconHeight, matchedNReturnedContrib.PDEContributionPairID))
 		waitingContribution, found := currentPDEState.WaitingPDEContributions[waitingContribPairKey]
 		if found && waitingContribution != nil {
-			incomingWaitingContribution := &lvdb.PDEContribution{
+			incomingWaitingContribution := &rawdbv2.PDEContribution{
 				ContributorAddressStr: matchedNReturnedContrib.ContributorAddressStr,
 				TokenIDStr:            matchedNReturnedContrib.TokenIDStr,
 				Amount:                matchedNReturnedContrib.ActualContributedAmount,
 				TxReqID:               matchedNReturnedContrib.TxReqID,
 			}
-			existingWaitingContribution := &lvdb.PDEContribution{
+			existingWaitingContribution := &rawdbv2.PDEContribution{
 				ContributorAddressStr: waitingContribution.ContributorAddressStr,
 				TokenIDStr:            waitingContribution.TokenIDStr,
 				Amount:                matchedNReturnedContrib.ActualWaitingContribAmount,
@@ -216,8 +206,9 @@ func processPDEContributionV2(
 			)
 			delete(currentPDEState.WaitingPDEContributions, waitingContribPairKey)
 		}
-		pdeStatusContentBytes, err := db.GetPDEContributionStatus(
-			lvdb.PDEContributionStatusPrefix,
+		pdeStatusContentBytes, err := statedb.GetPDEContributionStatus(
+			pdexStateDB,
+			rawdbv2.PDEContributionStatusPrefix,
 			[]byte(matchedNReturnedContrib.PDEContributionPairID),
 		)
 		if err != nil {
@@ -243,8 +234,9 @@ func processPDEContributionV2(
 				Returned1Amount:    matchedNReturnedContrib.ReturnedContributedAmount,
 			}
 			contribStatusBytes, _ := json.Marshal(contribStatus)
-			err := db.TrackPDEContributionStatus(
-				lvdb.PDEContributionStatusPrefix,
+			err := statedb.TrackPDEContributionStatus(
+				pdexStateDB,
+				rawdbv2.PDEContributionStatusPrefix,
 				[]byte(matchedNReturnedContrib.PDEContributionPairID),
 				contribStatusBytes,
 			)
@@ -263,8 +255,9 @@ func processPDEContributionV2(
 			contribStatus.Contributed2Amount = matchedNReturnedContrib.ActualContributedAmount
 			contribStatus.Returned2Amount = matchedNReturnedContrib.ReturnedContributedAmount
 			contribStatusBytes, _ := json.Marshal(contribStatus)
-			err = db.TrackPDEContributionStatus(
-				lvdb.PDEContributionStatusPrefix,
+			err = statedb.TrackPDEContributionStatus(
+				pdexStateDB,
+				rawdbv2.PDEContributionStatusPrefix,
 				[]byte(matchedNReturnedContrib.PDEContributionPairID),
 				contribStatusBytes,
 			)
@@ -278,15 +271,14 @@ func processPDEContributionV2(
 }
 
 func processPDETrade(
+	pdexStateDB *statedb.StateDB,
 	beaconHeight uint64,
 	instruction []string,
 	currentPDEState *CurrentPDEState,
-	blockchain BlockChain,
 ) error {
 	if len(instruction) != 4 {
 		return nil // skip the instruction
 	}
-	db := blockchain.GetDatabase()
 	if instruction[2] == common.PDETradeRefundChainStatus {
 		contentBytes, err := base64.StdEncoding.DecodeString(instruction[3])
 		if err != nil {
@@ -299,8 +291,9 @@ func processPDETrade(
 			Logger.log.Errorf("ERROR: an error occured while unmarshaling pde trade instruction: %+v", err)
 			return nil
 		}
-		err = db.TrackPDEStatus(
-			lvdb.PDETradeStatusPrefix,
+		err = statedb.TrackPDEStatus(
+			pdexStateDB,
+			rawdbv2.PDETradeStatusPrefix,
 			pdeTradeReqAction.TxReqID[:],
 			byte(common.PDETradeRefundStatus),
 		)
@@ -316,7 +309,7 @@ func processPDETrade(
 		return nil
 	}
 
-	pdePoolForPairKey := string(lvdb.BuildPDEPoolForPairKey(beaconHeight, pdeTradeAcceptedContent.Token1IDStr, pdeTradeAcceptedContent.Token2IDStr))
+	pdePoolForPairKey := string(rawdbv2.BuildPDEPoolForPairKey(beaconHeight, pdeTradeAcceptedContent.Token1IDStr, pdeTradeAcceptedContent.Token2IDStr))
 	pdePoolForPair, found := currentPDEState.PDEPoolPairs[pdePoolForPairKey]
 	if !found || pdePoolForPair == nil {
 		Logger.log.Errorf("WARNING: could not find out pdePoolForPair with token ids: %s & %s", pdeTradeAcceptedContent.Token1IDStr, pdeTradeAcceptedContent.Token2IDStr)
@@ -330,8 +323,9 @@ func processPDETrade(
 		pdePoolForPair.Token1PoolValue -= pdeTradeAcceptedContent.Token1PoolValueOperation.Value
 		pdePoolForPair.Token2PoolValue += pdeTradeAcceptedContent.Token2PoolValueOperation.Value
 	}
-	err = db.TrackPDEStatus(
-		lvdb.PDETradeStatusPrefix,
+	err = statedb.TrackPDEStatus(
+		pdexStateDB,
+		rawdbv2.PDETradeStatusPrefix,
 		pdeTradeAcceptedContent.RequestedTxID[:],
 		byte(common.PDETradeAcceptedStatus),
 	)
@@ -349,7 +343,7 @@ func deductSharesForWithdrawal(
 	amt uint64,
 	currentPDEState *CurrentPDEState,
 ) {
-	pdeShareKey := string(lvdb.BuildPDESharesKeyV2(beaconHeight, token1IDStr, token2IDStr, withdrawerAddressStr))
+	pdeShareKey := string(rawdbv2.BuildPDESharesKeyV2(beaconHeight, token1IDStr, token2IDStr, withdrawerAddressStr))
 	adjustingAmt := uint64(0)
 	currentAmt, found := currentPDEState.PDEShares[pdeShareKey]
 	if found && amt <= currentAmt {
@@ -359,15 +353,14 @@ func deductSharesForWithdrawal(
 }
 
 func processPDEWithdrawal(
+	pdexStateDB *statedb.StateDB,
 	beaconHeight uint64,
 	instruction []string,
 	currentPDEState *CurrentPDEState,
-	blockchain BlockChain,
 ) error {
 	if len(instruction) != 4 {
 		return nil // skip the instruction
 	}
-	db := blockchain.GetDatabase()
 	if instruction[2] == common.PDEWithdrawalRejectedChainStatus {
 		contentBytes, err := base64.StdEncoding.DecodeString(instruction[3])
 		if err != nil {
@@ -380,8 +373,9 @@ func processPDEWithdrawal(
 			Logger.log.Errorf("ERROR: an error occured while unmarshaling pde withdrawal request action: %+v", err)
 			return nil
 		}
-		err = db.TrackPDEStatus(
-			lvdb.PDEWithdrawalStatusPrefix,
+		err = statedb.TrackPDEStatus(
+			pdexStateDB,
+			rawdbv2.PDEWithdrawalStatusPrefix,
 			pdeWithdrawalRequestAction.TxReqID[:],
 			byte(common.PDEWithdrawalRejectedStatus),
 		)
@@ -399,7 +393,7 @@ func processPDEWithdrawal(
 	}
 
 	// update pde pool pair
-	pdePoolForPairKey := string(lvdb.BuildPDEPoolForPairKey(
+	pdePoolForPairKey := string(rawdbv2.BuildPDEPoolForPairKey(
 		beaconHeight,
 		wdAcceptedContent.PairToken1IDStr,
 		wdAcceptedContent.PairToken2IDStr,
@@ -424,8 +418,9 @@ func processPDEWithdrawal(
 		currentPDEState,
 	)
 
-	err = db.TrackPDEStatus(
-		lvdb.PDEWithdrawalStatusPrefix,
+	err = statedb.TrackPDEStatus(
+		pdexStateDB,
+		rawdbv2.PDEWithdrawalStatusPrefix,
 		wdAcceptedContent.TxReqID[:],
 		byte(common.PDEWithdrawalAcceptedStatus),
 	)

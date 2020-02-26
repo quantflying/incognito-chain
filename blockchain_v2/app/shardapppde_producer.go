@@ -4,9 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
 	"github.com/incognitochain/incognito-chain/transaction"
@@ -51,7 +50,8 @@ func buildTradeResTx(
 	requestedTxID common.Hash,
 	producerPrivateKey *privacy.PrivateKey,
 	shardID byte,
-	db database.DatabaseInterface,
+	transactionStateDB *statedb.StateDB,
+	bridgeStateDB *statedb.StateDB,
 ) (metadata.Transaction, error) {
 	meta := metadata.NewPDETradeResponse(
 		instStatus,
@@ -76,17 +76,14 @@ func buildTradeResTx(
 			receiveAmt,
 			&receiverAddr,
 			producerPrivateKey,
-			db,
+			transactionStateDB,
 			meta,
 		)
 		if err != nil {
-			return nil, blockchain.NewBlockChainError(blockchain.InitPDETradeResponseTransactionError, err)
+			return nil, NewAppError(InitPDETradeResponseTransactionError, err)
 		}
-		//modify the type of the salary transaction
-		// resTx.Type = common.TxBlockProducerCreatedType
 		return resTx, nil
 	}
-
 	// in case the returned currency is privacy custom token
 	receiver := &privacy.PaymentInfo{
 		Amount:         receiveAmt,
@@ -113,12 +110,13 @@ func buildTradeResTx(
 			nil,
 			0,
 			tokenParams,
-			db,
+			transactionStateDB,
 			meta,
 			false,
 			false,
 			shardID,
 			nil,
+			bridgeStateDB,
 		),
 	)
 	if initErr != nil {
@@ -133,7 +131,8 @@ func buildPDETradeRefundTx(
 	contentStr string,
 	producerPrivateKey *privacy.PrivateKey,
 	shardID byte,
-	blockchain BlockChain,
+	transactionStateDB *statedb.StateDB,
+	bridgeStateDB *statedb.StateDB,
 ) (metadata.Transaction, error) {
 	pdeTradeRequestAction, err := parseTradeRefundContent(contentStr)
 	if err != nil {
@@ -150,7 +149,8 @@ func buildPDETradeRefundTx(
 		pdeTradeRequestAction.TxReqID,
 		producerPrivateKey,
 		shardID,
-		blockchain.GetDatabase(),
+		transactionStateDB,
+		bridgeStateDB,
 	)
 	if err != nil {
 		Logger.log.Errorf("ERROR: an error occured while initializing refunded trading response tx: %+v", err)
@@ -165,7 +165,8 @@ func buildPDETradeAcceptedTx(
 	contentStr string,
 	producerPrivateKey *privacy.PrivateKey,
 	shardID byte,
-	blockchain BlockChain,
+	transactionStateDB *statedb.StateDB,
+	bridgeStateDB *statedb.StateDB,
 ) (metadata.Transaction, error) {
 	pdeTradeAcceptedContent, err := parseTradeAcceptedContent(contentStr)
 	if err != nil {
@@ -182,7 +183,8 @@ func buildPDETradeAcceptedTx(
 		pdeTradeAcceptedContent.RequestedTxID,
 		producerPrivateKey,
 		shardID,
-		blockchain.GetDatabase(),
+		transactionStateDB,
+		bridgeStateDB,
 	)
 	if err != nil {
 		Logger.log.Errorf("ERROR: an error occured while initializing accepted trading response tx: %+v", err)
@@ -197,7 +199,8 @@ func buildPDETradeIssuanceTx(
 	contentStr string,
 	producerPrivateKey *privacy.PrivateKey,
 	shardID byte,
-	blockchain BlockChain,
+	transactionStateDB *statedb.StateDB,
+	bridgeStateDB *statedb.StateDB,
 ) (metadata.Transaction, error) {
 	Logger.log.Info("[PDE Trade] Starting...")
 	if instStatus == common.PDETradeRefundChainStatus {
@@ -206,7 +209,8 @@ func buildPDETradeIssuanceTx(
 			contentStr,
 			producerPrivateKey,
 			shardID,
-			blockchain,
+			transactionStateDB,
+			bridgeStateDB,
 		)
 	}
 	return buildPDETradeAcceptedTx(
@@ -214,7 +218,8 @@ func buildPDETradeIssuanceTx(
 		contentStr,
 		producerPrivateKey,
 		shardID,
-		blockchain,
+		transactionStateDB,
+		bridgeStateDB,
 	)
 }
 
@@ -222,7 +227,8 @@ func buildPDEWithdrawalTx(
 	contentStr string,
 	producerPrivateKey *privacy.PrivateKey,
 	shardID byte,
-	blockchain BlockChain,
+	transactionStateDB *statedb.StateDB,
+	bridgeStateDB *statedb.StateDB,
 ) (metadata.Transaction, error) {
 	Logger.log.Info("[PDE Withdrawal] Starting...")
 	contentBytes := []byte(contentStr)
@@ -260,7 +266,7 @@ func buildPDEWithdrawalTx(
 			wdAcceptedContent.DeductingPoolValue,
 			&receiverAddr,
 			producerPrivateKey,
-			blockchain.GetDatabase(),
+			transactionStateDB,
 			meta,
 		)
 		if err != nil {
@@ -271,7 +277,6 @@ func buildPDEWithdrawalTx(
 		// resTx.Type = common.TxBlockProducerCreatedType
 		return resTx, nil
 	}
-
 	// in case the returned currency is privacy custom token
 	receiver := &privacy.PaymentInfo{
 		Amount:         wdAcceptedContent.DeductingPoolValue,
@@ -298,12 +303,13 @@ func buildPDEWithdrawalTx(
 			nil,
 			0,
 			tokenParams,
-			blockchain.GetDatabase(),
+			transactionStateDB,
 			meta,
 			false,
 			false,
 			shardID,
 			nil,
+			bridgeStateDB,
 		),
 	)
 	if initErr != nil {
@@ -317,7 +323,8 @@ func buildPDERefundContributionTx(
 	contentStr string,
 	producerPrivateKey *privacy.PrivateKey,
 	shardID byte,
-	blockchain BlockChain,
+	transactionStateDB *statedb.StateDB,
+	bridgeStateDB *statedb.StateDB,
 ) (metadata.Transaction, error) {
 	Logger.log.Info("[PDE Refund contribution] Starting...")
 	contentBytes := []byte(contentStr)
@@ -356,7 +363,7 @@ func buildPDERefundContributionTx(
 			refundContribution.ContributedAmount,
 			&receiverAddr,
 			producerPrivateKey,
-			blockchain.GetDatabase(),
+			transactionStateDB,
 			meta,
 		)
 		if err != nil {
@@ -394,12 +401,13 @@ func buildPDERefundContributionTx(
 			nil,
 			0,
 			tokenParams,
-			blockchain.GetDatabase(),
+			transactionStateDB,
 			meta,
 			false,
 			false,
 			shardID,
 			nil,
+			bridgeStateDB,
 		),
 	)
 	if initErr != nil {
@@ -413,7 +421,8 @@ func buildPDEMatchedNReturnedContributionTx(
 	contentStr string,
 	producerPrivateKey *privacy.PrivateKey,
 	shardID byte,
-	blockchain BlockChain,
+	transactionStateDB *statedb.StateDB,
+	bridgeStateDB *statedb.StateDB,
 ) (metadata.Transaction, error) {
 	Logger.log.Info("[PDE Matched and Returned contribution] Starting...")
 	contentBytes := []byte(contentStr)
@@ -455,7 +464,7 @@ func buildPDEMatchedNReturnedContributionTx(
 			matchedNReturnedContribution.ReturnedContributedAmount,
 			&receiverAddr,
 			producerPrivateKey,
-			blockchain.GetDatabase(),
+			transactionStateDB,
 			meta,
 		)
 		if err != nil {
@@ -491,12 +500,13 @@ func buildPDEMatchedNReturnedContributionTx(
 			nil,
 			0,
 			tokenParams,
-			blockchain.GetDatabase(),
+			transactionStateDB,
 			meta,
 			false,
 			false,
 			shardID,
 			nil,
+			bridgeStateDB,
 		),
 	)
 	if initErr != nil {

@@ -4,74 +4,69 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
 )
 
 type BeaconBridgeApp struct {
 	Logger        common.Logger
-	CreateState   *CreateBeaconBlockState
-	ValidateState *ValidateBeaconBlockState
-	StoreState    *StoreBeaconDatabaseState
+	createState   *CreateBeaconBlockState
+	validateState *ValidateBeaconBlockState
+	storeState    *StoreBeaconDatabaseState
 	storeSuccess  bool
 }
 
-func (s *BeaconBridgeApp) preCreateBlock() error {
+func (bba *BeaconBridgeApp) preCreateBlock() error {
 	return nil
 }
 
-func (s *BeaconBridgeApp) buildInstructionByEpoch() error {
+func (bba *BeaconBridgeApp) buildInstructionByEpoch() error {
 	return nil
 }
 
-func (s *BeaconBridgeApp) buildInstructionFromShardAction() error {
-	if len(s.CreateState.s2bBlks) == 0 {
+func (bba *BeaconBridgeApp) buildInstructionFromShardAction() error {
+	if len(bba.createState.s2bBlks) == 0 {
 		return nil
 	}
-	db := s.CreateState.bc.GetDatabase()
-	newBeaconHeight := s.CreateState.curView.GetHeight() + 1
+	newBeaconHeight := bba.createState.curView.GetHeight() + 1
 
-	for shardID, shardBlocks := range s.CreateState.s2bBlks {
+	for shardID, shardBlocks := range bba.createState.s2bBlks {
 		for _, block := range shardBlocks {
 			bridgeInstructionForBlock, err := buildBridgeInstructions(
+				bba.createState.curView.GetCopiedFeatureStateDB(),
 				shardID,
 				block.GetInstructions(),
 				newBeaconHeight,
-				db,
-				s.Logger,
 			)
 			if err != nil {
-				s.Logger.Errorf("Build bridge instructions failed: %s", err.Error())
+				bba.Logger.Errorf("Build bridge instructions failed: %bba", err.Error())
 			}
-			// Pick instruction with shard committee's pubkeys to save to beacon block
+			// Pick instruction with shard committee'bba pubkeys to save to beacon block
 			confirmInsts := pickBridgeSwapConfirmInst(block)
 			if len(confirmInsts) > 0 {
 				bridgeInstructionForBlock = append(bridgeInstructionForBlock, confirmInsts...)
-				s.Logger.Infof("Beacon block %d found bridge swap confirm inst in shard block %d: %s", newBeaconHeight, block.GetShardHeader().GetHeight(), confirmInsts)
+				bba.Logger.Infof("Beacon block %d found bridge swap confirm inst in shard block %d: %bba", newBeaconHeight, block.GetShardHeader().GetHeight(), confirmInsts)
 			}
 
-			s.CreateState.bridgeInstructions = append(s.CreateState.bridgeInstructions, bridgeInstructionForBlock...)
+			bba.createState.bridgeInstructions = append(bba.createState.bridgeInstructions, bridgeInstructionForBlock...)
 		}
 	}
 	return nil
 }
 
-func (s *BeaconBridgeApp) buildHeader() error {
+func (bba *BeaconBridgeApp) buildHeader() error {
 	return nil
 }
 
-func (s *BeaconBridgeApp) updateNewViewFromBlock(block blockinterface.BeaconBlockInterface) error {
+func (bba *BeaconBridgeApp) updateNewViewFromBlock(block blockinterface.BeaconBlockInterface) error {
 	return nil
 }
 
-func (s *BeaconBridgeApp) preValidate() error {
+func (bba *BeaconBridgeApp) preValidate() error {
 	return nil
 }
 
 //==============================Save Database Logic===========================
-func (s *BeaconBridgeApp) storeDatabase() error {
-	//TODO: store db?
-	batchPutData := []database.BatchData{}
-	err := storeBridgeInstructions(s.StoreState.block, &batchPutData, s.StoreState.bc, s.Logger)
+func (bba *BeaconBridgeApp) storeDatabase() error {
+	err := storeBridgeInstructions(bba.storeState.curView.featureStateDB, bba.storeState.block)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.ProcessBridgeInstructionError, err)
 	}

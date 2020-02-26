@@ -357,7 +357,7 @@ func (shardBlock *ShardBlock) CreateCrossShardBlock(shardID byte) (blockinterfac
 	if len(crossOutputCoin) == 0 && len(crossCustomTokenPrivacyData) == 0 {
 		return nil, blockchain.NewBlockChainError(blockchain.CreateCrossShardBlockError, errors.New("No cross Outputcoin, Cross Custom Token, Cross Custom Token Privacy"))
 	}
-	merklePathShard, merkleShardRoot := blockchain.GetMerklePathCrossShard2(shardBlock.Body.Transactions, shardID)
+	merklePathShard, merkleShardRoot := blockchain.GetMerklePathCrossShard(shardBlock.Body.Transactions, shardID)
 	if merkleShardRoot != shardBlock.Header.ShardTxRoot {
 		return crossShard, blockchain.NewBlockChainError(blockchain.VerifyCrossShardBlockShardTxRootError, fmt.Errorf("Expect Shard Tx Root To be %+v but get %+v", shardBlock.Header.ShardTxRoot, merkleShardRoot))
 	}

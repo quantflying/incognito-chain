@@ -17,11 +17,12 @@ type BeaconCoreApp struct {
 	CreateState   *CreateBeaconBlockState
 	ValidateState *ValidateBeaconBlockState
 	StoreState    *StoreBeaconDatabaseState
+	bc            *blockchainV2
 	storeSuccess  bool
 }
 
-func (s *BeaconCoreApp) preCreateBlock() error {
-	state := s.CreateState
+func (bca *BeaconCoreApp) preCreateBlock() error {
+	state := bca.CreateState
 	curView := state.curView
 	if state.s2bBlks == nil {
 		//TODO: get s2b blocks from pool => s2bBlks
@@ -29,32 +30,32 @@ func (s *BeaconCoreApp) preCreateBlock() error {
 		state.s2bBlks = make(map[byte][]blockinterface.ShardToBeaconBlockInterface)
 
 		//newEpoch? endEpoch? finalBlockInEpoch?
-		if (curView.GetHeight()+1)%GetChainParams().Epoch == 1 {
+		if (curView.GetHeight()+1)%bca.bc.chainParams.Epoch == 1 {
 			state.isNewEpoch = true
 		}
-		if (curView.GetHeight()+1)%GetChainParams().Epoch == 0 {
+		if (curView.GetHeight()+1)%bca.bc.chainParams.Epoch == 0 {
 			state.isEndEpoch = true
 		}
-		if (curView.GetHeight()+1)%GetChainParams().Epoch == GetChainParams().RandomTime {
+		if (curView.GetHeight()+1)%bca.bc.chainParams.Epoch == bca.bc.chainParams.RandomTime {
 			state.isRandomTime = true
 		}
 
 		//shardstates
-		s.CreateState.shardStates = extractShardStateFromShardBlocks(state.s2bBlks)
+		bca.CreateState.shardStates = extractShardStateFromShardBlocks(state.s2bBlks)
 	}
 
 	return nil
 }
 
-func (s *BeaconCoreApp) buildInstructionByEpoch() error {
-	state := s.CreateState
+func (bca *BeaconCoreApp) buildInstructionByEpoch() error {
+	state := bca.CreateState
 	curView := state.curView
 
 	//build reward instruction
 	if state.isNewEpoch {
 		var err error
-		if state.rewardInstByEpoch, err = curView.getRewardInstByEpoch(); err != nil {
-			return blockchain.NewBlockChainError(blockchain.BuildRewardInstructionError, err)
+		if state.rewardInstByEpoch, err = curView.buildRewardInstructionByEpoch(); err != nil {
+			return NewAppError(BuildRewardInstructionError, err)
 		}
 	}
 
@@ -68,22 +69,22 @@ func (s *BeaconCoreApp) buildInstructionByEpoch() error {
 
 	//build random instruction
 	if curView.IsGettingRandomNumber {
-		if err := s.buildRandomInstruction(); err != nil {
+		if err := bca.buildRandomInstruction(); err != nil {
 			panic(err)
 		}
 	}
 
 	//build assign instruction - if getting random number and get one random
 	if curView.IsGettingRandomNumber && len(state.randomInstruction) >= 1 {
-		if err := s.buildAssignInstruction(); err != nil {
+		if err := bca.buildAssignInstruction(); err != nil {
 			panic(err)
 		}
 	}
 	return nil
 }
 
-func (s *BeaconCoreApp) buildInstructionFromShardAction() error {
-	state := s.CreateState
+func (bca *BeaconCoreApp) buildInstructionFromShardAction() error {
+	state := bca.CreateState
 	curView := state.curView
 
 	//build staking & auto staking instruction & shard committee instruction
@@ -106,35 +107,36 @@ func (s *BeaconCoreApp) buildInstructionFromShardAction() error {
 		}
 	}
 
-	s.CreateState.validStakeInstructions = validStakeInstructions
-	s.CreateState.validSwapInstructions = validSwapInstructions
-	s.CreateState.acceptedRewardInstructions = acceptedRewardInstructions
-	s.CreateState.validStopAutoStakingInstructions = validStopAutoStakingInstructions
+	bca.CreateState.validStakeInstructions = validStakeInstructions
+	bca.CreateState.validSwapInstructions = validSwapInstructions
+	bca.CreateState.acceptedRewardInstructions = acceptedRewardInstructions
+	bca.CreateState.validStopAutoStakingInstructions = validStopAutoStakingInstructions
 	return nil
 }
 
-func (s *BeaconCoreApp) buildHeader() error {
-	curView := s.CreateState.curView
+func (bca *BeaconCoreApp) buildHeader() error {
+	curView := bca.CreateState.curView
 
-	newBlock := s.CreateState.newBlock.(*beaconblockv2.BeaconBlock)
+	newBlock := bca.CreateState.newBlock.(*beaconblockv2.BeaconBlock)
 	newBlockHeader := beaconblockv2.BeaconHeader{}
 	newBlockConsensusHeader := consensusheader.ConsensusHeader{}
 
 	//======Build Header Essential Data=======
-	newBlockHeader.Version = blockchain.BEACON_BLOCK_VERSION2
+	// TODO: resolved this: WHY WE NEED INTERFACE when we assign VERSION Directly to header????
+	newBlockHeader.Version = BEACON_BLOCK_VERSION_2
 	newBlockHeader.Height = curView.GetHeight() + 1
-	if s.CreateState.isNewEpoch {
+	if bca.CreateState.isNewEpoch {
 		newBlockHeader.Epoch = curView.GetEpoch() + 1
 	}
 	newBlockHeader.ConsensusType = common.BlsConsensus
-	newBlockHeader.Producer = s.CreateState.proposer
+	newBlockHeader.Producer = bca.CreateState.proposer
 
-	newBlockHeader.Timestamp = s.CreateState.createTimeStamp
-	newBlockHeader.TimeSlot = s.CreateState.createTimeSlot
+	newBlockHeader.Timestamp = bca.CreateState.createTimeStamp
+	newBlockHeader.TimeSlot = bca.CreateState.createTimeSlot
 	newBlockHeader.PreviousBlockHash = curView.Hash()
 
-	newBlockConsensusHeader.Proposer = s.CreateState.proposer
-	newBlockConsensusHeader.TimeSlot = s.CreateState.createTimeSlot
+	newBlockConsensusHeader.Proposer = bca.CreateState.proposer
+	newBlockConsensusHeader.TimeSlot = bca.CreateState.createTimeSlot
 
 	//============Build Header Hash=============
 	// create new view
@@ -143,51 +145,51 @@ func (s *BeaconCoreApp) buildHeader() error {
 	// 	return err
 	// }
 	// newView := newViewInterface.(*BeaconView)
-	newView := s.CreateState.newView
+	newView := bca.CreateState.newView
 	// BeaconValidator root: beacon committee + beacon pending committee
 	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconCommittee)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+		return NewAppError(UnExpectedError, err)
 	}
 	validatorArr := append([]string{}, beaconCommitteeStr...)
 
 	beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconPendingValidator)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+		return NewAppError(UnExpectedError, err)
 	}
 	validatorArr = append(validatorArr, beaconPendingValidatorStr...)
 	tempBeaconCommitteeAndValidatorRoot, err := GenerateHashFromStringArray(validatorArr)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.GenerateBeaconCommitteeAndValidatorRootError, err)
+		return NewAppError(GenerateBeaconCommitteeAndValidatorRootError, err)
 	}
 	// BeaconCandidate root: beacon current candidate + beacon next candidate
 	beaconCandidateArr := append(newView.CandidateBeaconWaitingForCurrentRandom, newView.CandidateBeaconWaitingForNextRandom...)
 
 	beaconCandidateArrStr, err := incognitokey.CommitteeKeyListToString(beaconCandidateArr)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+		return NewAppError(UnExpectedError, err)
 	}
 	tempBeaconCandidateRoot, err := GenerateHashFromStringArray(beaconCandidateArrStr)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.GenerateBeaconCandidateRootError, err)
+		return NewAppError(GenerateBeaconCandidateRootError, err)
 	}
 	// Shard candidate root: shard current candidate + shard next candidate
 	shardCandidateArr := append(newView.CandidateShardWaitingForCurrentRandom, newView.CandidateShardWaitingForNextRandom...)
 
 	shardCandidateArrStr, err := incognitokey.CommitteeKeyListToString(shardCandidateArr)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+		return NewAppError(UnExpectedError, err)
 	}
 	tempShardCandidateRoot, err := GenerateHashFromStringArray(shardCandidateArrStr)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.GenerateShardCandidateRootError, err)
+		return NewAppError(GenerateShardCandidateRootError, err)
 	}
 	// Shard Validator root
 	shardPendingValidator := make(map[byte][]string)
 	for shardID, keys := range newView.ShardPendingValidator {
 		keysStr, err := incognitokey.CommitteeKeyListToString(keys)
 		if err != nil {
-			return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+			return NewAppError(UnExpectedError, err)
 		}
 		shardPendingValidator[shardID] = keysStr
 	}
@@ -196,40 +198,40 @@ func (s *BeaconCoreApp) buildHeader() error {
 	for shardID, keys := range newView.ShardCommittee {
 		keysStr, err := incognitokey.CommitteeKeyListToString(keys)
 		if err != nil {
-			return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+			return NewAppError(UnExpectedError, err)
 		}
 		shardCommittee[shardID] = keysStr
 	}
 
 	tempShardCommitteeAndValidatorRoot, err := GenerateHashFromMapByteString(shardPendingValidator, shardCommittee)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.GenerateShardCommitteeAndValidatorRootError, err)
+		return NewAppError(GenerateShardCommitteeAndValidatorRootError, err)
 	}
 
 	tempAutoStakingRoot, err := GenerateHashFromMapStringBool(newView.AutoStaking)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.AutoStakingRootHashError, err)
+		return NewAppError(AutoStakingRootHashError, err)
 	}
 	// Shard state hash
-	tempShardStateHash, err := GenerateHashFromShardState(s.CreateState.shardStates)
+	tempShardStateHash, err := GenerateHashFromShardState(bca.CreateState.shardStates)
 	if err != nil {
 		Logger.log.Error(err)
-		return blockchain.NewBlockChainError(blockchain.GenerateShardStateError, err)
+		return NewAppError(GenerateShardStateError, err)
 	}
 	// Instruction Hash
 	tempInstructionArr := []string{}
-	for _, strs := range s.CreateState.newBlock.GetBody().GetInstructions() {
+	for _, strs := range bca.CreateState.newBlock.GetBody().GetInstructions() {
 		tempInstructionArr = append(tempInstructionArr, strs...)
 	}
 	tempInstructionHash, err := GenerateHashFromStringArray(tempInstructionArr)
 	if err != nil {
 		Logger.log.Error(err)
-		return blockchain.NewBlockChainError(blockchain.GenerateInstructionHashError, err)
+		return NewAppError(GenerateInstructionHashError, err)
 	}
 	// Instruction merkle root
-	flattenInsts, err := blockchain.FlattenAndConvertStringInst(s.CreateState.newBlock.GetBody().GetInstructions())
+	flattenInsts, err := FlattenAndConvertStringInst(bca.CreateState.newBlock.GetBody().GetInstructions())
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.FlattenAndConvertStringInstError, err)
+		return NewAppError(FlattenAndConvertStringInstError, err)
 	}
 	// add hash to header
 	newBlockHeader.BeaconCommitteeAndValidatorRoot = tempBeaconCommitteeAndValidatorRoot
@@ -243,18 +245,18 @@ func (s *BeaconCoreApp) buildHeader() error {
 
 	newBlock.Header = newBlockHeader
 	newBlock.ConsensusHeader = consensusheader.ConsensusHeader{
-		TimeSlot:       s.CreateState.createTimeSlot,
-		Proposer:       s.CreateState.proposer,
+		TimeSlot:       bca.CreateState.createTimeSlot,
+		Proposer:       bca.CreateState.proposer,
 		ValidationData: "",
 	}
-	s.CreateState.newBlock = newBlock
+	bca.CreateState.newBlock = newBlock
 	return nil
 }
 
-func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockInterface) (err error) {
-	s.CreateState.newView.Block = block
-	newView := s.CreateState.newView
-	//curView := s.CreateState.curView
+func (bca *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockInterface) (err error) {
+	bca.CreateState.newView.Block = block
+	newView := bca.CreateState.newView
+	//curView := bca.createState.curView
 	newShardCandidates := []incognitokey.CommitteePublicKey{}
 	newBeaconCandidates := []incognitokey.CommitteePublicKey{}
 	randomFlag := false
@@ -264,7 +266,7 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 			if newView.IsGettingRandomNumber { //only process if in getting random number
 				newView.CurrentRandomNumber, err = extractRandomInst(inst)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.ProcessRandomInstructionError, err)
+					return NewAppError(ProcessRandomInstructionError, err)
 				}
 				randomFlag = true
 			}
@@ -288,28 +290,28 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 		case ShardSwapInst:
 			in, out, shardID, err := extractShardSwapInst(inst)
 			if err != nil {
-				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				return NewAppError(UnExpectedError, err)
 			}
 
 			// delete in public key out of sharding pending validator list
 			if len(in) > 0 {
 				shardPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(newView.ShardPendingValidator[shardID])
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				tempShardPendingValidator, err := RemoveValidator(shardPendingValidatorStr, in)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+					return NewAppError(ProcessSwapInstructionError, err)
 				}
 				// update shard pending validator
 				newView.ShardPendingValidator[shardID], err = incognitokey.CommitteeBase58KeyListToStruct(tempShardPendingValidator)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+					return NewAppError(ProcessSwapInstructionError, err)
 				}
 				// add new public key to committees
 				inPublickeyStructs, err := incognitokey.CommitteeBase58KeyListToStruct(in)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				newView.ShardCommittee[shardID] = append(newView.ShardCommittee[shardID], inPublickeyStructs...)
 			}
@@ -318,21 +320,21 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 			if len(out) > 0 {
 				outPublickeyStructs, err := incognitokey.CommitteeBase58KeyListToStruct(out)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 
 				shardCommitteeStr, err := incognitokey.CommitteeKeyListToString(newView.ShardCommittee[shardID])
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				tempShardCommittees, err := RemoveValidator(shardCommitteeStr, out)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+					return NewAppError(ProcessSwapInstructionError, err)
 				}
 				// remove old public key in shard committee update shard committee
 				newView.ShardCommittee[shardID], err = incognitokey.CommitteeBase58KeyListToStruct(tempShardCommittees)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				// Check auto stake in out public keys list
 				// if auto staking not found or flag auto stake is false then do not re-stake for this out public key
@@ -351,7 +353,7 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 						} else {
 							shardCandidate, err := incognitokey.CommitteeBase58KeyListToStruct([]string{outPublicKey})
 							if err != nil {
-								return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+								return NewAppError(UnExpectedError, err)
 							}
 							newShardCandidates = append(newShardCandidates, shardCandidate...)
 						}
@@ -365,21 +367,21 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 			if len(in) > 0 {
 				beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconPendingValidator)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				tempBeaconPendingValidator, err := RemoveValidator(beaconPendingValidatorStr, in)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+					return NewAppError(ProcessSwapInstructionError, err)
 				}
 				// update beacon pending validator
 				newView.BeaconPendingValidator, err = incognitokey.CommitteeBase58KeyListToStruct(tempBeaconPendingValidator)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				// add new public key to beacon committee
 				inPublickeyStructs, err := incognitokey.CommitteeBase58KeyListToStruct(in)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				newView.BeaconCommittee = append(newView.BeaconCommittee, inPublickeyStructs...)
 			}
@@ -387,20 +389,20 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 			if len(out) > 0 {
 				outPublickeyStructs, err := incognitokey.CommitteeBase58KeyListToStruct(out)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(newView.BeaconCommittee)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				tempBeaconCommittes, err := RemoveValidator(beaconCommitteeStr, out)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.ProcessSwapInstructionError, err)
+					return NewAppError(ProcessSwapInstructionError, err)
 				}
 				// remove old public key in beacon committee and update beacon best state
 				newView.BeaconCommittee, err = incognitokey.CommitteeBase58KeyListToStruct(tempBeaconCommittes)
 				if err != nil {
-					return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+					return NewAppError(UnExpectedError, err)
 				}
 				for index, outPublicKey := range out {
 					if isAutoRestaking, ok := newView.AutoStaking[outPublicKey]; !ok {
@@ -415,7 +417,7 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 						} else {
 							beaconCandidate, err := incognitokey.CommitteeBase58KeyListToStruct([]string{outPublicKey})
 							if err != nil {
-								return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+								return NewAppError(UnExpectedError, err)
 							}
 							newBeaconCandidates = append(newBeaconCandidates, beaconCandidate...)
 						}
@@ -426,10 +428,10 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 			beaconCandidates, _, beaconRewardReceivers, beaconAutoReStaking := extractBeaconStakeInst(inst)
 			beaconCandidatesStructs, err := incognitokey.CommitteeBase58KeyListToStruct(beaconCandidates)
 			if err != nil {
-				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				return NewAppError(UnExpectedError, err)
 			}
 			if len(beaconCandidatesStructs) != len(beaconRewardReceivers) && len(beaconRewardReceivers) != len(beaconAutoReStaking) {
-				return blockchain.NewBlockChainError(blockchain.StakeInstructionError, fmt.Errorf("Expect Beacon Candidate (length %+v) and Beacon Reward Receiver (length %+v) and Beacon Auto ReStaking (lenght %+v) have equal length"))
+				return NewAppError(StakeInstructionError, fmt.Errorf("Expect Beacon Candidate (length %+v) and Beacon Reward Receiver (length %+v) and Beacon Auto ReStaking (lenght %+v) have equal length"))
 			}
 			for index, candidate := range beaconCandidatesStructs {
 				newView.RewardReceiver[candidate.GetIncKeyBase58()] = beaconRewardReceivers[index]
@@ -445,10 +447,10 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 			shardCandidates, _, shardRewardReceivers, shardAutoReStaking := extractShardStakeInst(inst)
 			shardCandidatesStructs, err := incognitokey.CommitteeBase58KeyListToStruct(shardCandidates)
 			if err != nil {
-				return blockchain.NewBlockChainError(blockchain.UnExpectedError, err)
+				return NewAppError(UnExpectedError, err)
 			}
 			if len(shardCandidates) != len(shardRewardReceivers) && len(shardRewardReceivers) != len(shardAutoReStaking) {
-				return blockchain.NewBlockChainError(blockchain.StakeInstructionError, fmt.Errorf("Expect Beacon Candidate (length %+v) and Beacon Reward Receiver (length %+v) and Shard Auto ReStaking (length %+v) have equal length"))
+				return NewAppError(StakeInstructionError, fmt.Errorf("Expect Beacon Candidate (length %+v) and Beacon Reward Receiver (length %+v) and Shard Auto ReStaking (length %+v) have equal length"))
 			}
 			for index, candidate := range shardCandidatesStructs {
 				newView.RewardReceiver[candidate.GetIncKeyBase58()] = shardRewardReceivers[index]
@@ -469,24 +471,24 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 	newView.CandidateBeaconWaitingForNextRandom = append(newView.CandidateBeaconWaitingForNextRandom, newBeaconCandidates...)
 	newView.CandidateShardWaitingForNextRandom = append(newView.CandidateShardWaitingForNextRandom, newShardCandidates...)
 
-	if s.CreateState.isNewEpoch {
+	if bca.CreateState.isNewEpoch {
 		// Begin of each epoch
 		newView.IsGettingRandomNumber = false
 		// Before get random from bitcoin
 	}
 
-	if s.CreateState.isRandomTime {
+	if bca.CreateState.isRandomTime {
 		newView.IsGettingRandomNumber = true
 		// snapshot candidate list
 		newView.CandidateShardWaitingForCurrentRandom = append(newView.CandidateShardWaitingForCurrentRandom, newView.CandidateShardWaitingForNextRandom...)
 		newView.CandidateBeaconWaitingForCurrentRandom = append(newView.CandidateBeaconWaitingForCurrentRandom, newView.CandidateBeaconWaitingForNextRandom...)
-		s.Logger.Info("Beacon Process: CandidateShardWaitingForCurrentRandom: ", newView.CandidateShardWaitingForCurrentRandom)
-		s.Logger.Info("Beacon Process: CandidateBeaconWaitingForCurrentRandom: ", newView.CandidateBeaconWaitingForCurrentRandom)
+		bca.Logger.Info("Beacon Process: CandidateShardWaitingForCurrentRandom: ", newView.CandidateShardWaitingForCurrentRandom)
+		bca.Logger.Info("Beacon Process: CandidateBeaconWaitingForCurrentRandom: ", newView.CandidateBeaconWaitingForCurrentRandom)
 		// reset candidate list
 		newView.CandidateShardWaitingForNextRandom = []incognitokey.CommitteePublicKey{}
 		newView.CandidateBeaconWaitingForNextRandom = []incognitokey.CommitteePublicKey{}
 		// assign random timestamp
-		newView.CurrentRandomTimeStamp = s.CreateState.createTimeStamp
+		newView.CurrentRandomTimeStamp = bca.CreateState.createTimeStamp
 	}
 
 	// if get new random number
@@ -504,7 +506,7 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 			panic(err)
 		}
 
-		remainShardCandidatesStr, assignedCandidates := assignShardCandidate(shardCandidatesStr, numberOfPendingValidator, newView.CurrentRandomNumber, GetChainParams().AssignOffset, newView.GetActiveShard())
+		remainShardCandidatesStr, assignedCandidates := assignShardCandidate(shardCandidatesStr, numberOfPendingValidator, newView.CurrentRandomNumber, bca.bc.chainParams.AssignOffset, newView.bc.GetActiveShard())
 		remainShardCandidates, err := incognitokey.CommitteeBase58KeyListToStruct(remainShardCandidatesStr)
 		if err != nil {
 			panic(err)
@@ -527,7 +529,7 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 		// shuffle CandidateBeaconWaitingForCurrentRandom with current random number
 		newBeaconPendingValidator, err := ShuffleCandidate(newView.CandidateBeaconWaitingForCurrentRandom, newView.CurrentRandomNumber)
 		if err != nil {
-			return blockchain.NewBlockChainError(blockchain.ShuffleBeaconCandidateError, err)
+			return NewAppError(ShuffleBeaconCandidateError, err)
 		}
 		newView.CandidateBeaconWaitingForCurrentRandom = []incognitokey.CommitteePublicKey{}
 		newView.BeaconPendingValidator = append(newView.BeaconPendingValidator, newBeaconPendingValidator...)
@@ -536,41 +538,41 @@ func (s *BeaconCoreApp) updateNewViewFromBlock(block blockinterface.BeaconBlockI
 	return nil
 }
 
-// import stuff from ValidateState block to CreateState
-func (s *BeaconCoreApp) preValidate() error {
+// import stuff from validateState block to createState
+func (bca *BeaconCoreApp) preValidate() error {
 
-	if s.ValidateState.isPreSign {
-		state := s.CreateState
+	if bca.ValidateState.isPreSign {
+		state := bca.CreateState
 		curView := state.curView
 		//TODO: get s2b blocks from pool => s2bBlks
 		// -> Only accept block in one epoch
 		state.s2bBlks = make(map[byte][]blockinterface.ShardToBeaconBlockInterface)
-		// for shardID, shardState := range s.ValidateState.newView.Block.Body.ShardState {
+		// for shardID, shardState := range bca.validateState.newView.Block.Body.ShardState {
 		// 	for _,  := range shardState {
 
 		// 	}
 		// }
 		//newEpoch? endEpoch? finalBlockInEpoch?
 
-		if (curView.GetHeight()+1)%GetChainParams().Epoch == 1 {
+		if (curView.GetHeight()+1)%bca.bc.chainParams.Epoch == 1 {
 			state.isNewEpoch = true
 		}
-		if (curView.GetHeight()+1)%GetChainParams().Epoch == 0 {
+		if (curView.GetHeight()+1)%bca.bc.chainParams.Epoch == 0 {
 			state.isEndEpoch = true
 		}
-		if (curView.GetHeight()+1)%GetChainParams().Epoch == GetChainParams().RandomTime {
+		if (curView.GetHeight()+1)%bca.bc.chainParams.Epoch == bca.bc.chainParams.RandomTime {
 			state.isRandomTime = true
 		}
 
 		//shardstates
-		s.CreateState.shardStates = extractShardStateFromShardBlocks(state.s2bBlks)
+		bca.CreateState.shardStates = extractShardStateFromShardBlocks(state.s2bBlks)
 	}
 
 	return nil
 }
 
 //==============================Save Database Logic===========================
-func (s *BeaconCoreApp) storeDatabase() error {
+func (bca *BeaconCoreApp) storeDatabase() error {
 
 	return nil
 }

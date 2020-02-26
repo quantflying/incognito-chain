@@ -15,7 +15,7 @@ import (
 
 type CreateShardBlockState struct {
 	ctx      context.Context
-	bc       BlockChain
+	bc       *blockchainV2
 	curView  *ShardView
 	newBlock blockinterface.ShardBlockInterface
 	newView  *ShardView
@@ -45,64 +45,64 @@ type CreateShardBlockState struct {
 	instruction [][]string
 }
 
-func (s *ShardView) NewCreateState(ctx context.Context) *CreateShardBlockState {
+func (shardView *ShardView) NewCreateState(ctx context.Context) *CreateShardBlockState {
 	createState := &CreateShardBlockState{
-		bc:       s.BC,
-		curView:  s,
-		newView:  s.CloneNewView().(*ShardView),
+		bc:       shardView.bc,
+		curView:  shardView,
+		newView:  shardView.CloneNewView().(*ShardView),
 		ctx:      ctx,
 		app:      []ShardApp{},
 		newBlock: nil,
 	}
 
 	//ADD YOUR APP HERE
-	createState.app = append(createState.app, &ShardCoreApp{Logger: s.Logger, CreateState: createState})
-	createState.app = append(createState.app, &ShardBridgeApp{Logger: s.Logger, CreateState: createState})
-	createState.app = append(createState.app, &ShardPDEApp{Logger: s.Logger, CreateState: createState})
+	createState.app = append(createState.app, &ShardCoreApp{Logger: shardView.Logger, createState: createState})
+	createState.app = append(createState.app, &ShardBridgeApp{Logger: shardView.Logger, createState: createState})
+	createState.app = append(createState.app, &ShardPDEApp{Logger: shardView.Logger, CreateState: createState})
 
 	return createState
 }
 
-func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (blockinterface.BlockInterface, error) {
-	s.Logger.Criticalf("Creating Shard Block %+v at timeslot %v", s.GetHeight()+1, timeslot)
-	createState := s.NewCreateState(ctx)
+func (shardView *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (blockinterface.BlockInterface, error) {
+	shardView.Logger.Criticalf("Creating Shard Block %+v at timeslot %v", shardView.GetHeight()+1, timeslot)
+	createState := shardView.NewCreateState(ctx)
 	createState.createTimeStamp = time.Now().Unix()
 	createState.createTimeSlot = timeslot
 	createState.proposer = proposer
 	//pre processing
 	for _, app := range createState.app {
-		if err := preCreateBlock(); err != nil {
+		if err := app.preCreateBlock(); err != nil {
 			return nil, err
 		}
 	}
 
 	//build shardbody
 	for _, app := range createState.app {
-		if err := buildTxFromCrossShard(); err != nil {
+		if err := app.buildTxFromCrossShard(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := buildTxFromMemPool(); err != nil {
+		if err := app.buildTxFromMemPool(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := buildResponseTxFromTxWithMetadata(); err != nil {
+		if err := app.buildResponseTxFromTxWithMetadata(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := processBeaconInstruction(); err != nil {
+		if err := app.processBeaconInstruction(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := generateInstruction(); err != nil {
+		if err := app.generateInstruction(); err != nil {
 			return nil, err
 		}
 	}
@@ -116,14 +116,14 @@ func (s *ShardView) CreateNewBlock(ctx context.Context, timeslot uint64, propose
 	}
 
 	for _, app := range createState.app {
-		if err := updateNewViewFromBlock(createState.newBlock); err != nil {
+		if err := app.updateNewViewFromBlock(createState.newBlock); err != nil {
 			return nil, err
 		}
 	}
 
 	//build shard header
 	for _, app := range createState.app {
-		if err := buildHeader(); err != nil {
+		if err := app.buildHeader(); err != nil {
 			return nil, err
 		}
 	}

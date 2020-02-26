@@ -2,24 +2,21 @@ package app
 
 import (
 	"encoding/json"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
+	"strings"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 )
 
-func storeForSlashing(block blockinterface.BeaconBlockInterface, bc BlockChain) error {
+func storeForSlashing(slashStateDB *statedb.StateDB, beaconBlock blockinterface.BeaconBlockInterface, bc *blockchainV2) error {
 	var err error
-	db := bc.GetDatabase()
-	beaconHeight := block.GetHeader().GetHeight()
-	producersBlackList, err := db.GetProducersBlackList(beaconHeight - 1)
-	if err != nil {
-		return err
-	}
-
-	chainParamEpoch := GetChainParams().Epoch
-	newBeaconHeight := block.GetHeader().GetHeight()
+	punishedProducersFinished := []string{}
+	fliterPunishedProducersFinished := []string{}
+	beaconHeight := beaconBlock.GetHeader().GetHeight()
+	producersBlackList := statedb.GetProducersBlackList(slashStateDB, beaconHeight-1)
+	chainParamEpoch := bc.chainParams.Epoch
+	newBeaconHeight := beaconBlock.GetHeader().GetHeight()
 	if newBeaconHeight%uint64(chainParamEpoch) == 0 { // end of epoch
-		punishedProducersFinished := []string{}
 		for producer := range producersBlackList {
 			producersBlackList[producer]--
 			if producersBlackList[producer] == 0 {
@@ -31,11 +28,11 @@ func storeForSlashing(block blockinterface.BeaconBlockInterface, bc BlockChain) 
 		}
 	}
 
-	for _, inst := range block.GetBody().GetInstructions() {
+	for _, inst := range beaconBlock.GetBody().GetInstructions() {
 		if len(inst) == 0 {
 			continue
 		}
-		if inst[0] != blockchain.SwapAction {
+		if inst[0] != SwapAction {
 			continue
 		}
 		badProducersWithPunishmentBytes := []byte{}
@@ -61,6 +58,19 @@ func storeForSlashing(block blockinterface.BeaconBlockInterface, bc BlockChain) 
 			}
 		}
 	}
-	err = db.StoreProducersBlackList(beaconHeight, producersBlackList)
+	for _, punishedProducerFinished := range punishedProducersFinished {
+		flag := false
+		for producerBlaskList, _ := range producersBlackList {
+			if strings.Compare(producerBlaskList, punishedProducerFinished) == 0 {
+				flag = true
+				break
+			}
+		}
+		if !flag {
+			fliterPunishedProducersFinished = append(fliterPunishedProducersFinished, punishedProducerFinished)
+		}
+	}
+	statedb.RemoveProducerBlackList(slashStateDB, fliterPunishedProducersFinished)
+	err = statedb.StoreProducersBlackList(slashStateDB, beaconHeight, producersBlackList)
 	return err
 }

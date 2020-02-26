@@ -10,7 +10,7 @@ import (
 
 type CreateBeaconBlockState struct {
 	ctx      context.Context
-	bc       BlockChain
+	bc       *blockchainV2
 	curView  *BeaconView
 	newBlock blockinterface.BeaconBlockInterface
 	newView  *BeaconView
@@ -49,45 +49,45 @@ type CreateBeaconBlockState struct {
 	statefulInstructions [][]string
 }
 
-func (s *BeaconView) NewCreateState(ctx context.Context) *CreateBeaconBlockState {
+func (beaconView *BeaconView) NewCreateState(ctx context.Context) *CreateBeaconBlockState {
 	createState := &CreateBeaconBlockState{
-		bc:       s.BC,
-		curView:  s,
-		newView:  s.CloneNewView().(*BeaconView),
+		bc:       beaconView.bc,
+		curView:  beaconView,
+		newView:  beaconView.CloneNewView().(*BeaconView),
 		ctx:      ctx,
 		app:      []BeaconApp{},
 		newBlock: nil,
 	}
 
 	//ADD YOUR APP HERE
-	createState.app = append(createState.app, &BeaconCoreApp{Logger: s.Logger, CreateState: createState})
-	createState.app = append(createState.app, &BeaconPDEApp{Logger: s.Logger, CreateState: createState})
-	createState.app = append(createState.app, &BeaconBridgeApp{Logger: s.Logger, CreateState: createState})
+	createState.app = append(createState.app, &BeaconCoreApp{Logger: beaconView.Logger, CreateState: createState, bc: beaconView.bc})
+	createState.app = append(createState.app, &BeaconPDEApp{Logger: beaconView.Logger, CreateState: createState})
+	createState.app = append(createState.app, &BeaconBridgeApp{Logger: beaconView.Logger, createState: createState})
 	return createState
 }
 
-func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (blockinterface.BlockInterface, error) {
-	s.Logger.Criticalf("Creating Beacon Block %+v at timeslot %v", s.GetHeight()+1, timeslot)
-	createState := s.NewCreateState(ctx)
+func (beaconView *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, proposer string) (blockinterface.BlockInterface, error) {
+	beaconView.Logger.Criticalf("Creating Beacon Block %+v at timeslot %v", beaconView.GetHeight()+1, timeslot)
+	createState := beaconView.NewCreateState(ctx)
 	createState.createTimeStamp = time.Now().Unix()
 	createState.createTimeSlot = timeslot
 	createState.proposer = proposer
 	// createState.newBlock = &BeaconBlock{}
 	//pre processing
 	for _, app := range createState.app {
-		if err := preCreateBlock(); err != nil {
+		if err := app.preCreateBlock(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := buildInstructionFromShardAction(); err != nil {
+		if err := app.buildInstructionFromShardAction(); err != nil {
 			return nil, err
 		}
 	}
 
 	for _, app := range createState.app {
-		if err := buildInstructionByEpoch(); err != nil {
+		if err := app.buildInstructionByEpoch(); err != nil {
 			return nil, err
 		}
 	}
@@ -112,14 +112,14 @@ func (s *BeaconView) CreateNewBlock(ctx context.Context, timeslot uint64, propos
 	}
 
 	for _, app := range createState.app {
-		if err := updateNewViewFromBlock(createState.newBlock); err != nil {
+		if err := app.updateNewViewFromBlock(createState.newBlock); err != nil {
 			return nil, err
 		}
 	}
 
 	//build header
 	for _, app := range createState.app {
-		if err := buildHeader(); err != nil {
+		if err := app.buildHeader(); err != nil {
 			return nil, err
 		}
 	}

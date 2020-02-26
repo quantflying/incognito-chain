@@ -28,7 +28,7 @@ func UnmarshalBeaconBlock(data []byte) (blockinterface.BeaconBlockInterface, err
 					return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
 				}
 				return beaconBlk, nil
-			case blockchain.BEACON_BLOCK_VERSION2:
+			case BEACON_BLOCK_VERSION_2:
 				beaconBlk := &beaconblockv2.BeaconBlock{}
 				err := json.Unmarshal(data, &beaconBlk)
 				if err != nil {

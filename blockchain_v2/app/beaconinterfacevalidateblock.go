@@ -3,18 +3,16 @@ package app
 import (
 	"context"
 	"fmt"
+
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
-
-	"github.com/incognitochain/incognito-chain/blockchain"
-
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 )
 
 type ValidateBeaconBlockState struct {
 	ctx     context.Context
-	bc      BlockChain
+	bc      *blockchainV2
 	curView *BeaconView
 	//app
 	app []BeaconApp
@@ -24,19 +22,19 @@ type ValidateBeaconBlockState struct {
 	newView   *BeaconView
 }
 
-func (s *BeaconView) NewValidateState(ctx context.Context, createState *CreateBeaconBlockState) *ValidateBeaconBlockState {
+func (beaconView *BeaconView) NewValidateState(ctx context.Context, createState *CreateBeaconBlockState) *ValidateBeaconBlockState {
 	validateState := &ValidateBeaconBlockState{
 		ctx:     ctx,
-		bc:      s.BC,
-		curView: s,
-		newView: s.CloneNewView().(*BeaconView),
+		bc:      beaconView.bc,
+		curView: beaconView,
+		newView: beaconView.CloneNewView().(*BeaconView),
 		app:     []BeaconApp{},
 	}
 
 	//ADD YOUR APP HERE
-	validateState.app = append(validateState.app, &BeaconCoreApp{Logger: s.Logger, ValidateState: validateState, CreateState: createState})
-	validateState.app = append(validateState.app, &BeaconBridgeApp{Logger: s.Logger, ValidateState: validateState, CreateState: createState})
-	validateState.app = append(validateState.app, &BeaconPDEApp{Logger: s.Logger, ValidateState: validateState, CreateState: createState})
+	validateState.app = append(validateState.app, &BeaconCoreApp{Logger: beaconView.Logger, ValidateState: validateState, CreateState: createState})
+	validateState.app = append(validateState.app, &BeaconBridgeApp{Logger: beaconView.Logger, validateState: validateState, createState: createState})
+	validateState.app = append(validateState.app, &BeaconPDEApp{Logger: beaconView.Logger, ValidateState: validateState, CreateState: createState})
 
 	createState.app = validateState.app
 	createState.ctx = validateState.ctx
@@ -47,19 +45,19 @@ func (s *BeaconView) NewValidateState(ctx context.Context, createState *CreateBe
 	return validateState
 }
 
-func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block blockinterface.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
-	if block.GetHeader().GetVersion() == blockchain.BEACON_BLOCK_VERSION2 {
+func (beaconView *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block blockinterface.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
+	if block.GetHeader().GetVersion() == BEACON_BLOCK_VERSION_2 {
 
 	}
 	createState := &CreateBeaconBlockState{}
-	validateState := s.NewValidateState(ctx, createState)
+	validateState := beaconView.NewValidateState(ctx, createState)
 	validateState.newView.Block = block.(blockinterface.BeaconBlockInterface)
 	validateState.isPreSign = isPreSign
 
 	//block has correct basic header
 	//we have enough data to validate this block and get beaconblocks, crossshardblock, txToAdd confirm by proposed block
 	for _, app := range validateState.app {
-		err := preValidate()
+		err := app.preValidate()
 		if err != nil {
 			return nil, err
 		}
@@ -72,13 +70,13 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block bl
 		createState.proposer = validateState.newView.Block.GetHeader().GetProducer()
 
 		for _, app := range validateState.app {
-			if err := buildInstructionFromShardAction(); err != nil {
+			if err := app.buildInstructionFromShardAction(); err != nil {
 				return nil, err
 			}
 		}
 
 		for _, app := range validateState.app {
-			if err := buildInstructionByEpoch(); err != nil {
+			if err := app.buildInstructionByEpoch(); err != nil {
 				return nil, err
 			}
 		}
@@ -104,7 +102,7 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block bl
 
 		//build header
 		for _, app := range validateState.app {
-			if err := buildHeader(); err != nil {
+			if err := app.buildHeader(); err != nil {
 				return nil, err
 			}
 		}
@@ -121,13 +119,13 @@ func (s *BeaconView) ValidateBlockAndCreateNewView(ctx context.Context, block bl
 			return nil, err
 		}
 		//validate committeee signature
-		if err := (blsbftv2.BLSBFT{}.ValidateCommitteeSig(block, s.GetCommittee())); err != nil {
-			s.Logger.Error("Validate fail!", s.GetCommittee())
+		if err := (blsbftv2.BLSBFT{}.ValidateCommitteeSig(block, beaconView.GetCommittee())); err != nil {
+			beaconView.Logger.Error("Validate fail!", beaconView.GetCommittee())
 			panic(1)
 			return nil, err
 		}
 
-		// validateState.newView = s.CloneNewView().(*BeaconView)
+		// validateState.newView = beaconView.CloneNewView().(*BeaconView)
 		// for _, app := range validateState.app {
 		// 	if err := app.updateNewViewFromBlock(block.(*BeaconBlock)); err != nil {
 		// 		return nil, err

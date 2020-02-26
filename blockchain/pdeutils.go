@@ -23,9 +23,7 @@ type DeductingAmountsByWithdrawal struct {
 	Shares      uint64
 }
 
-func InitCurrentPDEStateFromDB(
-	stateDB *statedb.StateDB,
-	beaconHeight uint64,
+func InitCurrentPDEStateFromDB(stateDB *statedb.StateDB, beaconHeight uint64,
 ) (*CurrentPDEState, error) {
 	waitingPDEContributions, err := statedb.GetWaitingPDEContributions(stateDB, beaconHeight)
 	if err != nil {
@@ -46,7 +44,7 @@ func InitCurrentPDEStateFromDB(
 	}, nil
 }
 
-func storePDEStateToDBV2(
+func storePDEStateToDB(
 	stateDB *statedb.StateDB,
 	beaconHeight uint64,
 	currentPDEState *CurrentPDEState,

@@ -4,7 +4,6 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
 )
 
 type BeaconPDEApp struct {
@@ -28,7 +27,6 @@ func (s *BeaconPDEApp) buildInstructionFromShardAction() error {
 	if len(s.CreateState.s2bBlks) == 0 {
 		return nil
 	}
-	db := s.CreateState.bc.GetDatabase()
 	newBeaconHeight := s.CreateState.curView.GetHeight() + 1
 	statefulActionsByShardID := map[byte][][]string{}
 
@@ -50,7 +48,7 @@ func (s *BeaconPDEApp) buildInstructionFromShardAction() error {
 	statefulInsts := buildStatefulInstructions(
 		statefulActionsByShardID,
 		newBeaconHeight,
-		db,
+		s.CreateState.curView.GetCopiedFeatureStateDB(),
 		s.CreateState.bc,
 	)
 
@@ -72,10 +70,7 @@ func (s *BeaconPDEApp) preValidate() error {
 
 //==============================Save Database Logic===========================
 func (s *BeaconPDEApp) storeDatabase() error {
-	//TODO: store db?
-	batchPutData := []database.BatchData{}
-	// execute, store
-	err := storePDEInstructions(s.StoreState.block, &batchPutData, s.StoreState.bc)
+	err := storePDEInstructions(s.StoreState.curView.featureStateDB, s.StoreState.block)
 	if err != nil {
 		return blockchain.NewBlockChainError(blockchain.ProcessPDEInstructionError, err)
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"sync"
 	"time"
 
@@ -16,8 +17,7 @@ import (
 
 type BeaconView struct {
 	//field that copy manualy
-	BC     BlockChain
-	DB     DB `json:"-"`
+	bc     *blockchainV2
 	Lock   *sync.RWMutex
 	Logger common.Logger
 
@@ -45,42 +45,45 @@ type BeaconView struct {
 
 	//================================ StateDB Method
 	// block height => root hash
-	// consensusStateDB *statedb.StateDB
-	// rewardStateDB    *statedb.StateDB
-	// featureStateDB   *statedb.StateDB
-	// slashStateDB     *statedb.StateDB
-	consensusStateDB StateDB
-	rewardStateDB    StateDB
-	featureStateDB   StateDB
-	slashStateDB     StateDB
+	consensusStateDB *statedb.StateDB
+	rewardStateDB    *statedb.StateDB
+	featureStateDB   *statedb.StateDB
+	slashStateDB     *statedb.StateDB
 }
 
-func (s *BeaconView) GetAShardCommitee(shardID byte) []incognitokey.CommitteePublicKey {
-	s.Lock.RLock()
-	defer s.Lock.RUnlock()
-	return s.ShardCommittee[shardID]
+func (beaconView *BeaconView) GetAShardCommitee(shardID byte) []incognitokey.CommitteePublicKey {
+	beaconView.Lock.RLock()
+	defer beaconView.Lock.RUnlock()
+	return beaconView.ShardCommittee[shardID]
 }
 
-func (s *BeaconView) GetActiveShard() int {
-	//TODO
-	return 4
-}
-
-func (s *BeaconView) CreateBlockFromOldBlockData(block blockinterface.BlockInterface) blockinterface.BlockInterface {
+func (beaconView *BeaconView) CreateBlockFromOldBlockData(block blockinterface.BlockInterface) blockinterface.BlockInterface {
 	block1 := block.(*beaconblockv2.BeaconBlock)
-	block1.ConsensusHeader.TimeSlot = common.GetTimeSlot(s.GetGenesisTime(), time.Now().Unix(), blsbftv2.TIMESLOT)
+	block1.ConsensusHeader.TimeSlot = common.GetTimeSlot(beaconView.GetGenesisTime(), time.Now().Unix(), blsbftv2.TIMESLOT)
 	return block1
 }
 
-func (s *BeaconView) GetBlock() blockinterface.BlockInterface {
-	return s.Block
+func (beaconView *BeaconView) GetBlock() blockinterface.BlockInterface {
+	return beaconView.Block
 }
 
-// func (s *BeaconView) CreateNewViewFromBlock(block blockinterface.BlockInterface) (consensus.ChainViewInterface, error) {
-// 	panic("implement me")
-// }
+func (beaconView *BeaconView) GetCopiedSlashStateDB() *statedb.StateDB {
+	return beaconView.slashStateDB.Copy()
+}
 
-func (s *BeaconView) UnmarshalBlock(b []byte) (blockinterface.BlockInterface, error) {
+func (beaconView *BeaconView) GetCopiedFeatureStateDB() *statedb.StateDB {
+	return beaconView.featureStateDB.Copy()
+}
+
+func (beaconView *BeaconView) GetCopiedRewardStateDB() *statedb.StateDB {
+	return beaconView.rewardStateDB.Copy()
+}
+
+func (beaconView *BeaconView) GetCopiedConsensusStateDB() *statedb.StateDB {
+	return beaconView.consensusStateDB.Copy()
+}
+
+func (beaconView *BeaconView) UnmarshalBlock(b []byte) (blockinterface.BlockInterface, error) {
 	block, err := UnmarshalBeaconBlock(b)
 	if err != nil {
 		return nil, err
@@ -88,66 +91,66 @@ func (s *BeaconView) UnmarshalBlock(b []byte) (blockinterface.BlockInterface, er
 	return block.(blockinterface.BlockInterface), nil
 }
 
-func (s *BeaconView) GetGenesisTime() int64 {
-	return GetGenesisBlock().GetHeader().GetTimestamp()
+func (beaconView *BeaconView) GetGenesisTime() int64 {
+	return beaconView.bc.chainParams.GenesisBeaconBlock.Header.Timestamp
 }
 
-func (s *BeaconView) GetConsensusConfig() string {
+func (beaconView *BeaconView) GetConsensusConfig() string {
 	panic("implement me")
 }
 
-func (s *BeaconView) GetConsensusType() string {
+func (beaconView *BeaconView) GetConsensusType() string {
 	return "bls"
 }
 
-func (s *BeaconView) GetBlkMinInterval() time.Duration {
-	return GetChainParams().MinBeaconBlockInterval
+func (beaconView *BeaconView) GetBlkMinInterval() time.Duration {
+	return beaconView.bc.chainParams.MinBeaconBlockInterval
 }
 
-func (s *BeaconView) GetBlkMaxCreateTime() time.Duration {
-	return GetChainParams().MaxBeaconBlockCreation
+func (beaconView *BeaconView) GetBlkMaxCreateTime() time.Duration {
+	return beaconView.bc.chainParams.MaxBeaconBlockCreation
 }
 
-func (s *BeaconView) GetPubkeyRole(pubkey string, timeslot int) (string, byte) {
+func (beaconView *BeaconView) GetPubkeyRole(pubkey string, timeslot int) (string, byte) {
 	panic("implement me")
 }
 
-func (s *BeaconView) GetPublicKeyStatus(pubkey string) (status string, isBeacon bool, shardID byte) {
-	s.Lock.RLock()
-	defer s.Lock.RUnlock()
-	for _, key := range s.BeaconCommittee {
+func (beaconView *BeaconView) GetPublicKeyStatus(pubkey string) (status string, isBeacon bool, shardID byte) {
+	beaconView.Lock.RLock()
+	defer beaconView.Lock.RUnlock()
+	for _, key := range beaconView.BeaconCommittee {
 		if key.GetIncKeyBase58() == pubkey {
 			return common.MININGKEY_STATUS_COMMITTEE, true, 0
 		}
 	}
-	for _, key := range s.BeaconPendingValidator {
+	for _, key := range beaconView.BeaconPendingValidator {
 		if key.GetIncKeyBase58() == pubkey {
 			return common.MININGKEY_STATUS_PENDING, true, 0
 		}
 	}
 
-	for _, key := range s.CandidateBeaconWaitingForCurrentRandom {
+	for _, key := range beaconView.CandidateBeaconWaitingForCurrentRandom {
 		if key.GetIncKeyBase58() == pubkey {
 			return common.MININGKEY_STATUS_WAITING, true, 0
 		}
 	}
-	for _, key := range s.CandidateBeaconWaitingForNextRandom {
+	for _, key := range beaconView.CandidateBeaconWaitingForNextRandom {
 		if key.GetIncKeyBase58() == pubkey {
 			return common.MININGKEY_STATUS_WAITING, true, 0
 		}
 	}
-	for _, key := range s.CandidateShardWaitingForCurrentRandom {
+	for _, key := range beaconView.CandidateShardWaitingForCurrentRandom {
 		if key.GetIncKeyBase58() == pubkey {
 			return common.MININGKEY_STATUS_WAITING, false, 0
 		}
 	}
-	for _, key := range s.CandidateShardWaitingForNextRandom {
+	for _, key := range beaconView.CandidateShardWaitingForNextRandom {
 		if key.GetIncKeyBase58() == pubkey {
 			return common.MININGKEY_STATUS_WAITING, false, 0
 		}
 	}
 
-	for shardID, shardCommittee := range s.ShardCommittee {
+	for shardID, shardCommittee := range beaconView.ShardCommittee {
 		for _, key := range shardCommittee {
 			if key.GetIncKeyBase58() == pubkey {
 				return common.MININGKEY_STATUS_COMMITTEE, false, shardID
@@ -155,7 +158,7 @@ func (s *BeaconView) GetPublicKeyStatus(pubkey string) (status string, isBeacon 
 		}
 	}
 
-	for shardID, shardCommittee := range s.ShardPendingValidator {
+	for shardID, shardCommittee := range beaconView.ShardPendingValidator {
 		for _, key := range shardCommittee {
 			if key.GetIncKeyBase58() == pubkey {
 				return common.MININGKEY_STATUS_PENDING, false, shardID
@@ -167,72 +170,71 @@ func (s *BeaconView) GetPublicKeyStatus(pubkey string) (status string, isBeacon 
 
 }
 
-func (s *BeaconView) GetCommittee() []incognitokey.CommitteePublicKey {
-	return s.BeaconCommittee
+func (beaconView *BeaconView) GetCommittee() []incognitokey.CommitteePublicKey {
+	return beaconView.BeaconCommittee
 }
 
-func (s BeaconView) GetCommitteeHash() common.Hash {
-	return s.BeaconCommitteeHash
+func (beaconView BeaconView) GetCommitteeHash() common.Hash {
+	return beaconView.BeaconCommitteeHash
 }
 
-func (s BeaconView) GetCommitteeIndex(string) int {
+func (beaconView BeaconView) GetCommitteeIndex(string) int {
 	panic("implement me")
 }
 
-func (s BeaconView) GetHeight() uint64 {
-	return s.Block.GetHeader().GetHeight()
+func (beaconView BeaconView) GetHeight() uint64 {
+	return beaconView.Block.GetHeader().GetHeight()
 }
 
 // func (s BeaconView) GetRound() int {
 // 	return s.Block.GetHeader().GetRound()
 // }
 
-func (s BeaconView) GetTimeStamp() int64 {
-	return s.Block.GetHeader().GetTimestamp()
+func (beaconView BeaconView) GetTimeStamp() int64 {
+	return beaconView.Block.GetHeader().GetTimestamp()
 }
 
-func (s BeaconView) GetTimeslot() uint64 {
-	if s.Block.GetHeader().GetVersion() == 1 {
+func (beaconView BeaconView) GetTimeslot() uint64 {
+	if beaconView.Block.GetHeader().GetVersion() == 1 {
 		return 1
 	}
-	return s.Block.GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()
+	return beaconView.Block.GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()
 }
 
-func (s BeaconView) GetEpoch() uint64 {
-	return s.Block.GetHeader().GetEpoch()
+func (beaconView BeaconView) GetEpoch() uint64 {
+	return beaconView.Block.GetHeader().GetEpoch()
 }
 
-func (s BeaconView) Hash() common.Hash {
-	return *s.Block.GetHeader().GetHash()
+func (beaconView BeaconView) Hash() common.Hash {
+	return *beaconView.Block.GetHeader().GetHash()
 }
 
-func (s BeaconView) GetPreviousViewHash() common.Hash {
-	prevHash := s.Block.GetHeader().GetPreviousBlockHash()
+func (beaconView BeaconView) GetPreviousViewHash() common.Hash {
+	prevHash := beaconView.Block.GetHeader().GetPreviousBlockHash()
 	return prevHash
 }
 
-func (s BeaconView) GetNextProposer(timeSlot uint64) string {
-	committee := s.GetCommittee()
+func (beaconView BeaconView) GetNextProposer(timeSlot uint64) string {
+	committee := beaconView.GetCommittee()
 	idx := int(timeSlot) % len(committee)
 	return committee[idx].GetMiningKeyBase58(common.BlsConsensus)
 }
 
-func (s *BeaconView) CloneNewView() consensus.ChainViewInterface {
-	b, _ := s.MarshalJSON()
+func (beaconView *BeaconView) CloneNewView() consensus.ChainViewInterface {
+	b, _ := beaconView.MarshalJSON()
 	var newView *BeaconView
 	err := json.Unmarshal(b, &newView)
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
-	newView.DB = s.DB
-	newView.Logger = s.Logger
+	newView.Logger = beaconView.Logger
 	newView.Lock = &sync.RWMutex{}
-	newView.BC = s.BC
+	newView.bc = beaconView.bc
 	return newView
 }
 
-func (s *BeaconView) MarshalJSON() ([]byte, error) {
+func (beaconView *BeaconView) MarshalJSON() ([]byte, error) {
 	type Alias BeaconView
 	b, err := json.Marshal(&struct {
 		*Alias
@@ -242,7 +244,7 @@ func (s *BeaconView) MarshalJSON() ([]byte, error) {
 		BC     interface{}
 		Block  interface{}
 	}{
-		(*Alias)(s),
+		(*Alias)(beaconView),
 		nil,
 		nil,
 		nil,
@@ -255,13 +257,13 @@ func (s *BeaconView) MarshalJSON() ([]byte, error) {
 	return b, err
 }
 
-func (s *BeaconView) GetRootTimeSlot() uint64 {
-	if GetGenesisBlock().GetHeader().GetVersion() == 1 {
+func (beaconView *BeaconView) GetRootTimeSlot() uint64 {
+	if beaconView.bc.chainParams.GenesisBeaconBlock.Header.Version == 1 {
 		return 1
 	}
-	return GetGenesisBlock().GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()
+	return beaconView.Block.GetHeader().(blockinterface.BlockHeaderV2Interface).GetTimeslot()
 }
 
-func (s *BeaconView) InitStateRootHash(bc *BlockChain) error {
+func (beaconView *BeaconView) InitStateRootHash(bc *BlockChain) error {
 	panic("implement me")
 }

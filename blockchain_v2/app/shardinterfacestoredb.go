@@ -8,35 +8,35 @@ import (
 type StoreShardDatabaseState struct {
 	ctx     context.Context
 	block   blockinterface.ShardBlockInterface
-	bc      BlockChain
+	bc      *blockchainV2
 	curView *ShardView
 	newView *ShardView
 	//app
 	app []ShardApp
 }
 
-func (s *ShardView) NewStoreDBState(ctx context.Context) *StoreShardDatabaseState {
+func (shardView *ShardView) NewStoreDBState(ctx context.Context) *StoreShardDatabaseState {
 	storeDBState := &StoreShardDatabaseState{
 		ctx:     ctx,
-		bc:      s.BC,
-		curView: s,
-		newView: s.CloneNewView().(*ShardView),
+		bc:      shardView.bc,
+		curView: shardView,
+		newView: shardView.CloneNewView().(*ShardView),
 		app:     []ShardApp{},
 	}
 
 	//ADD YOUR APP HERE
-	storeDBState.app = append(storeDBState.app, &ShardCoreApp{Logger: s.Logger, StoreState: storeDBState})
-	storeDBState.app = append(storeDBState.app, &ShardPDEApp{Logger: s.Logger, StoreState: storeDBState})
-	storeDBState.app = append(storeDBState.app, &ShardBridgeApp{Logger: s.Logger, StoreState: storeDBState})
+	storeDBState.app = append(storeDBState.app, &ShardCoreApp{Logger: shardView.Logger, storeState: storeDBState})
+	storeDBState.app = append(storeDBState.app, &ShardPDEApp{Logger: shardView.Logger, StoreState: storeDBState})
+	storeDBState.app = append(storeDBState.app, &ShardBridgeApp{Logger: shardView.Logger, storeState: storeDBState})
 
 	return storeDBState
 }
 
-func (s *ShardView) StoreDatabase(ctx context.Context) error {
-	state := s.NewStoreDBState(context.Background())
+func (shardView *ShardView) StoreDatabase(ctx context.Context) error {
+	state := shardView.NewStoreDBState(context.Background())
 
 	for _, app := range state.app {
-		err := storeDatabase(state)
+		err := app.storeDatabase(state)
 		if err != nil {
 			//TODO: revert db state if get error
 			return err

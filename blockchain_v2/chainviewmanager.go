@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/app"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"sync"
 	"time"

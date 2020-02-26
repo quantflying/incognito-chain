@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/app"
 	"github.com/incognitochain/incognito-chain/dataaccessobject"
 	"os"
 	"path/filepath"
@@ -56,6 +57,7 @@ var (
 	trieLogger             = backendLog.Logger("Trie log", false)
 	peerv2Logger           = backendLog.Logger("Peerv2 log", false)
 	daov2Logger            = backendLog.Logger("DAO log", false)
+	appLogger            = backendLog.Logger("APP log", false)
 )
 
 // logWriter implements an io.Writer that outputs to both standard output and
@@ -83,6 +85,7 @@ func init() {
 	incdb.Logger.Init(dbLogger)
 	wallet.Logger.Init(walletLogger)
 	blockchain.Logger.Init(blockchainLogger)
+	app.Logger.Init(blockchainLogger)
 	consensus.Logger.Init(consensusLogger)
 	mempool.Logger.Init(mempoolLogger)
 	main2.Logger.Init(randomLogger)
@@ -123,6 +126,7 @@ var subsystemLoggers = map[string]common.Logger{
 	"TRIE":              trieLogger,
 	"PEERV2":            peerv2Logger,
 	"DAO":               daov2Logger,
+	"APP":               appLogger,
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

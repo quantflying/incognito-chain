@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardstate"
 	"reflect"
 	"sort"
 	"strconv"
@@ -14,7 +12,10 @@ import (
 
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardstate"
 	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 )
@@ -161,16 +162,16 @@ func buildInstructionFromBlock(s2bBlk blockinterface.ShardToBeaconBlockInterface
 	return stakeInstructions, tempValidStakePublicKeys, swapInstructions, acceptedRewardInstructions, stopAutoStakingInstructions
 }
 
-func (s *BeaconView) getAllCommitteeValidatorCandidateFlattenList() []string {
+func (beaconView *BeaconView) getAllCommitteeValidatorCandidateFlattenList() []string {
 	res := []string{}
-	for _, committee := range s.ShardCommittee {
+	for _, committee := range beaconView.ShardCommittee {
 		committeeStr, err := incognitokey.CommitteeKeyListToString(committee)
 		if err != nil {
 			panic(err)
 		}
 		res = append(res, committeeStr...)
 	}
-	for _, pendingValidator := range s.ShardPendingValidator {
+	for _, pendingValidator := range beaconView.ShardPendingValidator {
 		pendingValidatorStr, err := incognitokey.CommitteeKeyListToString(pendingValidator)
 		if err != nil {
 			panic(err)
@@ -178,37 +179,37 @@ func (s *BeaconView) getAllCommitteeValidatorCandidateFlattenList() []string {
 		res = append(res, pendingValidatorStr...)
 	}
 
-	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(s.BeaconCommittee)
+	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(beaconView.BeaconCommittee)
 	if err != nil {
 		panic(err)
 	}
 	res = append(res, beaconCommitteeStr...)
 
-	beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(s.BeaconPendingValidator)
+	beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(beaconView.BeaconPendingValidator)
 	if err != nil {
 		panic(err)
 	}
 	res = append(res, beaconPendingValidatorStr...)
 
-	candidateBeaconWaitingForCurrentRandomStr, err := incognitokey.CommitteeKeyListToString(s.CandidateBeaconWaitingForCurrentRandom)
+	candidateBeaconWaitingForCurrentRandomStr, err := incognitokey.CommitteeKeyListToString(beaconView.CandidateBeaconWaitingForCurrentRandom)
 	if err != nil {
 		panic(err)
 	}
 	res = append(res, candidateBeaconWaitingForCurrentRandomStr...)
 
-	candidateBeaconWaitingForNextRandomStr, err := incognitokey.CommitteeKeyListToString(s.CandidateBeaconWaitingForNextRandom)
+	candidateBeaconWaitingForNextRandomStr, err := incognitokey.CommitteeKeyListToString(beaconView.CandidateBeaconWaitingForNextRandom)
 	if err != nil {
 		panic(err)
 	}
 	res = append(res, candidateBeaconWaitingForNextRandomStr...)
 
-	candidateShardWaitingForCurrentRandomStr, err := incognitokey.CommitteeKeyListToString(s.CandidateShardWaitingForCurrentRandom)
+	candidateShardWaitingForCurrentRandomStr, err := incognitokey.CommitteeKeyListToString(beaconView.CandidateShardWaitingForCurrentRandom)
 	if err != nil {
 		panic(err)
 	}
 	res = append(res, candidateShardWaitingForCurrentRandomStr...)
 
-	candidateShardWaitingForNextRandomStr, err := incognitokey.CommitteeKeyListToString(s.CandidateShardWaitingForNextRandom)
+	candidateShardWaitingForNextRandomStr, err := incognitokey.CommitteeKeyListToString(beaconView.CandidateShardWaitingForNextRandom)
 	if err != nil {
 		panic(err)
 	}
@@ -216,18 +217,18 @@ func (s *BeaconView) getAllCommitteeValidatorCandidateFlattenList() []string {
 	return res
 }
 
-func (s *BeaconView) GetValidStakers(stakers []string) []string {
-	s.Lock.RLock()
-	defer s.Lock.RUnlock()
+func (beaconView *BeaconView) GetValidStakers(stakers []string) []string {
+	beaconView.Lock.RLock()
+	defer beaconView.Lock.RUnlock()
 
-	for _, committees := range s.ShardCommittee {
+	for _, committees := range beaconView.ShardCommittee {
 		committeesStr, err := incognitokey.CommitteeKeyListToString(committees)
 		if err != nil {
 			panic(err)
 		}
 		stakers = common.GetValidStaker(committeesStr, stakers)
 	}
-	for _, validators := range s.ShardPendingValidator {
+	for _, validators := range beaconView.ShardPendingValidator {
 		validatorsStr, err := incognitokey.CommitteeKeyListToString(validators)
 		if err != nil {
 			panic(err)
@@ -235,37 +236,37 @@ func (s *BeaconView) GetValidStakers(stakers []string) []string {
 		stakers = common.GetValidStaker(validatorsStr, stakers)
 	}
 
-	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(s.BeaconCommittee)
+	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(beaconView.BeaconCommittee)
 	if err != nil {
 		panic(err)
 	}
 	stakers = common.GetValidStaker(beaconCommitteeStr, stakers)
 
-	beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(s.BeaconPendingValidator)
+	beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(beaconView.BeaconPendingValidator)
 	if err != nil {
 		panic(err)
 	}
 	stakers = common.GetValidStaker(beaconPendingValidatorStr, stakers)
 
-	candidateBeaconWaitingForCurrentRandomStr, err := incognitokey.CommitteeKeyListToString(s.CandidateBeaconWaitingForCurrentRandom)
+	candidateBeaconWaitingForCurrentRandomStr, err := incognitokey.CommitteeKeyListToString(beaconView.CandidateBeaconWaitingForCurrentRandom)
 	if err != nil {
 		panic(err)
 	}
 	stakers = common.GetValidStaker(candidateBeaconWaitingForCurrentRandomStr, stakers)
 
-	candidateBeaconWaitingForNextRandomStr, err := incognitokey.CommitteeKeyListToString(s.CandidateBeaconWaitingForNextRandom)
+	candidateBeaconWaitingForNextRandomStr, err := incognitokey.CommitteeKeyListToString(beaconView.CandidateBeaconWaitingForNextRandom)
 	if err != nil {
 		panic(err)
 	}
 	stakers = common.GetValidStaker(candidateBeaconWaitingForNextRandomStr, stakers)
 
-	candidateShardWaitingForCurrentRandomStr, err := incognitokey.CommitteeKeyListToString(s.CandidateShardWaitingForCurrentRandom)
+	candidateShardWaitingForCurrentRandomStr, err := incognitokey.CommitteeKeyListToString(beaconView.CandidateShardWaitingForCurrentRandom)
 	if err != nil {
 		panic(err)
 	}
 	stakers = common.GetValidStaker(candidateShardWaitingForCurrentRandomStr, stakers)
 
-	candidateShardWaitingForNextRandomStr, err := incognitokey.CommitteeKeyListToString(s.CandidateShardWaitingForNextRandom)
+	candidateShardWaitingForNextRandomStr, err := incognitokey.CommitteeKeyListToString(beaconView.CandidateShardWaitingForNextRandom)
 	if err != nil {
 		panic(err)
 	}
@@ -273,13 +274,13 @@ func (s *BeaconView) GetValidStakers(stakers []string) []string {
 	return stakers
 }
 
-func (s *BeaconView) BuildInstRewardForBeacons(epoch uint64, totalReward map[common.Hash]uint64) ([][]string, error) {
+func (beaconView *BeaconView) buildInstRewardForBeacons(epoch uint64, totalReward map[common.Hash]uint64) ([][]string, error) {
 	resInst := [][]string{}
 	baseRewards := map[common.Hash]uint64{}
 	for key, value := range totalReward {
-		baseRewards[key] = value / uint64(len(s.BeaconCommittee))
+		baseRewards[key] = value / uint64(len(beaconView.BeaconCommittee))
 	}
-	for _, beaconpublickey := range s.BeaconCommittee {
+	for _, beaconpublickey := range beaconView.BeaconCommittee {
 		// indicate reward pubkey
 		singleInst, err := metadata.BuildInstForBeaconReward(baseRewards, beaconpublickey.GetNormalKey())
 		if err != nil {
@@ -291,7 +292,7 @@ func (s *BeaconView) BuildInstRewardForBeacons(epoch uint64, totalReward map[com
 	return resInst, nil
 }
 
-func (s *BeaconView) BuildInstRewardForShards(epoch uint64, totalRewards []map[common.Hash]uint64) ([][]string, error) {
+func (beaconView *BeaconView) buildInstRewardForShards(epoch uint64, totalRewards []map[common.Hash]uint64) ([][]string, error) {
 	resInst := [][]string{}
 	for i, reward := range totalRewards {
 		if len(reward) > 0 {
@@ -306,34 +307,33 @@ func (s *BeaconView) BuildInstRewardForShards(epoch uint64, totalRewards []map[c
 	return resInst, nil
 }
 
-func (s *BeaconView) BuildInstRewardForIncDAO(epoch uint64, totalReward map[common.Hash]uint64) ([][]string, error) {
+func (beaconView *BeaconView) buildInstRewardForIncDAO(epoch uint64, totalReward map[common.Hash]uint64) ([][]string, error) {
 	resInst := [][]string{}
-	devRewardInst, err := metadata.BuildInstForIncDAOReward(totalReward, GetChainParams().IncognitoDAOAddress)
+	devRewardInst, err := metadata.BuildInstForIncDAOReward(totalReward, beaconView.bc.chainParams.IncognitoDAOAddress)
 	if err != nil {
-		Logger.log.Errorf("BuildInstRewardForIncDAO error %+v\n Totalreward: %+v, epoch: %+v\n", err, totalReward, epoch)
+		Logger.log.Errorf("buildInstRewardForIncDAO error %+v\n Totalreward: %+v, epoch: %+v\n", err, totalReward, epoch)
 		return nil, err
 	}
 	resInst = append(resInst, devRewardInst)
 	return resInst, nil
 }
 
-func (s *BeaconCoreApp) buildAssignInstruction() (err error) {
-	curView := s.CreateState.curView
+func (bca *BeaconCoreApp) buildAssignInstruction() (err error) {
 	instructions := [][]string{}
 	numberOfPendingValidator := make(map[byte]int)
-	for i := 0; i < curView.GetActiveShard(); i++ {
-		if pendingValidators, ok := curView.ShardPendingValidator[byte(i)]; ok {
+	for i := 0; i < bca.bc.GetActiveShard(); i++ {
+		if pendingValidators, ok := bca.CreateState.curView.ShardPendingValidator[byte(i)]; ok {
 			numberOfPendingValidator[byte(i)] = len(pendingValidators)
 		} else {
 			numberOfPendingValidator[byte(i)] = 0
 		}
 	}
 
-	shardCandidatesStr, err := incognitokey.CommitteeKeyListToString(curView.CandidateShardWaitingForCurrentRandom)
+	shardCandidatesStr, err := incognitokey.CommitteeKeyListToString(bca.CreateState.curView.CandidateShardWaitingForCurrentRandom)
 	if err != nil {
 		panic(err)
 	}
-	_, assignedCandidates := assignShardCandidate(shardCandidatesStr, numberOfPendingValidator, s.CreateState.randomNumber, GetChainParams().AssignOffset, curView.GetActiveShard())
+	_, assignedCandidates := assignShardCandidate(shardCandidatesStr, numberOfPendingValidator, bca.CreateState.randomNumber, bca.bc.chainParams.AssignOffset, bca.bc.GetActiveShard())
 	var keys []int
 	for k := range assignedCandidates {
 		keys = append(keys, int(k))
@@ -349,26 +349,26 @@ func (s *BeaconCoreApp) buildAssignInstruction() (err error) {
 		shardAssingInstruction = append(shardAssingInstruction, fmt.Sprintf("%v", shardID))
 		instructions = append(instructions, shardAssingInstruction)
 	}
-	s.CreateState.shardAssignInst = instructions
+	bca.CreateState.shardAssignInst = instructions
 
 	return nil
 }
 
-func (s *BeaconCoreApp) buildRandomInstruction() (err error) {
+func (bca *BeaconCoreApp) buildRandomInstruction() (err error) {
 	var chainTimeStamp int64
-	curView := s.CreateState.curView
+	curView := bca.CreateState.curView
 
 	if curView.IsGettingRandomNumber {
-		chainTimeStamp, err = GetRandomClient().GetCurrentChainTimeStamp()
+		chainTimeStamp, err = bca.bc.randomClient.GetCurrentChainTimeStamp()
 		if chainTimeStamp > curView.CurrentRandomTimeStamp {
 
-			randomInstruction, rand, err := s.generateRandomInstruction(GetRandomClient())
+			randomInstruction, rand, err := bca.generateRandomInstruction(bca.bc.randomClient)
 			if err != nil {
 				return err
 			}
 
-			s.CreateState.randomInstruction = randomInstruction
-			s.CreateState.randomNumber = rand
+			bca.CreateState.randomInstruction = randomInstruction
+			bca.CreateState.randomNumber = rand
 			Logger.log.Infof("Beacon Producer found Random Instruction at Block Height %+v, %+v", randomInstruction, curView.GetHeight()+1)
 		}
 	}
@@ -376,8 +376,8 @@ func (s *BeaconCoreApp) buildRandomInstruction() (err error) {
 }
 
 // ["random" "{nonce}" "{blockheight}" "{timestamp}" "{bitcoinTimestamp}"]
-func (s *BeaconCoreApp) generateRandomInstruction(randomClient btc.RandomClient) ([]string, int64, error) {
-	curView := s.CreateState.curView
+func (bca *BeaconCoreApp) generateRandomInstruction(randomClient btc.RandomClient) ([]string, int64, error) {
+	curView := bca.CreateState.curView
 	timestamp := curView.CurrentRandomTimeStamp
 	var (
 		blockHeight    int
@@ -399,30 +399,30 @@ func (s *BeaconCoreApp) generateRandomInstruction(randomClient btc.RandomClient)
 	return strs, int64(nonce), nil
 }
 
-func (s *BeaconView) buildChangeBeaconValidatorByEpoch() (instructions [][]string, err error) {
+func (beaconView *BeaconView) buildChangeBeaconValidatorByEpoch() (instructions [][]string, err error) {
 	swapBeaconInstructions := []string{}
 
-	beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(s.BeaconPendingValidator)
+	beaconPendingValidatorStr, err := incognitokey.CommitteeKeyListToString(beaconView.BeaconPendingValidator)
 	if err != nil {
 		return
 	}
-	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(s.BeaconCommittee)
+	beaconCommitteeStr, err := incognitokey.CommitteeKeyListToString(beaconView.BeaconCommittee)
 	if err != nil {
 		return
 	}
 
-	producersBlackList, err := getUpdatedProducersBlackList(true, -1, beaconCommitteeStr, s.GetHeight(), s.BC)
+	producersBlackList, err := getUpdatedProducersBlackList(true, -1, beaconCommitteeStr, beaconView.GetHeight(), beaconView.bc, beaconView.GetCopiedSlashStateDB())
 	if err != nil {
 		Logger.log.Error(err)
 	}
 
-	badProducersWithPunishment := buildBadProducersWithPunishment(true, -1, beaconCommitteeStr, s.BC)
+	badProducersWithPunishment := buildBadProducersWithPunishment(true, -1, beaconCommitteeStr, beaconView.bc)
 	badProducersWithPunishmentBytes, err := json.Marshal(badProducersWithPunishment)
 	if err != nil {
 		Logger.log.Error(err)
 	}
 
-	_, _, swappedValidator, beaconNextCommittee, err := SwapValidator(beaconPendingValidatorStr, beaconCommitteeStr, GetChainParams().MaxBeaconCommitteeSize, GetChainParams().MinBeaconCommitteeSize, GetChainParams().Offset, producersBlackList, GetChainParams().SwapOffset)
+	_, _, swappedValidator, beaconNextCommittee, err := SwapValidator(beaconPendingValidatorStr, beaconCommitteeStr, beaconView.bc.chainParams.MaxBeaconCommitteeSize, beaconView.bc.chainParams.MinBeaconCommitteeSize, beaconView.bc.chainParams.Offset, producersBlackList, beaconView.bc.chainParams.SwapOffset)
 
 	if len(swappedValidator) > 0 || len(beaconNextCommittee) > 0 && err == nil {
 		swapBeaconInstructions = append(swapBeaconInstructions, "swap")
@@ -436,31 +436,27 @@ func (s *BeaconView) buildChangeBeaconValidatorByEpoch() (instructions [][]strin
 	return
 }
 
-func (s *BeaconView) getRewardInstByEpoch() ([][]string, error) {
+func (beaconView *BeaconView) buildRewardInstructionByEpoch() ([][]string, error) {
 	var resInst [][]string
 	var instRewardForBeacons [][]string
 	var instRewardForIncDAO [][]string
 	var instRewardForShards [][]string
-
-	curEpoch := s.GetEpoch()
-	numberOfActiveShards := s.GetActiveShard()
-	allCoinID, err := GetAllTokenIDForReward(curEpoch)
-	if err != nil {
-		return nil, err
-	}
-
-	blkPerYear := getNoBlkPerYear(uint64(GetChainParams().MaxBeaconBlockCreation.Seconds()))
-	percentForIncognitoDAO := getPercentForIncognitoDAO(s.GetHeight(), blkPerYear)
-
+	var err error
+	numberOfActiveShards := beaconView.bc.GetActiveShard()
 	totalRewards := make([]map[common.Hash]uint64, numberOfActiveShards)
 	totalRewardForBeacon := map[common.Hash]uint64{}
 	totalRewardForIncDAO := map[common.Hash]uint64{}
+	epoch := beaconView.GetEpoch()
+	rewardStateDB := beaconView.GetCopiedRewardStateDB()
+	allCoinID := statedb.GetAllTokenIDForReward(rewardStateDB, epoch)
+	blkPerYear := getNoBlkPerYear(uint64(beaconView.bc.chainParams.MaxBeaconBlockCreation.Seconds()))
+	percentForIncognitoDAO := getPercentForIncognitoDAO(beaconView.GetHeight(), blkPerYear)
 	for ID := 0; ID < numberOfActiveShards; ID++ {
 		if totalRewards[ID] == nil {
 			totalRewards[ID] = map[common.Hash]uint64{}
 		}
 		for _, coinID := range allCoinID {
-			totalRewards[ID][coinID], err = GetRewardOfShardByEpoch(curEpoch, byte(ID), coinID)
+			totalRewards[ID][coinID], err = statedb.GetRewardOfShardByEpoch(rewardStateDB, epoch, byte(ID), coinID)
 			if err != nil {
 				return nil, err
 			}
@@ -470,25 +466,25 @@ func (s *BeaconView) getRewardInstByEpoch() ([][]string, error) {
 		}
 		rewardForBeacon, rewardForIncDAO, err := splitReward(&totalRewards[ID], numberOfActiveShards, percentForIncognitoDAO)
 		if err != nil {
-			s.Logger.Infof("\n------------------------------------\nNot enough reward in epoch %v\n------------------------------------\n", err)
+			beaconView.Logger.Infof("\n------------------------------------\nNot enough reward in epoch %v\n------------------------------------\n", err)
 		}
 		mapPlusMap(rewardForBeacon, &totalRewardForBeacon)
 		mapPlusMap(rewardForIncDAO, &totalRewardForIncDAO)
 	}
 	if len(totalRewardForBeacon) > 0 {
-		instRewardForBeacons, err = s.BuildInstRewardForBeacons(curEpoch, totalRewardForBeacon)
+		instRewardForBeacons, err = beaconView.buildInstRewardForBeacons(epoch, totalRewardForBeacon)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	instRewardForShards, err = s.BuildInstRewardForShards(curEpoch, totalRewards)
+	instRewardForShards, err = beaconView.buildInstRewardForShards(epoch, totalRewards)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(totalRewardForIncDAO) > 0 {
-		instRewardForIncDAO, err = s.BuildInstRewardForIncDAO(curEpoch, totalRewardForIncDAO)
+		instRewardForIncDAO, err = beaconView.buildInstRewardForIncDAO(epoch, totalRewardForIncDAO)
 		if err != nil {
 			return nil, err
 		}

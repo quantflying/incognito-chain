@@ -13,7 +13,7 @@ import (
 
 type ValidateShardBlockState struct {
 	ctx     context.Context
-	bc      BlockChain
+	bc      *blockchainV2
 	curView *ShardView
 	//app
 	app []ShardApp
@@ -28,32 +28,32 @@ type ValidateShardBlockState struct {
 	isOldBeaconHeight bool
 }
 
-func (s *ShardView) NewValidateState(ctx context.Context) *ValidateShardBlockState {
+func (shardView *ShardView) NewValidateState(ctx context.Context) *ValidateShardBlockState {
 	validateState := &ValidateShardBlockState{
 		ctx:     ctx,
-		bc:      s.BC,
-		curView: s,
-		newView: s.CloneNewView().(*ShardView),
+		bc:      shardView.bc,
+		curView: shardView,
+		newView: shardView.CloneNewView().(*ShardView),
 		app:     []ShardApp{},
 	}
 
 	//ADD YOUR APP HERE
-	validateState.app = append(validateState.app, &ShardCoreApp{Logger: s.Logger, ValidateState: validateState})
-	validateState.app = append(validateState.app, &ShardPDEApp{Logger: s.Logger, ValidateState: validateState})
-	validateState.app = append(validateState.app, &ShardBridgeApp{Logger: s.Logger, ValidateState: validateState})
+	validateState.app = append(validateState.app, &ShardCoreApp{Logger: shardView.Logger, validateState: validateState})
+	validateState.app = append(validateState.app, &ShardPDEApp{Logger: shardView.Logger, ValidateState: validateState})
+	validateState.app = append(validateState.app, &ShardBridgeApp{Logger: shardView.Logger, validateState: validateState})
 	return validateState
 }
 
-func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block blockinterface.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
-	validateState := s.NewValidateState(ctx)
+func (shardView *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block blockinterface.BlockInterface, isPreSign bool) (consensus.ChainViewInterface, error) {
+	validateState := shardView.NewValidateState(ctx)
 	validateState.newView.Block = block.(blockinterface.ShardBlockInterface)
 	validateState.isPreSign = isPreSign
 
-	createState := s.NewCreateState(ctx)
+	createState := shardView.NewCreateState(ctx)
 	//block has correct basic header
 	//we have enough data to validate this block and get beaconblocks, crossshardblock, txToAdd confirm by proposed block
 	for _, app := range validateState.app {
-		err := preValidate()
+		err := app.preValidate()
 		if err != nil {
 			return nil, err
 		}
@@ -63,25 +63,25 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block blo
 
 		//build shardbody and check content is same
 		for _, app := range createState.app {
-			if err := buildTxFromCrossShard(); err != nil {
+			if err := app.buildTxFromCrossShard(); err != nil {
 				return nil, err
 			}
 		}
 
 		for _, app := range createState.app {
-			if err := buildResponseTxFromTxWithMetadata(); err != nil {
+			if err := app.buildResponseTxFromTxWithMetadata(); err != nil {
 				return nil, err
 			}
 		}
 
 		for _, app := range createState.app {
-			if err := processBeaconInstruction(); err != nil {
+			if err := app.processBeaconInstruction(); err != nil {
 				return nil, err
 			}
 		}
 
 		for _, app := range createState.app {
-			if err := generateInstruction(); err != nil {
+			if err := app.generateInstruction(); err != nil {
 				return nil, err
 			}
 		}
@@ -94,14 +94,14 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block blo
 		}
 
 		for _, app := range createState.app {
-			if err := updateNewViewFromBlock(block.(*shardblockv2.ShardBlock)); err != nil {
+			if err := app.updateNewViewFromBlock(block.(*shardblockv2.ShardBlock)); err != nil {
 				return nil, err
 			}
 		}
 
 		//build shard header
 		for _, app := range createState.app {
-			if err := buildHeader(); err != nil {
+			if err := app.buildHeader(); err != nil {
 				return nil, err
 			}
 		}
@@ -113,12 +113,12 @@ func (s *ShardView) ValidateBlockAndCreateNewView(ctx context.Context, block blo
 			return nil, err
 		}
 		//validate committeee signature
-		if err := (blsbftv2.BLSBFT{}.ValidateCommitteeSig(block, s.GetCommittee())); err != nil {
-			s.Logger.Error("Validate fail!", s.GetCommittee())
+		if err := (blsbftv2.BLSBFT{}.ValidateCommitteeSig(block, shardView.GetCommittee())); err != nil {
+			shardView.Logger.Error("Validate fail!", shardView.GetCommittee())
 			panic(1)
 			return nil, err
 		}
-		// createState.newView = s.CloneNewView().(*ShardView)
+		// createState.newView = shardView.CloneNewView().(*ShardView)
 		// for _, app := range createState.app {
 		// 	if err := app.updateNewViewFromBlock(block.(*ShardBlock)); err != nil {
 		// 		return nil, err

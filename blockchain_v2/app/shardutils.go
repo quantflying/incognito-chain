@@ -7,6 +7,8 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/consensusheader"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv1"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv2"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
+	"github.com/incognitochain/incognito-chain/privacy"
 	"reflect"
 	"strconv"
 	"strings"
@@ -164,7 +166,7 @@ func CreateShardInstructionsFromTransactionAndInstruction(transactions []metadat
 	}
 	if !reflect.DeepEqual(stakeShardPublicKey, []string{}) {
 		if len(stakeShardPublicKey) != len(stakeShardTxID) && len(stakeShardTxID) != len(stakeShardRewardReceiver) && len(stakeShardRewardReceiver) != len(stakeShardAutoStaking) {
-			return nil, blockchain.NewBlockChainError(blockchain.StakeInstructionError, fmt.Errorf("Expect public key list (length %+v) and reward receiver list (length %+v), auto restaking (length %+v) to be equal", len(stakeShardPublicKey), len(stakeShardRewardReceiver), len(stakeShardAutoStaking)))
+			return nil, NewAppError(StakeInstructionError, fmt.Errorf("Expect public key list (length %+v) and reward receiver list (length %+v), auto restaking (length %+v) to be equal", len(stakeShardPublicKey), len(stakeShardRewardReceiver), len(stakeShardAutoStaking)))
 		}
 		stakeShardPublicKey, err = incognitokey.ConvertToBase58ShortFormat(stakeShardPublicKey)
 		if err != nil {
@@ -176,7 +178,7 @@ func CreateShardInstructionsFromTransactionAndInstruction(transactions []metadat
 	}
 	if !reflect.DeepEqual(stakeBeaconPublicKey, []string{}) {
 		if len(stakeBeaconPublicKey) != len(stakeBeaconTxID) && len(stakeBeaconTxID) != len(stakeBeaconRewardReceiver) && len(stakeBeaconRewardReceiver) != len(stakeBeaconAutoStaking) {
-			return nil, blockchain.NewBlockChainError(blockchain.StakeInstructionError, fmt.Errorf("Expect public key list (length %+v) and reward receiver list (length %+v), auto restaking (length %+v) to be equal", len(stakeBeaconPublicKey), len(stakeBeaconRewardReceiver), len(stakeBeaconAutoStaking)))
+			return nil, NewAppError(StakeInstructionError, fmt.Errorf("Expect public key list (length %+v) and reward receiver list (length %+v), auto restaking (length %+v) to be equal", len(stakeBeaconPublicKey), len(stakeBeaconRewardReceiver), len(stakeBeaconAutoStaking)))
 		}
 		stakeBeaconPublicKey, err = incognitokey.ConvertToBase58ShortFormat(stakeBeaconPublicKey)
 		if err != nil {
@@ -261,18 +263,18 @@ func CreateShardToBeaconBlock(shardBlock blockinterface.ShardBlockInterface, bc 
 	}
 
 	switch blockVersion {
-	case blockchain.SHARD_BLOCK_VERSION:
+	case SHARD_BLOCK_VERSION:
 		s2bBlock := &shardblockv1.ShardToBeaconBlock{}
 		s2bBlock.ValidationData = shardBlock.GetValidationField()
 		s2bBlock.Header = shardBlock.GetShardHeader().(shardblockv1.ShardHeader)
 		blockInstructions := shardBlock.GetShardBody().GetInstructions()
 		s2bBlock.Instructions = append(instructions, blockInstructions...)
 		return s2bBlock, nil
-	case blockchain.SHARD_BLOCK_VERSION2:
+	case SHARD_BLOCK_VERSION_2:
 		s2bBlock := &shardblockv2.ShardToBeaconBlock{}
 		return s2bBlock, nil
 	default:
-		return nil, blockchain.NewBlockChainError(blockchain.CreateShardToBeaconBlockError, nil)
+		return nil, NewAppError(CreateShardToBeaconBlockError, nil)
 	}
 }
 
@@ -304,15 +306,15 @@ func CreateCrossShardBlock(shardBlock blockinterface.ShardBlockInterface, shardI
 	crossOutputCoin, crossCustomTokenPrivacyData := blockchain.GetCrossShardData(shardBlock.GetShardBody().GetTransactions(), shardID)
 	// Return nothing if nothing to cross
 	if len(crossOutputCoin) == 0 && len(crossCustomTokenPrivacyData) == 0 {
-		return nil, blockchain.NewBlockChainError(blockchain.CreateCrossShardBlockError, errors.New("No cross Outputcoin, Cross Custom Token, Cross Custom Token Privacy"))
+		return nil, NewAppError(CreateCrossShardBlockError, errors.New("No cross Outputcoin, Cross Custom Token, Cross Custom Token Privacy"))
 	}
-	merklePathShard, merkleShardRoot := blockchain.GetMerklePathCrossShard2(shardBlock.GetShardBody().GetTransactions(), shardID)
+	merklePathShard, merkleShardRoot := blockchain.GetMerklePathCrossShard(shardBlock.GetShardBody().GetTransactions(), shardID)
 	if merkleShardRoot != shardBlock.GetShardHeader().GetShardTxRoot() {
-		return nil, blockchain.NewBlockChainError(blockchain.VerifyCrossShardBlockShardTxRootError, fmt.Errorf("Expect Shard Tx Root To be %+v but get %+v", shardBlock.GetShardHeader().GetShardTxRoot(), merkleShardRoot))
+		return nil, NewAppError(VerifyCrossShardBlockShardTxRootError, fmt.Errorf("Expect Shard Tx Root To be %+v but get %+v", shardBlock.GetShardHeader().GetShardTxRoot(), merkleShardRoot))
 	}
 
 	switch blockVersion {
-	case blockchain.SHARD_BLOCK_VERSION:
+	case SHARD_BLOCK_VERSION:
 		crossShard := &shardblockv1.CrossShardBlock{}
 		crossShard.ValidationData = shardBlock.GetValidationField()
 		crossShard.Header = shardBlock.GetHeader().(shardblockv1.ShardHeader)
@@ -321,11 +323,24 @@ func CreateCrossShardBlock(shardBlock blockinterface.ShardBlockInterface, shardI
 		crossShard.CrossTxTokenPrivacyData = crossCustomTokenPrivacyData
 		crossShard.ToShardID = shardID
 		return crossShard, nil
-	case blockchain.SHARD_BLOCK_VERSION2:
+	case SHARD_BLOCK_VERSION_2:
 		crossShard := &shardblockv2.CrossShardBlock{}
 
 		return crossShard, nil
 	default:
-		return nil, blockchain.NewBlockChainError(blockchain.CreateCrossShardBlockError, nil)
+		return nil, NewAppError(CreateCrossShardBlockError, nil)
 	}
+}
+
+func initTxSalaryByCoinID(
+	payToAddress *privacy.PaymentAddress,
+	amount uint64,
+	payByPrivateKey *privacy.PrivateKey,
+	transactionStateDB *statedb.StateDB,
+	bridgeStateDB *statedb.StateDB,
+	meta metadata.Metadata,
+	coinID common.Hash,
+	shardID byte,
+) (metadata.Transaction, error) {
+	panic("implement me")
 }

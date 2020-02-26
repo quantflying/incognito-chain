@@ -118,44 +118,6 @@ func buildMatchedNReturnedContributionInst(
 	}
 }
 
-func isRightRatio(
-	waitingContribution1 *rawdbv2.PDEContribution,
-	waitingContribution2 *rawdbv2.PDEContribution,
-	poolPair *rawdbv2.PDEPoolForPair,
-) bool {
-	if poolPair == nil {
-		return true
-	}
-	if poolPair.Token1PoolValue == 0 || poolPair.Token2PoolValue == 0 {
-		return true
-	}
-	if waitingContribution1.TokenIDStr == poolPair.Token1IDStr {
-		expectedContribAmt := big.NewInt(0)
-		expectedContribAmt.Mul(
-			big.NewInt(int64(waitingContribution1.Amount)),
-			big.NewInt(int64(poolPair.Token2PoolValue)),
-		)
-		expectedContribAmt.Div(
-			expectedContribAmt,
-			big.NewInt(int64(poolPair.Token1PoolValue)),
-		)
-		return expectedContribAmt.Uint64() == waitingContribution2.Amount
-	}
-	if waitingContribution1.TokenIDStr == poolPair.Token2IDStr {
-		expectedContribAmt := big.NewInt(0)
-		expectedContribAmt.Mul(
-			big.NewInt(int64(waitingContribution1.Amount)),
-			big.NewInt(int64(poolPair.Token1PoolValue)),
-		)
-		expectedContribAmt.Div(
-			expectedContribAmt,
-			big.NewInt(int64(poolPair.Token2PoolValue)),
-		)
-		return expectedContribAmt.Uint64() == waitingContribution2.Amount
-	}
-	return false
-}
-
 func computeActualContributedAmounts(
 	waitingContribution1 *rawdbv2.PDEContribution,
 	waitingContribution2 *rawdbv2.PDEContribution,

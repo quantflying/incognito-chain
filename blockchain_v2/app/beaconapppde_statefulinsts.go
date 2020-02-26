@@ -9,8 +9,8 @@ import (
 
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
-	"github.com/incognitochain/incognito-chain/database/lvdb"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"github.com/incognitochain/incognito-chain/metadata"
 )
 
@@ -63,10 +63,10 @@ func groupPDEActionsByShardID(
 func buildStatefulInstructions(
 	statefulActionsByShardID map[byte][][]string,
 	beaconHeight uint64,
-	db database.DatabaseInterface,
-	bc BlockChain,
+	featureStateDB *statedb.StateDB,
+	bc *blockchainV2,
 ) [][]string {
-	currentPDEState, err := InitCurrentPDEStateFromDB(db, beaconHeight-1)
+	currentPDEState, err := InitCurrentPDEStateFromDB(featureStateDB, beaconHeight-1)
 	if err != nil {
 		Logger.log.Error(err)
 	}
@@ -97,10 +97,10 @@ func buildStatefulInstructions(
 			newInst := [][]string{}
 			switch metaType {
 			case metadata.IssuingRequestMeta:
-				newInst, err = buildInstructionsForIssuingReq(contentStr, shardID, metaType, accumulatedValues, bc)
+				newInst, err = buildInstructionsForIssuingReq(featureStateDB, contentStr, shardID, metaType, accumulatedValues)
 
 			case metadata.IssuingETHRequestMeta:
-				newInst, err = buildInstructionsForIssuingETHReq(contentStr, shardID, metaType, accumulatedValues, bc)
+				newInst, err = buildInstructionsForIssuingETHReq(featureStateDB, contentStr, shardID, metaType, accumulatedValues, bc)
 
 			case metadata.PDEContributionMeta:
 				pdeContributionActionsByShardID = groupPDEActionsByShardID(
@@ -177,7 +177,7 @@ func sortPDETradeInstsByFee(
 				continue
 			}
 			tradeMeta := pdeTradeReqAction.Meta
-			poolPairKey := string(lvdb.BuildPDEPoolForPairKey(beaconHeight, tradeMeta.TokenIDToBuyStr, tradeMeta.TokenIDToSellStr))
+			poolPairKey := string(rawdbv2.BuildPDEPoolForPairKey(beaconHeight, tradeMeta.TokenIDToBuyStr, tradeMeta.TokenIDToSellStr))
 			tradesByPair, found := tradesByPairs[poolPairKey]
 			if !found {
 				tradesByPairs[poolPairKey] = []metadata.PDETradeRequestAction{pdeTradeReqAction}

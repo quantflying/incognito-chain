@@ -3,34 +3,27 @@ package app
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"math/big"
 	"strconv"
 
 	rCommon "github.com/ethereum/go-ethereum/common"
-	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
-	"github.com/incognitochain/incognito-chain/database"
-	"github.com/incognitochain/incognito-chain/database/lvdb"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/pkg/errors"
 )
 
 // build instructions at beacon chain before syncing to shards
-func buildBridgeInstructions(
-	shardID byte,
-	shardBlockInstructions [][]string,
-	beaconHeight uint64,
-	db database.DatabaseInterface,
-	logger common.Logger,
-) ([][]string, error) {
+func buildBridgeInstructions(stateDB *statedb.StateDB, shardID byte, shardBlockInstructions [][]string, beaconHeight uint64) ([][]string, error) {
 	instructions := [][]string{}
 	for _, inst := range shardBlockInstructions {
 		if len(inst) < 2 {
 			continue
 		}
-		if inst[0] == blockchain.SetAction || inst[0] == blockchain.StakeAction || inst[0] == blockchain.SwapAction || inst[0] == blockchain.RandomAction || inst[0] == blockchain.AssignAction {
+		if inst[0] == SetAction || inst[0] == StakeAction || inst[0] == SwapAction || inst[0] == RandomAction || inst[0] == AssignAction {
 			continue
 		}
 
@@ -46,7 +39,7 @@ func buildBridgeInstructions(
 
 		case metadata.BurningRequestMeta:
 			burningConfirm := []string{}
-			burningConfirm, err = buildBurningConfirmInst(inst, beaconHeight, db, logger)
+			burningConfirm, err = buildBurningConfirmInst(stateDB, inst, beaconHeight)
 			newInst = [][]string{burningConfirm}
 
 		default:
@@ -65,8 +58,8 @@ func buildBridgeInstructions(
 }
 
 // buildBurningConfirmInst builds on beacon an instruction confirming a tx burning bridge-token
-func buildBurningConfirmInst(inst []string, height uint64, db database.DatabaseInterface, logger common.Logger) ([]string, error) {
-	logger.Infof("Build BurningConfirmInst: %s", inst)
+func buildBurningConfirmInst(stateDB *statedb.StateDB, inst []string, height uint64) ([]string, error) {
+	Logger.log.Infof("Build BurningConfirmInst: %s", inst)
 	// Parse action and get metadata
 	var burningReqAction BurningReqAction
 	err := decodeContent(inst[1], &burningReqAction)
@@ -78,7 +71,7 @@ func buildBurningConfirmInst(inst []string, height uint64, db database.DatabaseI
 	shardID := byte(common.BridgeShardID)
 
 	// Convert to external tokenID
-	tokenID, err := findExternalTokenID(&md.TokenID, db)
+	tokenID, err := findExternalTokenID(stateDB, &md.TokenID)
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +99,12 @@ func buildBurningConfirmInst(inst []string, height uint64, db database.DatabaseI
 }
 
 // findExternalTokenID finds the external tokenID for a bridge token from database
-func findExternalTokenID(tokenID *common.Hash, db database.DatabaseInterface) ([]byte, error) {
-	allBridgeTokensBytes, err := db.GetAllBridgeTokens()
+func findExternalTokenID(stateDB *statedb.StateDB, tokenID *common.Hash) ([]byte, error) {
+	allBridgeTokensBytes, err := statedb.GetAllBridgeTokens(stateDB)
 	if err != nil {
 		return nil, err
 	}
-	var allBridgeTokens []*lvdb.BridgeTokenInfo
+	var allBridgeTokens []*rawdbv2.BridgeTokenInfo
 	err = json.Unmarshal(allBridgeTokensBytes, &allBridgeTokens)
 	if err != nil {
 		return nil, errors.WithStack(err)

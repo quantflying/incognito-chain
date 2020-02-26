@@ -7,7 +7,6 @@ import (
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/database"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/mempool"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -90,10 +89,6 @@ func (FakeBC) GetStakingTx(byte) map[string]string {
 }
 
 func (FakeBC) GetAutoStakingList() map[string]bool {
-	panic("implement me")
-}
-
-func (FakeBC) GetDatabase() database.DatabaseInterface {
 	panic("implement me")
 }
 
