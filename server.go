@@ -1,11 +1,12 @@
 package main
 
 import (
+	"cloud.google.com/go/storage"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
+	"google.golang.org/api/option"
 	"io/ioutil"
 	"net"
 	"os"
@@ -16,32 +17,24 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/incognitochain/incognito-chain/metrics"
-	"github.com/incognitochain/incognito-chain/peerv2"
-
-	"cloud.google.com/go/storage"
-	"google.golang.org/api/option"
-
-	"github.com/incognitochain/incognito-chain/blockchain/btc"
-	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
-	"github.com/incognitochain/incognito-chain/incognitokey"
-	"github.com/incognitochain/incognito-chain/memcache"
-	"github.com/incognitochain/incognito-chain/pubsub"
-
 	"github.com/incognitochain/incognito-chain/addrmanager"
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/connmanager"
 	"github.com/incognitochain/incognito-chain/consensus"
+	//consensus "github.com/incognitochain/incognito-chain/consensus_v2"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
 	"github.com/incognitochain/incognito-chain/databasemp"
 	"github.com/incognitochain/incognito-chain/incdb"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/memcache"
 	"github.com/incognitochain/incognito-chain/mempool"
 	"github.com/incognitochain/incognito-chain/metadata"
+	"github.com/incognitochain/incognito-chain/metrics"
 	"github.com/incognitochain/incognito-chain/netsync"
 	"github.com/incognitochain/incognito-chain/peer"
+	"github.com/incognitochain/incognito-chain/peerv2"
 	"github.com/incognitochain/incognito-chain/pubsub"
 	"github.com/incognitochain/incognito-chain/transaction"
 	"github.com/incognitochain/incognito-chain/wallet"
@@ -57,13 +50,13 @@ type Server struct {
 	started     int32
 	startupTime int64
 
-	protocolVersion   string
-	isEnableMining    bool
-	chainParams       *blockchain.Params
-	connManager       *connmanager.ConnManager
-	blockChain        *blockchain.BlockChain
-	dataBase          incdb.Database
-	memCache          *memcache.MemoryCache
+	protocolVersion string
+	isEnableMining  bool
+	chainParams     *blockchain.Params
+	connManager     *connmanager.ConnManager
+	blockChain      *blockchain.BlockChain
+	dataBase        incdb.Database
+	memCache        *memcache.MemoryCache
 	// rpcServer         *rpcserver.RpcServer
 	memPool           *mempool.TxPool
 	tempMemPool       *mempool.TxPool
