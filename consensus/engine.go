@@ -439,7 +439,7 @@ func (engine *Engine) Init(config *EngineConfig) error {
 	return nil
 }
 
-func (engine *Engine) ExtractBridgeValidationData(block common.BlockInterface) ([][]byte, []int, error) {
+func (engine *Engine) ExtractBridgeValidationData(block blockinterface.BlockInterface) ([][]byte, []int, error) {
 	if _, ok := AvailableConsensus[block.GetConsensusType()]; ok {
 		return AvailableConsensus[block.GetConsensusType()].ExtractBridgeValidationData(block)
 	}

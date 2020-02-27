@@ -425,31 +425,34 @@ func CreateBeaconGenesisBlock(
 	version int,
 	net uint16,
 	genesisBlockTime string,
-	genesisParams blockchain.GenesisParams,
+	preSelectShardNodeSerializedPubkey []string,
+	preSelectBeaconNodeSerializedPubkey []string,
+	preSelectBeaconNodeSerializedPaymentAddress []string,
+	preSelectShardNodeSerializedPaymentAddress []string,
 ) blockinterface.BeaconBlockInterface {
 	inst := [][]string{}
 	shardAutoStaking := []string{}
 	beaconAutoStaking := []string{}
-	for i := 0; i < len(genesisParams.PreSelectShardNodeSerializedPubkey); i++ {
+	for i := 0; i < len(preSelectShardNodeSerializedPubkey); i++ {
 		shardAutoStaking = append(shardAutoStaking, "false")
 	}
-	for i := 0; i < len(genesisParams.PreSelectBeaconNodeSerializedPubkey); i++ {
+	for i := 0; i < len(preSelectBeaconNodeSerializedPubkey); i++ {
 		beaconAutoStaking = append(beaconAutoStaking, "false")
 	}
 	// build validator beacon
 	// test generate public key in utility/generateKeys
 	beaconAssingInstruction := []string{blockchain.StakeAction}
-	beaconAssingInstruction = append(beaconAssingInstruction, strings.Join(genesisParams.PreSelectBeaconNodeSerializedPubkey[:], ","))
+	beaconAssingInstruction = append(beaconAssingInstruction, strings.Join(preSelectBeaconNodeSerializedPubkey[:], ","))
 	beaconAssingInstruction = append(beaconAssingInstruction, "beacon")
 	beaconAssingInstruction = append(beaconAssingInstruction, []string{""}...)
-	beaconAssingInstruction = append(beaconAssingInstruction, strings.Join(genesisParams.PreSelectBeaconNodeSerializedPaymentAddress[:], ","))
+	beaconAssingInstruction = append(beaconAssingInstruction, strings.Join(preSelectBeaconNodeSerializedPaymentAddress[:], ","))
 	beaconAssingInstruction = append(beaconAssingInstruction, strings.Join(beaconAutoStaking[:], ","))
 
 	shardAssingInstruction := []string{blockchain.StakeAction}
-	shardAssingInstruction = append(shardAssingInstruction, strings.Join(genesisParams.PreSelectShardNodeSerializedPubkey[:], ","))
+	shardAssingInstruction = append(shardAssingInstruction, strings.Join(preSelectShardNodeSerializedPubkey[:], ","))
 	shardAssingInstruction = append(shardAssingInstruction, "shard")
 	shardAssingInstruction = append(shardAssingInstruction, []string{""}...)
-	shardAssingInstruction = append(shardAssingInstruction, strings.Join(genesisParams.PreSelectShardNodeSerializedPaymentAddress[:], ","))
+	shardAssingInstruction = append(shardAssingInstruction, strings.Join(preSelectShardNodeSerializedPaymentAddress[:], ","))
 	shardAssingInstruction = append(shardAssingInstruction, strings.Join(shardAutoStaking[:], ","))
 
 	inst = append(inst, beaconAssingInstruction)

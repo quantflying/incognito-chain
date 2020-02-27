@@ -6,10 +6,10 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/app"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"sync"
 	"time"
+
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
@@ -74,8 +74,9 @@ func (s *ChainViewManager) GetChainData() (res []byte) {
 //create new chain with root manager
 func InitNewChainViewManager(name string, chainID int, rootView consensus.ChainViewInterface) *ChainViewManager {
 	cm := &ChainViewManager{
-		name: name,
-		lock: new(sync.RWMutex),
+		name:    name,
+		chainID: chainID,
+		lock:    new(sync.RWMutex),
 	}
 	cm.manager = NewViewGraph(name, rootView, cm.lock)
 	return cm

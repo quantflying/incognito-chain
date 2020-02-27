@@ -24,7 +24,7 @@ type CreateShardBlockState struct {
 	newConfirmBeaconHeight uint64
 	newConfirmBeaconHash   common.Hash
 	totalTxFee             map[common.Hash]uint64
-	beaconBlocks           []common.BlockInterface
+	beaconBlocks           []blockinterface.BlockInterface
 	crossShardBlocks       map[byte][]blockinterface.CrossShardBlockInterface
 	createTimeStamp        int64
 	createTimeSlot         uint64

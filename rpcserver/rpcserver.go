@@ -88,7 +88,7 @@ type RpcServerConfig struct {
 		GetUserRole() (string, string, int)
 		GetCurrentMiningPublicKey() (publickey string, keyType string)
 		GetAllMiningPublicKeys() []string
-		ExtractBridgeValidationData(block common.BlockInterface) ([][]byte, []int, error)
+		ExtractBridgeValidationData(block blockinterface.BlockInterface) ([][]byte, []int, error)
 	}
 	TxMemPool                   *mempool.TxPool
 	ShardToBeaconPool           *mempool.ShardToBeaconPool

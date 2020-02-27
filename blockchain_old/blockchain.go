@@ -80,13 +80,13 @@ type Config struct {
 		PushMessageGetBlockCrossShardByHash(fromShard byte, toShard byte, blksHash []common.Hash, getFromPool bool, peerID libp2p.ID) error
 		PushMessageGetBlockCrossShardBySpecificHeight(fromShard byte, toShard byte, blksHeight []uint64, getFromPool bool, peerID libp2p.ID) error
 		UpdateConsensusState(role string, userPbk string, currentShard *byte, beaconCommittee []string, shardCommittee map[byte][]string)
-		PushBlockToAll(block common.BlockInterface, isBeacon bool) error
+		PushBlockToAll(block blockinterface.BlockInterface, isBeacon bool) error
 	}
 	// UserKeySet *incognitokey.KeySet
 
 	ConsensusEngine interface {
-		ValidateProducerSig(block common.BlockInterface, consensusType string) error
-		ValidateBlockCommitteSig(block common.BlockInterface, committee []incognitokey.CommitteePublicKey, consensusType string) error
+		ValidateProducerSig(block blockinterface.BlockInterface, consensusType string) error
+		ValidateBlockCommitteSig(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey, consensusType string) error
 		GetCurrentMiningPublicKey() (string, string)
 		GetMiningPublicKeyByConsensus(consensusName string) (string, error)
 		GetUserLayer() (string, int)

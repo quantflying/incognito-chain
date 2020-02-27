@@ -102,13 +102,13 @@ type ChainInterface interface {
 	GetCommittee() []incognitokey.CommitteePublicKey
 	GetPubKeyCommitteeIndex(string) int
 	GetLastProposerIndex() int
-	UnmarshalBlock(blockString []byte) (common.BlockInterface, error)
-	CreateNewBlock(round int) (common.BlockInterface, error)
-	InsertBlk(block common.BlockInterface) error
-	InsertAndBroadcastBlock(block common.BlockInterface) error
-	// ValidateAndInsertBlock(block common.BlockInterface) error
-	ValidateBlockSignatures(block common.BlockInterface, committee []incognitokey.CommitteePublicKey) error
-	ValidatePreSignBlock(block common.BlockInterface) error
+	UnmarshalBlock(blockString []byte) (blockinterface.BlockInterface, error)
+	CreateNewBlock(round int) (blockinterface.BlockInterface, error)
+	InsertBlk(block blockinterface.BlockInterface) error
+	InsertAndBroadcastBlock(block blockinterface.BlockInterface) error
+	// ValidateAndInsertBlock(block blockinterface.BlockInterface) error
+	ValidateBlockSignatures(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey) error
+	ValidatePreSignBlock(block blockinterface.BlockInterface) error
 	GetShardID() int
 }
 

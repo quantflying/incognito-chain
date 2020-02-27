@@ -60,7 +60,7 @@ func (chain *BeaconChain) GetLastProposerIndex() int {
 	return chain.BestState.BeaconProposerIndex
 }
 
-func (chain *BeaconChain) CreateNewBlock(round int) (common.BlockInterface, error) {
+func (chain *BeaconChain) CreateNewBlock(round int) (blockinterface.BlockInterface, error) {
 	// chain.lock.Lock()
 	// defer chain.lock.Unlock()
 	newBlock, err := chain.BlockGen.NewBlockBeacon(round, chain.Blockchain.Synker.GetClosestShardToBeaconPoolState())
@@ -70,14 +70,14 @@ func (chain *BeaconChain) CreateNewBlock(round int) (common.BlockInterface, erro
 	return newBlock, nil
 }
 
-func (chain *BeaconChain) InsertBlk(block common.BlockInterface) error {
+func (chain *BeaconChain) InsertBlk(block blockinterface.BlockInterface) error {
 	if chain.Blockchain.config.ConsensusEngine.IsOngoing(common.BeaconChainKey) {
 		return NewBlockChainError(ConsensusIsOngoingError, errors.New(fmt.Sprint(common.BeaconChainKey, block.Hash())))
 	}
 	return chain.Blockchain.InsertBeaconBlock(block.(*BeaconBlock), true)
 }
 
-func (chain *BeaconChain) InsertAndBroadcastBlock(block common.BlockInterface) error {
+func (chain *BeaconChain) InsertAndBroadcastBlock(block blockinterface.BlockInterface) error {
 	go chain.Blockchain.config.Server.PushBlockToAll(block, true)
 	err := chain.Blockchain.InsertBeaconBlock(block.(*BeaconBlock), true)
 	if err != nil {
@@ -98,11 +98,11 @@ func (chain *BeaconChain) GetPubkeyRole(pubkey string, round int) (string, byte)
 	return chain.BestState.GetPubkeyRole(pubkey, round)
 }
 
-func (chain *BeaconChain) ValidatePreSignBlock(block common.BlockInterface) error {
+func (chain *BeaconChain) ValidatePreSignBlock(block blockinterface.BlockInterface) error {
 	return chain.Blockchain.VerifyPreSignBeaconBlock(block.(*BeaconBlock), true)
 }
 
-// func (chain *BeaconChain) ValidateAndInsertBlock(block common.BlockInterface) error {
+// func (chain *BeaconChain) ValidateAndInsertBlock(block blockinterface.BlockInterface) error {
 // 	var beaconBestState BeaconBestState
 // 	beaconBlock := block.(*BeaconBlock)
 // 	beaconBestState.cloneBeaconBestStateFrom(chain.BestState)
@@ -118,7 +118,7 @@ func (chain *BeaconChain) ValidatePreSignBlock(block common.BlockInterface) erro
 // 	return chain.Blockchain.InsertBeaconBlock(beaconBlock, false)
 // }
 
-func (chain *BeaconChain) ValidateBlockSignatures(block common.BlockInterface, committee []incognitokey.CommitteePublicKey) error {
+func (chain *BeaconChain) ValidateBlockSignatures(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey) error {
 	if err := chain.Blockchain.config.ConsensusEngine.ValidateProducerSig(block, chain.GetConsensusType()); err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func (chain *BeaconChain) GetBeaconWaitingList() []incognitokey.CommitteePublicK
 	return result
 }
 
-func (chain *BeaconChain) UnmarshalBlock(blockString []byte) (common.BlockInterface, error) {
+func (chain *BeaconChain) UnmarshalBlock(blockString []byte) (blockinterface.BlockInterface, error) {
 	var beaconBlk BeaconBlock
 	err := json.Unmarshal(blockString, &beaconBlk)
 	if err != nil {

@@ -116,7 +116,7 @@ func parseRoundKey(roundKey string) (uint64, int) {
 	return uint64(height), round
 }
 
-func (e *BLSBFT) ExtractBridgeValidationData(block common.BlockInterface) ([][]byte, []int, error) {
+func (e *BLSBFT) ExtractBridgeValidationData(block blockinterface.BlockInterface) ([][]byte, []int, error) {
 	valData, err := DecodeValidationData(block.GetValidationField())
 	if err != nil {
 		return nil, nil, consensus.NewConsensusError(consensus.UnExpectedError, err)

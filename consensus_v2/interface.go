@@ -40,7 +40,7 @@ type BlockGenInterface interface {
 }
 type NodeInterface interface {
 	// RequestSyncBlockByHash(blockHash *common.Hash, isUnknownView bool, tipBlocksHash []common.Hash, peerID libp2p.ID) error
-	// PushBlockToPeer(block common.BlockInterface, isShard bool, peerID libp2p.ID) error
+	// PushBlockToPeer(block blockinterface.BlockInterface, isShard bool, peerID libp2p.ID) error
 	BroadCastBlock(blockInterface blockinterface.BlockInterface)
 	PushMessageToChain(msg interface{}, chain ChainViewManagerInterface) error
 	PushMessageToPeer(msg interface{}, peerId libp2p.ID) error

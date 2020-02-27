@@ -30,7 +30,7 @@ type BLSBFT struct {
 	VoteMessageCh    chan BFTVote
 
 	RoundData struct {
-		Block             common.BlockInterface
+		Block             blockinterface.BlockInterface
 		BlockHash         common.Hash
 		BlockValidateData ValidationData
 		lockVotes         sync.Mutex
@@ -47,7 +47,7 @@ type BLSBFT struct {
 		}
 		LastProposerIndex int
 	}
-	Blocks         map[string]common.BlockInterface
+	Blocks         map[string]blockinterface.BlockInterface
 	EarlyVotes     map[string]map[string]vote
 	lockEarlyVotes sync.Mutex
 	isOngoing      bool
@@ -86,7 +86,7 @@ func (e *BLSBFT) Start() error {
 	e.isOngoing = false
 	e.StopCh = make(chan struct{})
 	e.EarlyVotes = make(map[string]map[string]vote)
-	e.Blocks = map[string]common.BlockInterface{}
+	e.Blocks = map[string]blockinterface.BlockInterface{}
 	e.ProposeMessageCh = make(chan BFTPropose)
 	e.VoteMessageCh = make(chan BFTVote)
 	e.InitRoundData()
@@ -398,10 +398,10 @@ func (e *BLSBFT) addEarlyVote(voteMsg BFTVote) {
 	return
 }
 
-func (e *BLSBFT) createNewBlock() (common.BlockInterface, error) {
+func (e *BLSBFT) createNewBlock() (blockinterface.BlockInterface, error) {
 
 	var errCh chan error
-	var block common.BlockInterface = nil
+	var block blockinterface.BlockInterface = nil
 	errCh = make(chan error)
 	timeout := time.NewTimer(e.Chain.GetMaxBlkCreateTime()).C
 

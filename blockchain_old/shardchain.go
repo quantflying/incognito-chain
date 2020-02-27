@@ -61,7 +61,7 @@ func (chain *ShardChain) GetLastProposerIndex() int {
 	return chain.BestState.ShardProposerIdx
 }
 
-func (chain *ShardChain) CreateNewBlock(round int) (common.BlockInterface, error) {
+func (chain *ShardChain) CreateNewBlock(round int) (blockinterface.BlockInterface, error) {
 	chain.lock.Lock()
 	defer chain.lock.Unlock()
 	start := time.Now()
@@ -84,7 +84,7 @@ func (chain *ShardChain) CreateNewBlock(round int) (common.BlockInterface, error
 	return newBlock, nil
 }
 
-// func (chain *ShardChain) ValidateAndInsertBlock(block common.BlockInterface) error {
+// func (chain *ShardChain) ValidateAndInsertBlock(block blockinterface.BlockInterface) error {
 // 	//@Bahamoot review later
 // 	chain.lock.Lock()
 // 	defer chain.lock.Unlock()
@@ -103,7 +103,7 @@ func (chain *ShardChain) CreateNewBlock(round int) (common.BlockInterface, error
 // 	return chain.Blockchain.InsertShardBlock(shardBlock, false)
 // }
 
-func (chain *ShardChain) ValidateBlockSignatures(block common.BlockInterface, committee []incognitokey.CommitteePublicKey) error {
+func (chain *ShardChain) ValidateBlockSignatures(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey) error {
 	if err := chain.Blockchain.config.ConsensusEngine.ValidateProducerSig(block, chain.GetConsensusType()); err != nil {
 		return err
 	}
@@ -113,14 +113,14 @@ func (chain *ShardChain) ValidateBlockSignatures(block common.BlockInterface, co
 	return nil
 }
 
-func (chain *ShardChain) InsertBlk(block common.BlockInterface) error {
+func (chain *ShardChain) InsertBlk(block blockinterface.BlockInterface) error {
 	if chain.Blockchain.config.ConsensusEngine.IsOngoing(chain.ChainName) {
 		return NewBlockChainError(ConsensusIsOngoingError, errors.New(fmt.Sprint(chain.ChainName, block.Hash())))
 	}
 	return chain.Blockchain.InsertShardBlock(block.(*ShardBlock), false)
 }
 
-func (chain *ShardChain) InsertAndBroadcastBlock(block common.BlockInterface) error {
+func (chain *ShardChain) InsertAndBroadcastBlock(block blockinterface.BlockInterface) error {
 	go chain.Blockchain.config.Server.PushBlockToAll(block, false)
 	err := chain.Blockchain.InsertShardBlock(block.(*ShardBlock), true)
 	if err != nil {
@@ -149,7 +149,7 @@ func (chain *ShardChain) GetPubkeyRole(pubkey string, round int) (string, byte) 
 	return chain.BestState.GetPubkeyRole(pubkey, round), chain.BestState.ShardID
 }
 
-func (chain *ShardChain) UnmarshalBlock(blockString []byte) (common.BlockInterface, error) {
+func (chain *ShardChain) UnmarshalBlock(blockString []byte) (blockinterface.BlockInterface, error) {
 	var shardBlk ShardBlock
 	err := json.Unmarshal(blockString, &shardBlk)
 	if err != nil {
@@ -158,6 +158,6 @@ func (chain *ShardChain) UnmarshalBlock(blockString []byte) (common.BlockInterfa
 	return &shardBlk, nil
 }
 
-func (chain *ShardChain) ValidatePreSignBlock(block common.BlockInterface) error {
+func (chain *ShardChain) ValidatePreSignBlock(block blockinterface.BlockInterface) error {
 	return chain.Blockchain.VerifyPreSignShardBlock(block.(*ShardBlock), chain.BestState.ShardID)
 }

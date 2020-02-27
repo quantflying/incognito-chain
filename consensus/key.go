@@ -123,14 +123,14 @@ func (engine *Engine) VerifyData(data []byte, sig string, publicKey string, cons
 	return AvailableConsensus[consensusType].ValidateData(data, sig, string(mapPublicKey[common.BridgeConsensus]))
 }
 
-func (engine *Engine) ValidateProducerSig(block common.BlockInterface, consensusType string) error {
+func (engine *Engine) ValidateProducerSig(block blockinterface.BlockInterface, consensusType string) error {
 	if _, ok := AvailableConsensus[consensusType]; !ok {
 		return NewConsensusError(ConsensusTypeNotExistError, errors.New(consensusType))
 	}
 	return AvailableConsensus[consensusType].ValidateProducerSig(block)
 }
 
-func (engine *Engine) ValidateBlockCommitteSig(block common.BlockInterface, committee []incognitokey.CommitteePublicKey, consensusType string) error {
+func (engine *Engine) ValidateBlockCommitteSig(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey, consensusType string) error {
 	if _, ok := AvailableConsensus[consensusType]; !ok {
 		return NewConsensusError(ConsensusTypeNotExistError, errors.New(consensusType))
 	}

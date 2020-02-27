@@ -31,9 +31,9 @@ type ConsensusInterface interface {
 	// ProcessBFTMsg - process incoming BFT message
 	ProcessBFTMsg(msg *wire.MessageBFT)
 	// ValidateProducerSig - validate a block producer signature
-	ValidateProducerSig(block common.BlockInterface) error
+	ValidateProducerSig(block blockinterface.BlockInterface) error
 	// ValidateCommitteeSig - validate a block committee signature
-	ValidateCommitteeSig(block common.BlockInterface, committee []incognitokey.CommitteePublicKey) error
+	ValidateCommitteeSig(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey) error
 	// LoadUserKey - load user mining key
 	LoadUserKey(miningKey string) error
 	// LoadUserKeyFromIncPrivateKey - load user mining key from incognito privatekey
@@ -45,7 +45,7 @@ type ConsensusInterface interface {
 	// SignData - sign data with this consensus signature scheme
 	SignData(data []byte) (string, error)
 	// ExtractBridgeValidationData - extract bridge related field in validation data of block
-	ExtractBridgeValidationData(block common.BlockInterface) ([][]byte, []int, error)
+	ExtractBridgeValidationData(block blockinterface.BlockInterface) ([][]byte, []int, error)
 }
 
 type BeaconInterface interface {
