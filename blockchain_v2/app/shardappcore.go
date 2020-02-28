@@ -3,14 +3,15 @@ package app
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
+	"github.com/incognitochain/incognito-chain/blockchain_v2/params"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/consensusheader"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardstate"
 	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
-	"reflect"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -40,8 +41,8 @@ func (sca *ShardCoreApp) preCreateBlock() error {
 		panic("something wrong")
 	}
 	// limit number of beacon block confirmed in a shard block
-	if beaconHeight > curViewBeaconHeight && beaconHeight-curViewBeaconHeight > blockchain.MAX_BEACON_BLOCK {
-		beaconHeight = curViewBeaconHeight + blockchain.MAX_BEACON_BLOCK
+	if beaconHeight > curViewBeaconHeight && beaconHeight-curViewBeaconHeight > params.MAX_BEACON_BLOCK {
+		beaconHeight = curViewBeaconHeight + params.MAX_BEACON_BLOCK
 	}
 
 	// we only confirm shard blocks within an epoch
@@ -65,7 +66,7 @@ func (sca *ShardCoreApp) buildTxFromCrossShard() error {
 	state := sca.createState
 	bc := sca.createState.bc
 	toShard := state.curView.ShardID
-	crossTransactions := make(map[byte][]blockchain.CrossTransaction)
+	crossTransactions := make(map[byte][]CrossTransaction)
 	// Get Cross Shard Block
 	for fromShard, crossShardBlocks := range state.crossShardBlocks {
 		sort.SliceStable(crossShardBlocks[:], func(i, j int) bool {
@@ -98,7 +99,7 @@ func (sca *ShardCoreApp) buildTxFromCrossShard() error {
 
 		for _, index := range indexs {
 			blk := crossShardBlocks[index]
-			crossTransaction := blockchain.CrossTransaction{
+			crossTransaction := CrossTransaction{
 				OutputCoin:       blk.GetCrossOutputCoin(),
 				TokenPrivacyData: blk.GetCrossTxTokenPrivacyData(),
 				BlockHash:        *blk.GetShardHeader().GetHash(),
@@ -275,7 +276,7 @@ func (sca *ShardCoreApp) generateInstruction() error {
 
 		badProducersWithPunishment := buildBadProducersWithPunishment(false, int(shardID), shardCommittee, sca.createState.bc)
 
-		swapInstruction, shardPendingValidator, shardCommittee, err = blockchain.CreateSwapAction(shardPendingValidator, shardCommittee, maxShardCommitteeSize, minShardCommitteeSize, shardID, producersBlackList, badProducersWithPunishment, bc.chainParams.Offset, bc.chainParams.SwapOffset)
+		swapInstruction, shardPendingValidator, shardCommittee, err = CreateSwapAction(shardPendingValidator, shardCommittee, maxShardCommitteeSize, minShardCommitteeSize, shardID, producersBlackList, badProducersWithPunishment, bc.chainParams.Offset, bc.chainParams.SwapOffset)
 		if err != nil {
 			sca.Logger.Error(err)
 			return err
@@ -308,12 +309,12 @@ func (sca *ShardCoreApp) buildHeader() error {
 	}
 	state.totalTxFee = totalTxsFee
 
-	merkleRoots := blockchain.Merkle{}.BuildMerkleTreeStore(txs)
+	merkleRoots := Merkle{}.BuildMerkleTreeStore(txs)
 	merkleRoot := &common.Hash{}
 	if len(merkleRoots) > 0 {
 		merkleRoot = merkleRoots[len(merkleRoots)-1]
 	}
-	crossTransactionRoot, err := blockchain.CreateMerkleCrossTransaction(crossTxs)
+	crossTransactionRoot, err := CreateMerkleCrossTransaction(crossTxs)
 	if err != nil {
 		return err
 	}
@@ -355,18 +356,18 @@ func (sca *ShardCoreApp) buildHeader() error {
 		return NewAppError(StakingTxHashError, err)
 	}
 
-	flattenTxInsts, err := blockchain.FlattenAndConvertStringInst(txInstructions)
+	flattenTxInsts, err := FlattenAndConvertStringInst(txInstructions)
 	if err != nil {
 		return NewAppError(FlattenAndConvertStringInstError, fmt.Errorf("Instruction from Tx: %+v", err))
 	}
-	flattenInsts, err := blockchain.FlattenAndConvertStringInst(instructions)
+	flattenInsts, err := FlattenAndConvertStringInst(instructions)
 	if err != nil {
 		return NewAppError(FlattenAndConvertStringInstError, fmt.Errorf("Instruction from block body: %+v", err))
 	}
 	insts := append(flattenTxInsts, flattenInsts...) // Order of instructions must be preserved in shardprocess
-	instMerkleRoot := blockchain.GetKeccak256MerkleRoot(insts)
+	instMerkleRoot := GetKeccak256MerkleRoot(insts)
 	// shard tx root
-	_, shardTxMerkleData := blockchain.CreateShardTxRoot(txs)
+	_, shardTxMerkleData := CreateShardTxRoot(txs)
 
 	newBlock.Header = shardblockv2.ShardHeader{
 		Producer:             state.proposer,
@@ -376,7 +377,7 @@ func (sca *ShardCoreApp) buildHeader() error {
 		Height:               state.curView.Block.GetHeader().GetHeight() + 1,
 		TimeSlot:             state.createTimeSlot,
 		Epoch:                state.newBlockEpoch,
-		CrossShardBitMap:     blockchain.CreateCrossShardByteArray(newBlock.Body.Transactions, shardID),
+		CrossShardBitMap:     CreateCrossShardByteArray(newBlock.Body.Transactions, shardID),
 		BeaconHeight:         state.newConfirmBeaconHeight,
 		BeaconHash:           state.newConfirmBeaconHash,
 		TotalTxsFee:          state.totalTxFee,

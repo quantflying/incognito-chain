@@ -1,10 +1,11 @@
-package blockchain
+package merkle
 
 import (
 	"bytes"
+	"math"
+
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/metadata"
-	"math"
 )
 
 type Merkle struct {

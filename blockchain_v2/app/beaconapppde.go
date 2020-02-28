@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 )
@@ -72,7 +71,7 @@ func (s *BeaconPDEApp) preValidate() error {
 func (s *BeaconPDEApp) storeDatabase() error {
 	err := storePDEInstructions(s.StoreState.curView.featureStateDB, s.StoreState.block)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.ProcessPDEInstructionError, err)
+		return NewBlockChainError(ProcessPDEInstructionError, err)
 	}
 	return nil
 }

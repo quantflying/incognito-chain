@@ -3,11 +3,11 @@ package app
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardstate"
 	"sort"
 	"strconv"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardstate"
+
 	"github.com/incognitochain/incognito-chain/common"
 )
 
@@ -46,7 +46,7 @@ func GenerateHashFromStringArray(strs []string) (common.Hash, error) {
 	}
 	temp := common.HashB(buf.Bytes())
 	if err := hash.SetBytes(temp[:]); err != nil {
-		return common.Hash{}, blockchain.NewBlockChainError(blockchain.HashError, err)
+		return common.Hash{}, NewBlockChainError(HashError, err)
 	}
 	return hash, nil
 }

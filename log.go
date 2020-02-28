@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/app"
-	"github.com/incognitochain/incognito-chain/dataaccessobject"
 	"os"
 	"path/filepath"
 
+	"github.com/incognitochain/incognito-chain/blockchain_v2/app"
+	"github.com/incognitochain/incognito-chain/dataaccessobject"
+
 	"github.com/incognitochain/incognito-chain/addrmanager"
-	"github.com/incognitochain/incognito-chain/blockchain"
-	main2 "github.com/incognitochain/incognito-chain/blockchain/btc"
+	// "github.com/incognitochain/incognito-chain/blockchain"
+	main2 "github.com/incognitochain/incognito-chain/blockchain_v2/btc"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/connmanager"
 	"github.com/incognitochain/incognito-chain/consensus"
@@ -46,18 +47,18 @@ var (
 	dbLogger               = backendLog.Logger("Database log", false)
 	dbmpLogger             = backendLog.Logger("Mempool Persistence DB log", false)
 	walletLogger           = backendLog.Logger("Wallet log", false)
-	blockchainLogger       = backendLog.Logger("BlockChain log", false)
-	consensusLogger        = backendLog.Logger("Consensus log", false)
-	mempoolLogger          = backendLog.Logger("Mempool log", false)
-	transactionLogger      = backendLog.Logger("Transaction log", false)
-	privacyLogger          = backendLog.Logger("Privacy log", false)
-	randomLogger           = backendLog.Logger("RandomAPI log", false)
-	bridgeLogger           = backendLog.Logger("DeBridge log", false)
-	metadataLogger         = backendLog.Logger("Metadata log", false)
-	trieLogger             = backendLog.Logger("Trie log", false)
-	peerv2Logger           = backendLog.Logger("Peerv2 log", false)
-	daov2Logger            = backendLog.Logger("DAO log", false)
-	appLogger            = backendLog.Logger("APP log", false)
+	// blockchainLogger       = backendLog.Logger("BlockChain log", false)
+	consensusLogger   = backendLog.Logger("Consensus log", false)
+	mempoolLogger     = backendLog.Logger("Mempool log", false)
+	transactionLogger = backendLog.Logger("Transaction log", false)
+	privacyLogger     = backendLog.Logger("Privacy log", false)
+	randomLogger      = backendLog.Logger("RandomAPI log", false)
+	// bridgeLogger      = backendLog.Logger("DeBridge log", false)
+	metadataLogger = backendLog.Logger("Metadata log", false)
+	trieLogger     = backendLog.Logger("Trie log", false)
+	peerv2Logger   = backendLog.Logger("Peerv2 log", false)
+	daov2Logger    = backendLog.Logger("DAO log", false)
+	appLogger      = backendLog.Logger("APP log", false)
 )
 
 // logWriter implements an io.Writer that outputs to both standard output and
@@ -84,7 +85,7 @@ func init() {
 	peer.Logger.Init(peerLogger)
 	incdb.Logger.Init(dbLogger)
 	wallet.Logger.Init(walletLogger)
-	blockchain.Logger.Init(blockchainLogger)
+	// blockchain.Logger.Init(blockchainLogger)
 	app.Logger.Init(blockchainLogger)
 	consensus.Logger.Init(consensusLogger)
 	mempool.Logger.Init(mempoolLogger)
@@ -92,7 +93,7 @@ func init() {
 	transaction.Logger.Init(transactionLogger)
 	privacy.Logger.Init(privacyLogger)
 	databasemp.Logger.Init(dbmpLogger)
-	blockchain.BLogger.Init(bridgeLogger)
+	// blockchain.BLogger.Init(bridgeLogger)
 	rpcserver.BLogger.Init(bridgeLogger)
 	metadata.Logger.Init(metadataLogger)
 	trie.Logger.Init(trieLogger)

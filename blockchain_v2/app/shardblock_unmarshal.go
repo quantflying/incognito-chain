@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv1"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv2"

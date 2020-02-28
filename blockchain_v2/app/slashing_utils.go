@@ -1,10 +1,10 @@
 package app
 
 import (
-	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"sort"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/params"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 )
 
 func getUpdatedProducersBlackList(
@@ -77,7 +77,7 @@ func buildBadProducersWithPunishment(
 			continue
 		}
 		missingPercent := uint8((-(numBlk - expectedNumBlkByEachProducer) * 100) / expectedNumBlkByEachProducer)
-		var selectedSlLev *blockchain.SlashLevel
+		var selectedSlLev *params.SlashLevel
 		for _, slLev := range slashLevels {
 			if missingPercent >= slLev.MinRange {
 				selectedSlLev = &slLev

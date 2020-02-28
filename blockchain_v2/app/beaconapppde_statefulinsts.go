@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
 	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
@@ -24,7 +23,7 @@ func collectStatefulActions(
 		if len(inst) < 2 {
 			continue
 		}
-		if inst[0] == blockchain.SetAction || inst[0] == blockchain.StakeAction || inst[0] == blockchain.SwapAction || inst[0] == blockchain.RandomAction || inst[0] == blockchain.AssignAction {
+		if inst[0] == SetAction || inst[0] == StakeAction || inst[0] == SwapAction || inst[0] == RandomAction || inst[0] == AssignAction {
 			continue
 		}
 

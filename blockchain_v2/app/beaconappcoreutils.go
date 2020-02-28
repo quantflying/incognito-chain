@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/blockchain/btc"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/btc"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/params"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardstate"
 	"github.com/incognitochain/incognito-chain/common"
@@ -57,10 +57,10 @@ func buildInstructionFromBlock(s2bBlk blockinterface.ShardToBeaconBlockInterface
 
 	for _, instruction := range instructions {
 		if len(instruction) > 0 {
-			if instruction[0] == blockchain.StakeAction {
+			if instruction[0] == StakeAction {
 				stakeInstructionFromShardBlock = append(stakeInstructionFromShardBlock, instruction)
 			}
-			if instruction[0] == blockchain.SwapAction {
+			if instruction[0] == SwapAction {
 				//- ["swap" "inPubkey1,inPubkey2,..." "outPupkey1, outPubkey2,..." "shard" "shardID"]
 				//- ["swap" "inPubkey1,inPubkey2,..." "outPupkey1, outPubkey2,..." "beacon"]
 				// validate swap instruction
@@ -73,7 +73,7 @@ func buildInstructionFromBlock(s2bBlk blockinterface.ShardToBeaconBlockInterface
 				}
 				swapInstructions[shardID] = append(swapInstructions[shardID], instruction)
 			}
-			if instruction[0] == blockchain.StopAutoStake {
+			if instruction[0] == StopAutoStake {
 				if len(instruction) != 2 {
 					continue
 				}
@@ -137,11 +137,11 @@ func buildInstructionFromBlock(s2bBlk blockinterface.ShardToBeaconBlockInterface
 	}
 	if len(stakeShardPublicKeys) > 0 {
 		tempValidStakePublicKeys = append(tempValidStakePublicKeys, stakeShardPublicKeys...)
-		stakeInstructions = append(stakeInstructions, []string{blockchain.StakeAction, strings.Join(stakeShardPublicKeys, ","), "shard", strings.Join(stakeShardTx, ","), strings.Join(stakeShardRewardReceiver, ","), strings.Join(stakeShardAutoStaking, ",")})
+		stakeInstructions = append(stakeInstructions, []string{StakeAction, strings.Join(stakeShardPublicKeys, ","), "shard", strings.Join(stakeShardTx, ","), strings.Join(stakeShardRewardReceiver, ","), strings.Join(stakeShardAutoStaking, ",")})
 	}
 	if len(stakeBeaconPublicKeys) > 0 {
 		tempValidStakePublicKeys = append(tempValidStakePublicKeys, stakeBeaconPublicKeys...)
-		stakeInstructions = append(stakeInstructions, []string{blockchain.StakeAction, strings.Join(stakeBeaconPublicKeys, ","), "beacon", strings.Join(stakeBeaconTx, ","), strings.Join(stakeBeaconRewardReceiver, ","), strings.Join(stakeBeaconAutoStaking, ",")})
+		stakeInstructions = append(stakeInstructions, []string{StakeAction, strings.Join(stakeBeaconPublicKeys, ","), "beacon", strings.Join(stakeBeaconTx, ","), strings.Join(stakeBeaconRewardReceiver, ","), strings.Join(stakeBeaconAutoStaking, ",")})
 	}
 	for _, instruction := range stopAutoStakingInstructionsFromBlock {
 		allCommitteeValidatorCandidate := []string{}
@@ -156,7 +156,7 @@ func buildInstructionFromBlock(s2bBlk blockinterface.ShardToBeaconBlockInterface
 		}
 	}
 	if len(stopAutoStakingPublicKeys) > 0 {
-		stopAutoStakingInstructions = append(stopAutoStakingInstructions, []string{blockchain.StopAutoStake, strings.Join(stopAutoStakingPublicKeys, ",")})
+		stopAutoStakingInstructions = append(stopAutoStakingInstructions, []string{StopAutoStake, strings.Join(stopAutoStakingPublicKeys, ",")})
 	}
 
 	return stakeInstructions, tempValidStakePublicKeys, swapInstructions, acceptedRewardInstructions, stopAutoStakingInstructions
@@ -343,7 +343,7 @@ func (bca *BeaconCoreApp) buildAssignInstruction() (err error) {
 		shardID := byte(key)
 		candidates := assignedCandidates[shardID]
 		Logger.log.Infof("Assign Candidate at Shard %+v: %+v", shardID, candidates)
-		shardAssingInstruction := []string{blockchain.AssignAction}
+		shardAssingInstruction := []string{AssignAction}
 		shardAssingInstruction = append(shardAssingInstruction, strings.Join(candidates, ","))
 		shardAssingInstruction = append(shardAssingInstruction, "shard")
 		shardAssingInstruction = append(shardAssingInstruction, fmt.Sprintf("%v", shardID))
@@ -500,10 +500,10 @@ func getNoBlkPerYear(blockCreationTimeSeconds uint64) uint64 {
 
 func getPercentForIncognitoDAO(blockHeight, blkPerYear uint64) int {
 	year := blockHeight / blkPerYear
-	if year > (blockchain.UpperBoundPercentForIncDAO - blockchain.LowerBoundPercentForIncDAO) {
-		return blockchain.LowerBoundPercentForIncDAO
+	if year > (params.UpperBoundPercentForIncDAO - params.LowerBoundPercentForIncDAO) {
+		return params.LowerBoundPercentForIncDAO
 	} else {
-		return blockchain.UpperBoundPercentForIncDAO - int(year)
+		return params.UpperBoundPercentForIncDAO - int(year)
 	}
 }
 
@@ -539,7 +539,7 @@ func splitReward(
 	}
 	if !hasValue {
 		//fmt.Printf("[ndh] not enough reward\n")
-		return nil, nil, blockchain.NewBlockChainError(blockchain.NotEnoughRewardError, errors.New("Not enough reward"))
+		return nil, nil, NewBlockChainError(NotEnoughRewardError, errors.New("Not enough reward"))
 	}
 	return &rewardForBeacon, &rewardForIncDAO, nil
 }
@@ -555,13 +555,13 @@ const (
 )
 
 func instructionType(instruction []string) string {
-	if instruction[0] == blockchain.RandomAction {
+	if instruction[0] == RandomAction {
 		return RandomInst
 	}
-	if instruction[0] == blockchain.StopAutoStake {
+	if instruction[0] == StopAutoStake {
 		return StopAutoStakeInst
 	}
-	if instruction[0] == blockchain.SwapAction {
+	if instruction[0] == SwapAction {
 		if instruction[3] == "shard" {
 			return ShardSwapInst
 		}
@@ -569,14 +569,14 @@ func instructionType(instruction []string) string {
 			return BeaconSwapInst
 		}
 	}
-	if instruction[0] == blockchain.StakeAction && instruction[2] == "beacon" {
+	if instruction[0] == StakeAction && instruction[2] == "beacon" {
 		return BeaconStakeInst
 	}
-	if instruction[0] == blockchain.StakeAction && instruction[2] == "shard" {
+	if instruction[0] == StakeAction && instruction[2] == "shard" {
 		return ShardStakeInst
 	}
 
-	if instruction[0] == blockchain.AssignAction && instruction[2] == "shard" {
+	if instruction[0] == AssignAction && instruction[2] == "shard" {
 		return ShardAssignInst
 	}
 

@@ -1,11 +1,9 @@
-package blockchain
+package crosstransaction
 
 import (
 	"encoding/binary"
-	"errors"
 
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/privacy"
 )
 
@@ -96,12 +94,13 @@ func (crossTransaction CrossTransaction) Hash() common.Hash {
 	- Agg Signature
 	- MerklePath
 */
-func (crossShardBlock *CrossShardBlock) VerifyCrossShardBlock(blockchain *BlockChain, committees []incognitokey.CommitteePublicKey) error {
-	if err := blockchain.config.ConsensusEngine.ValidateBlockCommitteSig(crossShardBlock, committees, crossShardBlock.Header.ConsensusType); err != nil {
-		return NewBlockChainError(SignatureError, err)
-	}
-	if ok := VerifyCrossShardBlockUTXO(crossShardBlock, crossShardBlock.MerklePathShard); !ok {
-		return NewBlockChainError(HashError, errors.New("Fail to verify Merkle Path Shard"))
-	}
-	return nil
-}
+//TODO
+// func (crossShardBlock *CrossShardBlock) VerifyCrossShardBlock(blockchain *BlockChain, committees []incognitokey.CommitteePublicKey) error {
+// 	if err := blockchain.config.ConsensusEngine.ValidateBlockCommitteSig(crossShardBlock, committees, crossShardBlock.Header.ConsensusType); err != nil {
+// 		return NewBlockChainError(SignatureError, err)
+// 	}
+// 	if ok := VerifyCrossShardBlockUTXO(crossShardBlock, crossShardBlock.MerklePathShard); !ok {
+// 		return NewBlockChainError(HashError, errors.New("Fail to verify Merkle Path Shard"))
+// 	}
+// 	return nil
+// }

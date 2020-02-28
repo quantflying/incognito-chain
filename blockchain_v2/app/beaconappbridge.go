@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 )
@@ -68,7 +67,7 @@ func (bba *BeaconBridgeApp) preValidate() error {
 func (bba *BeaconBridgeApp) storeDatabase() error {
 	err := storeBridgeInstructions(bba.storeState.curView.featureStateDB, bba.storeState.block)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.ProcessBridgeInstructionError, err)
+		return NewBlockChainError(ProcessBridgeInstructionError, err)
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 )
 

@@ -1,11 +1,12 @@
 package app
 
 import (
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"time"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/blockchain/btc"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/params"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
+
+	"github.com/incognitochain/incognito-chain/blockchain_v2/btc"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/mempool"
@@ -32,9 +33,9 @@ func (FakeRandomClient) GetTimeStampAndNonceByBlockHeight(blockHeight int) (int6
 }
 
 type FakeBC struct {
-	ShardToBeaconPool blockchain.ShardToBeaconPool
-	CrossShardPool    map[byte]blockchain.CrossShardPool
-	ShardPool         map[byte]blockchain.ShardPool
+	ShardToBeaconPool ShardToBeaconPool
+	CrossShardPool    map[byte]CrossShardPool
+	ShardPool         map[byte]ShardPool
 }
 
 func (FakeBC) GetRandomClient() btc.RandomClient {
@@ -125,17 +126,17 @@ func (FakeBC) GetEpoch() (uint64, error) {
 	panic("implement me")
 }
 
-func (FakeBC) GetChainParams() blockchain.Params {
-	return blockchain.Params{
+func (FakeBC) GetChainParams() params.Params {
+	return params.Params{
 		Epoch:                  10,
-		MinShardBlockInterval:  blockchain.TestNetMinShardBlkInterval,
-		MaxShardBlockCreation:  blockchain.TestNetMaxShardBlkCreation,
-		MinBeaconBlockInterval: blockchain.TestNetMinBeaconBlkInterval,
-		MaxBeaconBlockCreation: blockchain.TestNetMaxBeaconBlkCreation,
+		MinShardBlockInterval:  params.TestNetMinShardBlkInterval,
+		MaxShardBlockCreation:  params.TestNetMaxShardBlkCreation,
+		MinBeaconBlockInterval: params.TestNetMinBeaconBlkInterval,
+		MaxBeaconBlockCreation: params.TestNetMaxBeaconBlkCreation,
 	}
 }
 
-func (FakeBC) GetCrossShardPool(shardID byte) blockchain.CrossShardPool {
+func (FakeBC) GetCrossShardPool(shardID byte) CrossShardPool {
 	return mempool.GetCrossShardPool(shardID)
 }
 
@@ -177,4 +178,45 @@ type StateObject interface {
 }
 
 type DatabaseAccessWarper interface {
+}
+
+type ShardToBeaconPool interface {
+	RemoveBlock(map[byte]uint64)
+	//GetFinalBlock() map[byte][]ShardToBeaconBlock
+	AddShardToBeaconBlock(blockinterface.ShardToBeaconBlockInterface) (uint64, uint64, error)
+	//ValidateShardToBeaconBlock(ShardToBeaconBlock) error
+	GetValidBlockHash() map[byte][]common.Hash
+	GetValidBlock(map[byte]uint64) map[byte][]blockinterface.ShardToBeaconBlockInterface
+	GetValidBlockHeight() map[byte][]uint64
+	GetLatestValidPendingBlockHeight() map[byte]uint64
+	GetBlockByHeight(shardID byte, height uint64) blockinterface.ShardToBeaconBlockInterface
+	SetShardState(map[byte]uint64)
+	GetAllBlockHeight() map[byte][]uint64
+	RevertShardToBeaconPool(s byte, height uint64)
+}
+
+type CrossShardPool interface {
+	AddCrossShardBlock(blockinterface.CrossShardBlockInterface) (map[byte]uint64, byte, error)
+	GetValidBlock(map[byte]uint64) map[byte][]blockinterface.CrossShardBlockInterface
+	GetLatestValidBlockHeight() map[byte]uint64
+	GetValidBlockHeight() map[byte][]uint64
+	GetBlockByHeight(_shardID byte, height uint64) blockinterface.CrossShardBlockInterface
+	RemoveBlockByHeight(map[byte]uint64)
+	UpdatePool() map[byte]uint64
+	GetAllBlockHeight() map[byte][]uint64
+	RevertCrossShardPool(uint64)
+}
+
+type ShardPool interface {
+	RemoveBlock(height uint64)
+	AddShardBlock(block blockinterface.ShardBlockInterface) error
+	GetValidBlockHash() []common.Hash
+	GetValidBlock() []blockinterface.ShardBlockInterface
+	GetValidBlockHeight() []uint64
+	GetLatestValidBlockHeight() uint64
+	SetShardState(height uint64)
+	RevertShardPool(uint64)
+	GetAllBlockHeight() []uint64
+	GetPendingBlockHeight() []uint64
+	Start(chan struct{})
 }

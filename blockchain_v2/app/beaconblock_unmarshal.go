@@ -2,11 +2,10 @@ package app
 
 import (
 	"encoding/json"
+
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv1"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
-
-	"github.com/incognitochain/incognito-chain/blockchain"
 )
 
 // this convert beaconblock v1 to v2
@@ -21,23 +20,23 @@ func UnmarshalBeaconBlock(data []byte) (blockinterface.BeaconBlockInterface, err
 		header := v.(map[string]interface{})
 		if version, ok := header["Version"]; ok {
 			switch int(version.(float64)) {
-			case blockchain.BEACON_BLOCK_VERSION:
+			case BEACON_BLOCK_VERSION:
 				beaconBlk := &beaconblockv1.BeaconBlock{}
 				err := json.Unmarshal(data, &beaconBlk)
 				if err != nil {
-					return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+					return nil, NewBlockChainError(UnmashallJsonShardBlockError, err)
 				}
 				return beaconBlk, nil
 			case BEACON_BLOCK_VERSION_2:
 				beaconBlk := &beaconblockv2.BeaconBlock{}
 				err := json.Unmarshal(data, &beaconBlk)
 				if err != nil {
-					return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+					return nil, NewBlockChainError(UnmashallJsonShardBlockError, err)
 				}
 				return beaconBlk, nil
 			}
 		}
 	}
 
-	return nil, blockchain.NewBlockChainError(blockchain.UnmashallJsonBeaconBlockError, nil)
+	return nil, NewBlockChainError(UnmashallJsonBeaconBlockError, nil)
 }

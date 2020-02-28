@@ -3,11 +3,11 @@ package app
 import (
 	"errors"
 	"fmt"
+
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv2"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/consensusheader"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 )
@@ -241,7 +241,7 @@ func (bca *BeaconCoreApp) buildHeader() error {
 	newBlockHeader.ShardStateHash = tempShardStateHash
 	newBlockHeader.InstructionHash = tempInstructionHash
 	newBlockHeader.AutoStakingRoot = tempAutoStakingRoot
-	copy(newBlockHeader.InstructionMerkleRoot[:], blockchain.GetKeccak256MerkleRoot(flattenInsts))
+	copy(newBlockHeader.InstructionMerkleRoot[:], GetKeccak256MerkleRoot(flattenInsts))
 
 	newBlock.Header = newBlockHeader
 	newBlock.ConsensusHeader = consensusheader.ConsensusHeader{

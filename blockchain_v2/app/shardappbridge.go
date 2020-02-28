@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 )
@@ -52,11 +51,11 @@ func (sba *ShardBridgeApp) storeDatabase(state *StoreShardDatabaseState) error {
 	var err error
 	err = storeBurningConfirm(sba.storeState.curView.featureStateDB, state.block)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.StoreBurningConfirmError, err)
+		return NewBlockChainError(StoreBurningConfirmError, err)
 	}
 	err = updateBridgeIssuanceStatus(sba.storeState.curView.featureStateDB, state.block)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.UpdateBridgeIssuanceStatusError, err)
+		return NewBlockChainError(UpdateBridgeIssuanceStatusError, err)
 	}
 	return nil
 }

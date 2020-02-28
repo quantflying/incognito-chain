@@ -3,17 +3,17 @@ package app
 import (
 	"errors"
 	"fmt"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv1"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv2"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/consensusheader"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv1"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/beaconblockv2"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/consensusheader"
+
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -28,10 +28,10 @@ func GetStakingCandidate(beaconBlock blockinterface.BeaconBlockInterface) ([]str
 		if len(v) < 1 {
 			continue
 		}
-		if v[0] == blockchain.StakeAction && v[2] == "beacon" {
+		if v[0] == StakeAction && v[2] == "beacon" {
 			beacon = strings.Split(v[1], ",")
 		}
-		if v[0] == blockchain.StakeAction && v[2] == "shard" {
+		if v[0] == StakeAction && v[2] == "shard" {
 			shard = strings.Split(v[1], ",")
 		}
 	}
@@ -379,10 +379,10 @@ func getStakeValidatorArrayString(v []string) ([]string, []string) {
 	beacon := []string{}
 	shard := []string{}
 	if len(v) > 0 {
-		if v[0] == blockchain.StakeAction && v[2] == "beacon" {
+		if v[0] == StakeAction && v[2] == "beacon" {
 			beacon = strings.Split(v[1], ",")
 		}
-		if v[0] == blockchain.StakeAction && v[2] == "shard" {
+		if v[0] == StakeAction && v[2] == "shard" {
 			shard = strings.Split(v[1], ",")
 		}
 	}
@@ -441,14 +441,14 @@ func CreateBeaconGenesisBlock(
 	}
 	// build validator beacon
 	// test generate public key in utility/generateKeys
-	beaconAssingInstruction := []string{blockchain.StakeAction}
+	beaconAssingInstruction := []string{StakeAction}
 	beaconAssingInstruction = append(beaconAssingInstruction, strings.Join(preSelectBeaconNodeSerializedPubkey[:], ","))
 	beaconAssingInstruction = append(beaconAssingInstruction, "beacon")
 	beaconAssingInstruction = append(beaconAssingInstruction, []string{""}...)
 	beaconAssingInstruction = append(beaconAssingInstruction, strings.Join(preSelectBeaconNodeSerializedPaymentAddress[:], ","))
 	beaconAssingInstruction = append(beaconAssingInstruction, strings.Join(beaconAutoStaking[:], ","))
 
-	shardAssingInstruction := []string{blockchain.StakeAction}
+	shardAssingInstruction := []string{StakeAction}
 	shardAssingInstruction = append(shardAssingInstruction, strings.Join(preSelectShardNodeSerializedPubkey[:], ","))
 	shardAssingInstruction = append(shardAssingInstruction, "shard")
 	shardAssingInstruction = append(shardAssingInstruction, []string{""}...)
@@ -459,7 +459,7 @@ func CreateBeaconGenesisBlock(
 	inst = append(inst, shardAssingInstruction)
 
 	// init network param
-	inst = append(inst, []string{blockchain.SetAction, "randomnumber", strconv.Itoa(int(0))})
+	inst = append(inst, []string{SetAction, "randomnumber", strconv.Itoa(int(0))})
 
 	layout := "2006-01-02T15:04:05.000Z"
 	str := genesisBlockTime

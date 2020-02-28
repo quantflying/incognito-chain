@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/blockchain/btc"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/btc"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/params"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
@@ -52,7 +52,7 @@ type BeaconApp interface {
 type AppData struct {
 	Logger      common.Logger
 	CreateBlock struct {
-		crossShardTx             map[byte][]blockchain.CrossTransaction
+		crossShardTx             map[byte][]CrossTransaction
 		txToRemove               []metadata.Transaction
 		txsToAdd                 []metadata.Transaction
 		txsFromMetadataTx        []metadata.Transaction
@@ -76,11 +76,10 @@ type BlockChain interface {
 	//GetDB() DB
 	GetCurrentBeaconHeight() (uint64, error) //get final confirm beacon block height
 	GetEpoch() (uint64, error)               //get final confirm beacon block height
-	GetChainParams() blockchain.Params
+	GetChainParams() params.Params
 
 	ValidateCrossShardBlock(block blockinterface.CrossShardBlockInterface) error
 
-	GetCrossShardPool(shardID byte) blockchain.CrossShardPool
 	GetLatestCrossShard(from byte, to byte) uint64
 	GetNextCrossShard(from byte, to byte, startHeight uint64) uint64
 

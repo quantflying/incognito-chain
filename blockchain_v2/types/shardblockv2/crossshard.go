@@ -1,9 +1,9 @@
 package shardblockv2
 
 import (
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/consensusheader"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/crosstransaction"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/privacy"
 )
@@ -17,7 +17,7 @@ type CrossShardBlock struct {
 	// Cross Shard data for PRV
 	CrossOutputCoin []privacy.OutputCoin
 	// Cross Shard For Custom token privacy
-	CrossTxTokenPrivacyData []blockchain.ContentCrossShardTokenPrivacyData
+	CrossTxTokenPrivacyData []crosstransaction.ContentCrossShardTokenPrivacyData
 }
 
 func (crossShardBlock CrossShardBlock) GetEpoch() uint64 {
@@ -54,7 +54,7 @@ func (block CrossShardBlock) GetCrossOutputCoin() []privacy.OutputCoin {
 	return block.CrossOutputCoin
 }
 
-func (block CrossShardBlock) GetCrossTxTokenPrivacyData() []blockchain.ContentCrossShardTokenPrivacyData {
+func (block CrossShardBlock) GetCrossTxTokenPrivacyData() []crosstransaction.ContentCrossShardTokenPrivacyData {
 	return block.CrossTxTokenPrivacyData
 }
 

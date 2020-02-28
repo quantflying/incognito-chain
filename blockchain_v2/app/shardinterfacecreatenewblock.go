@@ -2,12 +2,12 @@ package app
 
 import (
 	"context"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
-	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv2"
 	"math/rand"
 	"time"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/shardblockv2"
+
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
@@ -33,7 +33,7 @@ type CreateShardBlockState struct {
 	//app
 	app []ShardApp
 
-	crossShardTx             map[byte][]blockchain.CrossTransaction
+	crossShardTx             map[byte][]CrossTransaction
 	txToRemoveFromPool       []metadata.Transaction
 	txsToAddFromPool         []metadata.Transaction
 	txsFromMetadataTx        []metadata.Transaction

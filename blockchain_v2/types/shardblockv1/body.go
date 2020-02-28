@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/crosstransaction"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/merkle"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/transaction"
@@ -22,7 +23,7 @@ import (
 */
 type ShardBody struct {
 	Instructions      [][]string
-	CrossTransactions map[byte][]blockchain.CrossTransaction //CrossOutputCoin from all other shard
+	CrossTransactions map[byte][]crosstransaction.CrossTransaction //CrossOutputCoin from all other shard
 	Transactions      []metadata.Transaction
 }
 
@@ -41,7 +42,7 @@ func (shardBody *ShardBody) UnmarshalJSON(data []byte) error {
 
 	err := json.Unmarshal(data, &temp)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+		return err
 	}
 
 	// process tx from tx interface of temp
@@ -64,11 +65,11 @@ func (shardBody *ShardBody) UnmarshalJSON(data []byte) error {
 			}
 		default:
 			{
-				return blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, errors.New("can not parse a wrong tx"))
+				return errors.New("can not parse a wrong tx")
 			}
 		}
 		if parseErr != nil {
-			return blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, parseErr)
+			return parseErr
 		}
 		shardBody.Transactions = append(shardBody.Transactions, tx)
 	}
@@ -114,7 +115,7 @@ func (shardBody ShardBody) Hash() common.Hash {
 */
 
 func (shardBody ShardBody) CalcMerkleRootTx() *common.Hash {
-	merkleRoots := blockchain.Merkle{}.BuildMerkleTreeStore(shardBody.Transactions)
+	merkleRoots := merkle.Merkle{}.BuildMerkleTreeStore(shardBody.Transactions)
 	merkleRoot := merkleRoots[len(merkleRoots)-1]
 	return merkleRoot
 }
@@ -138,7 +139,7 @@ func (shardBody ShardBody) GetInstructions() [][]string {
 	return shardBody.Instructions
 }
 
-func (shardBody ShardBody) GetCrossTransactions() map[byte][]blockchain.CrossTransaction {
+func (shardBody ShardBody) GetCrossTransactions() map[byte][]crosstransaction.CrossTransaction {
 	return shardBody.CrossTransactions
 }
 

@@ -1,7 +1,7 @@
 package blockinterface
 
 import (
-	"github.com/incognitochain/incognito-chain/blockchain"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/crosstransaction"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
@@ -40,7 +40,7 @@ type ShardBodyInterface interface {
 	BlockBodyInterface
 
 	GetTransactions() []metadata.Transaction
-	GetCrossTransactions() map[byte][]blockchain.CrossTransaction
+	GetCrossTransactions() map[byte][]crosstransaction.CrossTransaction
 }
 
 type ShardToBeaconBlockInterface interface {
@@ -58,5 +58,5 @@ type CrossShardBlockInterface interface {
 	// Cross Shard data for PRV
 	GetCrossOutputCoin() []privacy.OutputCoin
 	// Cross Shard For Custom token privacy
-	GetCrossTxTokenPrivacyData() []blockchain.ContentCrossShardTokenPrivacyData
+	GetCrossTxTokenPrivacyData() []crosstransaction.ContentCrossShardTokenPrivacyData
 }

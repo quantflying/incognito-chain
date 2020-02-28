@@ -3,9 +3,9 @@ package beaconblockv1
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 )
 
@@ -41,7 +41,7 @@ func (beaconBlock *BeaconBlock) UnmarshalJSON(data []byte) error {
 	}{}
 	err := json.Unmarshal(data, &tempBeaconBlock)
 	if err != nil {
-		return blockchain.NewBlockChainError(blockchain.UnmashallJsonShardBlockError, err)
+		return err
 	}
 	beaconBlock.ValidationData = tempBeaconBlock.ValidationData
 	beaconBlock.Header = tempBeaconBlock.Header
