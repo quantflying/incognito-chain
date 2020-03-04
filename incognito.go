@@ -12,13 +12,14 @@ import (
 	"strconv"
 
 	"github.com/incognitochain/incognito-chain/common"
-	_ "github.com/incognitochain/incognito-chain/consensus/blsbft"
+	_ "github.com/incognitochain/incognito-chain/consensus_v2/blsbftv2"
 	"github.com/incognitochain/incognito-chain/databasemp"
 	_ "github.com/incognitochain/incognito-chain/databasemp/lvdb"
 	"github.com/incognitochain/incognito-chain/incdb"
 	_ "github.com/incognitochain/incognito-chain/incdb/lvdb"
 	"github.com/incognitochain/incognito-chain/limits"
-	"github.com/incognitochain/incognito-chain/metrics"
+
+	// "github.com/incognitochain/incognito-chain/metrics"
 	"github.com/incognitochain/incognito-chain/wallet"
 )
 
@@ -134,14 +135,14 @@ func main() {
 	limitThreads := os.Getenv("CPU")
 	if limitThreads == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
-		metrics.SetGlobalParam("CPU", runtime.NumCPU())
+		// metrics.SetGlobalParam("CPU", runtime.NumCPU())
 	} else {
 		numThreads, err := strconv.Atoi(limitThreads)
 		if err != nil {
 			panic(err)
 		}
 		runtime.GOMAXPROCS(numThreads)
-		metrics.SetGlobalParam("CPU", numThreads)
+		// metrics.SetGlobalParam("CPU", numThreads)
 	}
 	fmt.Println("NumCPU", runtime.NumCPU())
 	// Block and transaction processing can cause bursty allocations.  This

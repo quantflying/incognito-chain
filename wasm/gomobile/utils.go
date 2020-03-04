@@ -3,13 +3,14 @@ package gomobile
 import (
 	"encoding/base64"
 	"encoding/json"
+	"strconv"
+
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
-	"github.com/incognitochain/incognito-chain/consensus/signatureschemes/blsmultisig"
+	"github.com/incognitochain/incognito-chain/consensus_v2/signatureschemes/blsmultisig"
 	"github.com/incognitochain/incognito-chain/privacy"
 	"github.com/incognitochain/incognito-chain/wallet"
 	"github.com/pkg/errors"
-	"strconv"
 )
 
 // GenerateBLSKeyPairFromSeed generates BLS key pair from seed
@@ -162,14 +163,14 @@ func HybridEncryptionASM(dataB64Encode string) (string, error) {
 
 	publicKeyBytes := data[0:privacy.Ed25519KeySize]
 	publicKeyPoint, err := new(privacy.Point).FromBytesS(publicKeyBytes)
-	if err != nil{
+	if err != nil {
 		return "", errors.New("Invalid public key encryption")
 	}
 
 	msgBytes := data[privacy.Ed25519KeySize:]
 
 	ciphertext, err := privacy.HybridEncrypt(msgBytes, publicKeyPoint)
-	if err != nil{
+	if err != nil {
 		return "", err
 	}
 	res := base64.StdEncoding.EncodeToString(ciphertext.Bytes())
@@ -192,10 +193,9 @@ func HybridDecryptionASM(dataB64Encode string) (string, error) {
 	ciphertext.SetBytes(ciphertextBytes)
 
 	plaintextBytes, err := privacy.HybridDecrypt(ciphertext, privateKeyScalar)
-	if err != nil{
+	if err != nil {
 		return "", err
 	}
 	res := base64.StdEncoding.EncodeToString(plaintextBytes)
 	return res, nil
 }
-

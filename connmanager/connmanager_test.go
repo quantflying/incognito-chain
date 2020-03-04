@@ -5,9 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incognitokey"
+	blockchain "github.com/incognitochain/incognito-chain/old_blockchain"
 	"github.com/incognitochain/incognito-chain/peer"
 	"github.com/stretchr/testify/assert"
 )

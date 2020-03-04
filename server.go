@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/incognitochain/incognito-chain/blockchain_v2/params"
-	"github.com/incognitochain/incognito-chain/metrics"
 	"github.com/incognitochain/incognito-chain/peerv2"
 
 	"github.com/incognitochain/incognito-chain/blockchain_v2"
@@ -253,8 +252,8 @@ func (serverObj *Server) NewServer(listenAddrs string, db incdb.Database, dbmp d
 		},
 	}
 
-	metrics.SetGlobalParam("Bootnode", cfg.DiscoverPeersAddress)
-	metrics.SetGlobalParam("ExternalAddress", cfg.ExternalAddress)
+	// metrics.SetGlobalParam("Bootnode", cfg.DiscoverPeersAddress)
+	// metrics.SetGlobalParam("ExternalAddress", cfg.ExternalAddress)
 
 	serverObj.highway = peerv2.NewConnManager(
 		host,
@@ -759,15 +758,6 @@ func (serverObj *Server) putResponseMsgs(msgs [][]byte) {
 		}
 		serverObj.highway.PutMessage(psMsg)
 	}
-}
-
-func (serverObj *Server) EnableMining(enable bool) error {
-	serverObj.isEnableMining = enable
-	return nil
-}
-
-func (serverObj *Server) IsEnableMining() bool {
-	return serverObj.isEnableMining
 }
 
 func (serverObj *Server) GetChainMiningStatus(chain int) string {
