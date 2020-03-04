@@ -3,7 +3,7 @@ mempool
 BlockchainRetriever in metadata
 
 wire
-netsync
 server.go handling msg
+remove blockgen netsync
 
 pubsub some use some dont

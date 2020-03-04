@@ -7,13 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 
 	"github.com/incognitochain/incognito-chain/common"
 	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
-	"github.com/incognitochain/incognito-chain/incognitokey"
 )
 
 /*
@@ -96,8 +94,8 @@ func (s *ChainViewManager) AddView(view consensus.ChainViewInterface) error {
 	return nil
 }
 
-func (ChainViewManager) GetChainName() string {
-	panic("implement me")
+func (s ChainViewManager) GetChainName() string {
+	return s.name
 }
 
 func (ChainViewManager) IsReady() bool {
@@ -108,57 +106,17 @@ func (cManager ChainViewManager) GetActiveShardNumber() int {
 	return 0
 }
 
-func (ChainViewManager) GetPubkeyRole(pubkey string, round int) (string, byte) {
-	panic("implement me")
-}
-
-func (ChainViewManager) GetConsensusType() string {
-	panic("implement me")
-}
-
-func (ChainViewManager) GetTimeStamp() int64 {
-	panic("implement me")
-}
-
-func (ChainViewManager) GetMinBlkInterval() time.Duration {
-	panic("implement me")
-}
-
-func (ChainViewManager) GetMaxBlkCreateTime() time.Duration {
-	panic("implement me")
-}
-
-func (ChainViewManager) GetHeight() uint64 {
-	panic("implement me")
-}
-
-func (ChainViewManager) GetCommitteeSize() int {
-	panic("implement me")
-}
-
-func (ChainViewManager) GetCommittee() []incognitokey.CommitteePublicKey {
-	panic("implement me")
-}
-
-func (ChainViewManager) GetPubKeyCommitteeIndex(string) int {
-	panic("implement me")
-}
-
-func (ChainViewManager) GetLastProposerIndex() int {
-	panic("implement me")
-}
-
 func (s *ChainViewManager) UnmarshalBlock(blockString []byte) (blockinterface.BlockInterface, error) {
 	return s.GetBestView().UnmarshalBlock(blockString)
 }
 
-func (ChainViewManager) ValidateBlockSignatures(block blockinterface.BlockInterface) error {
-	panic("implement me")
-}
+// func (ChainViewManager) ValidateBlockSignatures(block blockinterface.BlockInterface) error {
+// 	panic("implement me")
+// }
 
-func (s *ChainViewManager) ValidateBlockProposer(block blockinterface.BlockInterface) error {
-	return nil
-}
+// func (s *ChainViewManager) ValidateBlockProposer(block blockinterface.BlockInterface) error {
+// 	return nil
+// }
 
 func (s *ChainViewManager) GetShardID() int {
 	return s.chainID

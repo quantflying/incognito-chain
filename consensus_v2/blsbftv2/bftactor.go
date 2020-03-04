@@ -247,7 +247,7 @@ func (e BLSBFT) NewInstance(chain consensus.ChainViewManagerInterface, chainKey 
 }
 
 func init() {
-	consensus.RegisterConsensus(common.BlsConsensus, &BLSBFT{})
+	consensus.RegisterConsensusAlgorithm(consensusName, &BLSBFT{})
 }
 
 func (e *BLSBFT) processIfBlockGetEnoughVote(k string, v *ProposeBlockInfo) {

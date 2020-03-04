@@ -3,10 +3,10 @@ package wire
 import (
 	"encoding/json"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/incognitokey"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/incognitochain/incognito-chain/incognitokey"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // const (
@@ -14,7 +14,7 @@ import (
 // )
 
 type MessageShardToBeacon struct {
-	Block *blockchain.ShardToBeaconBlock
+	Block blockinterface.ShardToBeaconBlockInterface
 }
 
 func (msg *MessageShardToBeacon) Hash() string {

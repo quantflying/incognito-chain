@@ -1,5 +1,17 @@
 package blockchain_v2
 
+import (
+	"time"
+
+	"github.com/incognitochain/incognito-chain/blockchain_v2/btc"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
+	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/incdb"
+	"github.com/incognitochain/incognito-chain/incognitokey"
+	"github.com/incognitochain/incognito-chain/memcache"
+	"github.com/incognitochain/incognito-chain/metadata"
+	"github.com/incognitochain/incognito-chain/pubsub"
+)
 
 // config is a descriptor which specifies the blockchain instance configuration.
 type Config struct {
@@ -9,13 +21,12 @@ type Config struct {
 	ChainParams       *Params
 	RelayShards       []byte
 	NodeMode          string
-	ShardToBeaconPool ShardToBeaconPool
-	BlockGen          *BlockGenerator
-	CrossShardPool    map[byte]CrossShardPool
-	BeaconPool        BeaconPool
-	ShardPool         map[byte]ShardPool
-	TxPool            TxPool
-	TempTxPool        TxPool
+	ShardToBeaconPool ShardToBeaconPoolInterface
+	CrossShardPool    map[byte]CrossShardPoolInterface
+	BeaconPool        BeaconPoolInterface
+	ShardPool         map[byte]ShardPoolInterface
+	TxPool            TxPoolInterface
+	TempTxPool        TxPoolInterface
 	CRemovedTxs       chan metadata.Transaction
 	FeeEstimator      map[byte]FeeEstimator
 	IsBlockGenStarted bool
@@ -60,9 +71,7 @@ type Config struct {
 	}
 }
 
-
-
-type ShardToBeaconPool interface {
+type ShardToBeaconPoolInterface interface {
 	RemoveBlock(map[byte]uint64)
 	//GetFinalBlock() map[byte][]ShardToBeaconBlock
 	AddShardToBeaconBlock(blockinterface.ShardToBeaconBlockInterface) (uint64, uint64, error)
@@ -77,7 +86,7 @@ type ShardToBeaconPool interface {
 	RevertShardToBeaconPool(s byte, height uint64)
 }
 
-type CrossShardPool interface {
+type CrossShardPoolInterface interface {
 	AddCrossShardBlock(blockinterface.CrossShardBlockInterface) (map[byte]uint64, byte, error)
 	GetValidBlock(map[byte]uint64) map[byte][]blockinterface.CrossShardBlockInterface
 	GetLatestValidBlockHeight() map[byte]uint64
@@ -89,7 +98,7 @@ type CrossShardPool interface {
 	RevertCrossShardPool(uint64)
 }
 
-type ShardPool interface {
+type ShardPoolInterface interface {
 	RemoveBlock(height uint64)
 	AddShardBlock(block blockinterface.ShardBlockInterface) error
 	GetValidBlockHash() []common.Hash
@@ -103,7 +112,7 @@ type ShardPool interface {
 	Start(chan struct{})
 }
 
-type BeaconPool interface {
+type BeaconPoolInterface interface {
 	RemoveBlock(height uint64)
 	AddBeaconBlock(block blockinterface.BeaconBlockInterface) error
 	GetValidBlock() []blockinterface.BeaconBlockInterface
@@ -115,7 +124,7 @@ type BeaconPool interface {
 	Start(chan struct{})
 	GetPendingBlockHeight() []uint64
 }
-type TxPool interface {
+type TxPoolInterface interface {
 	// LastUpdated returns the last time a transaction was added to or
 	// removed from the source pool.
 	LastUpdated() time.Time
@@ -137,6 +146,6 @@ type TxPool interface {
 	// ValidateTxByItSelf(tx metadata.Transaction) bool
 }
 
-type FeeEstimator interface {
+type FeeEstimatorInterface interface {
 	RegisterBlock(block blockinterface.ShardBlockInterface) error
 }

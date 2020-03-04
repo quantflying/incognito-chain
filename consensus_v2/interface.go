@@ -14,22 +14,6 @@ type NodeSender interface {
 	GetID() string
 }
 
-// type BlockInterface interface {
-// 	GetBlockType() string
-// 	GetHeight() uint64
-// 	GetHash() *common.Hash
-// 	GetProducer() string
-// 	GetValidationField() string
-// 	GetRound() int
-// 	// GetRoundKey() string
-// 	GetInstructions() [][]string
-// 	GetConsensusType() string
-// 	GetEpoch() uint64
-// 	GetPreviousBlockHash() common.Hash
-// 	GetTimeslot() uint64
-// 	GetTimestamp() int64
-// }
-
 type BlockChainInterface interface {
 	GetChain(chainName string) ChainViewManagerInterface
 	GetAllChains() map[string]ChainViewManagerInterface
@@ -48,9 +32,15 @@ type NodeInterface interface {
 	NotifyOutdatedView(nodeID string, latestView string)
 	UpdateConsensusState(role string, userPbk string, currentShard *byte, beaconCommittee []string, shardCommittee map[byte][]string)
 	IsEnableMining() bool
+	//GetMiningKeys - get list of private-keys only use for mining
 	GetMiningKeys() string
+	//GetPrivateKey - get the private-key that used for generating other -keys
 	GetPrivateKey() string
+	//DropAllConnections - forces node to remake connection with its peers
 	DropAllConnections()
+
+	//Need to be replace
+
 }
 
 type ConsensusInterface interface {

@@ -10,7 +10,7 @@ import (
 
 type Blockchain struct {
 	lock   sync.RWMutex
-	chains map[string]consensus.ChainViewManagerInterface
+	chains map[string]ChainViewManager
 	config *Config
 }
 

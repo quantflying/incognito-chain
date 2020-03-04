@@ -10,10 +10,10 @@ import (
 
 	"github.com/incognitochain/incognito-chain/addrmanager"
 	// "github.com/incognitochain/incognito-chain/blockchain"
-	main2 "github.com/incognitochain/incognito-chain/blockchain_v2/btc"
+
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/connmanager"
-	"github.com/incognitochain/incognito-chain/consensus"
+	consensus "github.com/incognitochain/incognito-chain/consensus_v2"
 	"github.com/incognitochain/incognito-chain/databasemp"
 	"github.com/incognitochain/incognito-chain/incdb"
 	"github.com/incognitochain/incognito-chain/mempool"
@@ -22,8 +22,9 @@ import (
 	"github.com/incognitochain/incognito-chain/peer"
 	"github.com/incognitochain/incognito-chain/peerv2"
 	"github.com/incognitochain/incognito-chain/privacy"
-	"github.com/incognitochain/incognito-chain/rpcserver"
-	"github.com/incognitochain/incognito-chain/rpcserver/rpcservice"
+
+	// "github.com/incognitochain/incognito-chain/rpcserver"
+	// "github.com/incognitochain/incognito-chain/rpcserver/rpcservice"
 	"github.com/incognitochain/incognito-chain/transaction"
 	"github.com/incognitochain/incognito-chain/trie"
 	"github.com/incognitochain/incognito-chain/wallet"
@@ -47,7 +48,7 @@ var (
 	dbLogger               = backendLog.Logger("Database log", false)
 	dbmpLogger             = backendLog.Logger("Mempool Persistence DB log", false)
 	walletLogger           = backendLog.Logger("Wallet log", false)
-	// blockchainLogger       = backendLog.Logger("BlockChain log", false)
+	blockchainLogger       = backendLog.Logger("BlockChain log", false)
 	consensusLogger   = backendLog.Logger("Consensus log", false)
 	mempoolLogger     = backendLog.Logger("Mempool log", false)
 	transactionLogger = backendLog.Logger("Transaction log", false)
@@ -78,14 +79,14 @@ func init() {
 	// for other components
 	connmanager.Logger.Init(connManagerLogger)
 	addrmanager.Logger.Init(addrManagerLoger)
-	rpcserver.Logger.Init(rpcLogger)
-	rpcservice.Logger.Init(rpcServiceLogger)
-	rpcservice.BLogger.Init(rpcServiceBridgeLogger)
+	// rpcserver.Logger.Init(rpcLogger)
+	// rpcservice.Logger.Init(rpcServiceLogger)
+	// rpcservice.BLogger.Init(rpcServiceBridgeLogger)
 	netsync.Logger.Init(netsyncLogger)
 	peer.Logger.Init(peerLogger)
 	incdb.Logger.Init(dbLogger)
 	wallet.Logger.Init(walletLogger)
-	// blockchain.Logger.Init(blockchainLogger)
+	blockchain_v2.Logger.Init(blockchainLogger)
 	app.Logger.Init(blockchainLogger)
 	consensus.Logger.Init(consensusLogger)
 	mempool.Logger.Init(mempoolLogger)
@@ -94,7 +95,7 @@ func init() {
 	privacy.Logger.Init(privacyLogger)
 	databasemp.Logger.Init(dbmpLogger)
 	// blockchain.BLogger.Init(bridgeLogger)
-	rpcserver.BLogger.Init(bridgeLogger)
+	// rpcserver.BLogger.Init(bridgeLogger)
 	metadata.Logger.Init(metadataLogger)
 	trie.Logger.Init(trieLogger)
 	peerv2.Logger.Init(peerv2Logger)
@@ -106,28 +107,28 @@ func init() {
 var subsystemLoggers = map[string]common.Logger{
 	"MAIN": mainLogger,
 
-	"AMGR":              addrManagerLoger,
-	"CMGR":              connManagerLogger,
-	"RPCS":              rpcLogger,
-	"RPCSservice":       rpcServiceLogger,
-	"RPCSbridgeservice": rpcServiceBridgeLogger,
-	"NSYN":              netsyncLogger,
-	"PEER":              peerLogger,
-	"DABA":              dbLogger,
-	"WALL":              walletLogger,
-	"BLOC":              blockchainLogger,
-	"CONS":              consensusLogger,
-	"MEMP":              mempoolLogger,
-	"RAND":              randomLogger,
-	"TRAN":              transactionLogger,
-	"PRIV":              privacyLogger,
-	"DBMP":              dbmpLogger,
-	"DEBR":              bridgeLogger,
-	"META":              metadataLogger,
-	"TRIE":              trieLogger,
-	"PEERV2":            peerv2Logger,
-	"DAO":               daov2Logger,
-	"APP":               appLogger,
+	"AMGR": addrManagerLoger,
+	"CMGR": connManagerLogger,
+	// "RPCS":              rpcLogger,
+	// "RPCSservice":       rpcServiceLogger,
+	// "RPCSbridgeservice": rpcServiceBridgeLogger,
+	"NSYN":   netsyncLogger,
+	"PEER":   peerLogger,
+	"DABA":   dbLogger,
+	"WALL":   walletLogger,
+	"BLOC":   blockchainLogger,
+	"CONS":   consensusLogger,
+	"MEMP":   mempoolLogger,
+	"RAND":   randomLogger,
+	"TRAN":   transactionLogger,
+	"PRIV":   privacyLogger,
+	"DBMP":   dbmpLogger,
+	"DEBR":   bridgeLogger,
+	"META":   metadataLogger,
+	"TRIE":   trieLogger,
+	"PEERV2": peerv2Logger,
+	"DAO":    daov2Logger,
+	"APP":    appLogger,
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

@@ -3,14 +3,14 @@ package wire
 import (
 	"encoding/json"
 
-	"github.com/incognitochain/incognito-chain/blockchain"
-	"github.com/incognitochain/incognito-chain/incognitokey"
+	"github.com/incognitochain/incognito-chain/blockchain_v2/types/blockinterface"
 	"github.com/incognitochain/incognito-chain/common"
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/incognitochain/incognito-chain/incognitokey"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 type MessageBlockShard struct {
-	Block *blockchain.ShardBlock
+	Block blockinterface.ShardBlockInterface
 }
 
 func (msg *MessageBlockShard) Hash() string {
