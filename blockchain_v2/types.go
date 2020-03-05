@@ -53,22 +53,8 @@ type Config struct {
 		UpdateConsensusState(role string, userPbk string, currentShard *byte, beaconCommittee []string, shardCommittee map[byte][]string)
 		PushBlockToAll(block blockinterface.BlockInterface, isBeacon bool) error
 	}
-	// UserKeySet *incognitokey.KeySet
-
-	ConsensusEngine interface {
-		ValidateProducerSig(block blockinterface.BlockInterface, consensusType string) error
-		ValidateBlockCommitteSig(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey, consensusType string) error
-		GetCurrentMiningPublicKey() (string, string)
-		GetMiningPublicKeyByConsensus(consensusName string) (string, error)
-		GetUserLayer() (string, int)
-		GetUserRole() (string, string, int)
-		IsOngoing(chainName string) bool
-		CommitteeChange(chainName string)
-	}
-
-	Highway interface {
-		BroadcastCommittee(uint64, []incognitokey.CommitteePublicKey, map[byte][]incognitokey.CommitteePublicKey, map[byte][]incognitokey.CommitteePublicKey)
-	}
+	ConsensusEngine consensusInterface
+	Highway         highwayInterface
 }
 
 type ShardToBeaconPoolInterface interface {
@@ -148,4 +134,19 @@ type TxPoolInterface interface {
 
 type FeeEstimatorInterface interface {
 	RegisterBlock(block blockinterface.ShardBlockInterface) error
+}
+
+type highwayInterface interface {
+	BroadcastCommittee(uint64, []incognitokey.CommitteePublicKey, map[byte][]incognitokey.CommitteePublicKey, map[byte][]incognitokey.CommitteePublicKey)
+}
+
+type consensusInterface interface {
+	ValidateProducerSig(block blockinterface.BlockInterface, consensusType string) error
+	ValidateBlockCommitteSig(block blockinterface.BlockInterface, committee []incognitokey.CommitteePublicKey, consensusType string) error
+	GetCurrentMiningPublicKey() (string, string)
+	GetMiningPublicKeyByConsensus(consensusName string) (string, error)
+	GetUserLayer() (string, int)
+	GetUserRole() (string, string, int)
+	IsOngoing(chainName string) bool
+	CommitteeChange(chainName string)
 }

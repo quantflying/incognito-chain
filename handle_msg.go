@@ -865,3 +865,16 @@ func (serverObj *Server) TransactionPoolBroadcastLoop() {
 		}
 	}
 }
+
+
+func (serverObj *Server) putResponseMsgs(msgs [][]byte) {
+	for _, msg := range msgs {
+		// Create dummy msg wrapping grpc response
+		psMsg := &p2ppubsub.Message{
+			Message: &pb.Message{
+				Data: msg,
+			},
+		}
+		serverObj.highway.PutMessage(psMsg)
+	}
+}

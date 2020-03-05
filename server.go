@@ -31,10 +31,6 @@ import (
 	"github.com/incognitochain/incognito-chain/netsync"
 	"github.com/incognitochain/incognito-chain/peer"
 	libp2p "github.com/libp2p/go-libp2p-peer"
-
-	p2ppubsub "github.com/libp2p/go-libp2p-pubsub"
-
-	pb "github.com/libp2p/go-libp2p-pubsub/pb"
 )
 
 // setupRPCListeners returns a slice of listeners that are configured for use
@@ -210,9 +206,8 @@ func (serverObj *Server) NewServer(listenAddrs string, db incdb.Database, dbmp d
 	}
 	// Init consensus engine
 	err = serverObj.consensusEngine.Init(&consensus.EngineConfig{
-		Blockchain: serverObj.blockChain,
-		Node:       serverObj,
-		// BlockGen:      serverObj.blockgen,
+		Blockchain:    serverObj.blockChain,
+		Node:          serverObj,
 		PubSubManager: serverObj.pusubManager,
 	})
 	if err != nil {
@@ -745,18 +740,6 @@ func (serverObj *Server) UpdateConsensusState(role string, userPbk string, curre
 		Logger.log.Debug("UpdateConsensusState is true")
 	} else {
 		Logger.log.Debug("UpdateConsensusState is false")
-	}
-}
-
-func (serverObj *Server) putResponseMsgs(msgs [][]byte) {
-	for _, msg := range msgs {
-		// Create dummy msg wrapping grpc response
-		psMsg := &p2ppubsub.Message{
-			Message: &pb.Message{
-				Data: msg,
-			},
-		}
-		serverObj.highway.PutMessage(psMsg)
 	}
 }
 
