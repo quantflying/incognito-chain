@@ -32,7 +32,10 @@ type Config struct {
 	IsBlockGenStarted bool
 	PubSubManager     *pubsub.PubSubManager
 	RandomClient      btc.RandomClient
-	Server            interface {
+	ConsensusEngine   consensusInterface
+	Highway           highwayInterface
+
+	Server interface {
 		BoardcastNodeState() error
 		PublishNodeState(userLayer string, shardID int) error
 
@@ -53,8 +56,6 @@ type Config struct {
 		UpdateConsensusState(role string, userPbk string, currentShard *byte, beaconCommittee []string, shardCommittee map[byte][]string)
 		PushBlockToAll(block blockinterface.BlockInterface, isBeacon bool) error
 	}
-	ConsensusEngine consensusInterface
-	Highway         highwayInterface
 }
 
 type ShardToBeaconPoolInterface interface {
@@ -149,4 +150,10 @@ type consensusInterface interface {
 	GetUserRole() (string, string, int)
 	IsOngoing(chainName string) bool
 	CommitteeChange(chainName string)
+}
+
+type synkerInterface interface {
+}
+
+type serverInterface interface {
 }

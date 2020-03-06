@@ -35,9 +35,8 @@ type Engine struct {
 }
 
 type EngineConfig struct {
-	Node       NodeInterface
-	Blockchain BlockChainInterface
-	// BlockGen      BlockGenInterface
+	Node          NodeInterface
+	Blockchain    BlockChainInterface
 	PubSubManager *pubsub.PubSubManager
 }
 
@@ -169,9 +168,6 @@ func (engine *Engine) NotifyShardRole(shardRole int) {
 }
 
 func (engine *Engine) Init(config *EngineConfig) error {
-	// if config.BlockGen == nil {
-	// 	return NewConsensusError(UnExpectedError, errors.New("BlockGen can't be nil"))
-	// }
 	if config.Blockchain == nil {
 		return NewConsensusError(UnExpectedError, errors.New("Blockchain can't be nil"))
 	}

@@ -1,4 +1,7 @@
-mempool
+
+rename mempool to txpool
+
+move blockpool to synker
 
 BlockchainRetriever in metadata
 
@@ -7,3 +10,5 @@ server.go handling msg
 remove blockgen netsync
 
 pubsub some use some dont
+
+edit BlockchainRetriever in metadata
