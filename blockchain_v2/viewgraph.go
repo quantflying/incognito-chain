@@ -45,8 +45,8 @@ func (s *ViewGraph) GetNodeByHash(h common.Hash) *ViewNode {
 	return s.node[h]
 }
 
-func (s *ViewGraph) AddView(b consensus.ChainViewInterface) {
-	newBlockHash := *b.GetBlock().GetHeader().GetHash()
+func (s *ViewGraph) AddView(view consensus.ChainViewInterface) {
+	newBlockHash := *view.GetBlock().GetHeader().GetHash()
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -55,7 +55,7 @@ func (s *ViewGraph) AddView(b consensus.ChainViewInterface) {
 	}
 
 	for h, v := range s.node {
-		if h == b.GetBlock().GetHeader().GetPreviousBlockHash() {
+		if h == view.GetBlock().GetHeader().GetPreviousBlockHash() {
 			delete(s.leaf, h)
 			s.leaf[newBlockHash] = &ViewNode{
 				view: b,

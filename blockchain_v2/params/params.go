@@ -63,11 +63,10 @@ type GenesisParams struct {
 
 var ChainTestParam = Params{}
 var ChainMainParam = Params{}
-var GenesisParamsTestnetNew = GenesisParams{}
 
 // FOR TESTNET
 func init() {
-	GenesisParamsTestnetNew = GenesisParams{
+	var genesisParamsTestnetNew = GenesisParams{
 		PreSelectBeaconNodeSerializedPubkey:         PreSelectBeaconNodeTestnetSerializedPubkey,
 		PreSelectBeaconNodeSerializedPaymentAddress: PreSelectBeaconNodeTestnetSerializedPaymentAddress,
 		PreSelectShardNodeSerializedPubkey:          PreSelectShardNodeTestnetSerializedPubkey,

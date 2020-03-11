@@ -10,8 +10,6 @@ import (
 
 //Network fixed params
 const (
-	// SHARD_BLOCK_VERSION is the current latest supported block version.
-	VERSION                    = 1
 	RANDOM_NUMBER              = 3
 	SHARD_BLOCK_VERSION        = 1
 	BEACON_BLOCK_VERSION       = 1
@@ -130,9 +128,8 @@ func init() {
 	}
 
 	type AccountKey struct {
-		PrivateKey     string
-		PaymentAddress string
-		// PubKey     string
+		PrivateKey         string
+		PaymentAddress     string
 		CommitteePublicKey string
 	}
 
@@ -176,18 +173,4 @@ func init() {
 	}
 }
 
-// For shard
-// public key
-
 // END CONSTANT for network TESTNET
-
-// -------------- FOR INSTRUCTION --------------
-// Action for instruction
-const (
-	SetAction     = "set"
-	SwapAction    = "swap"
-	RandomAction  = "random"
-	StakeAction   = "stake"
-	AssignAction  = "assign"
-	StopAutoStake = "stopautostake"
-)

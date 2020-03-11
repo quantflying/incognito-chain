@@ -170,6 +170,7 @@ const (
 	ValidateBlockWithPreviousBeaconBestStateError
 	BackUpShardStateError
 	BackupCurrentBeaconStateError
+	InterfaceNotCompatibleError
 )
 
 var ErrCodeMessage = map[int]struct {
@@ -329,6 +330,7 @@ var ErrCodeMessage = map[int]struct {
 	BackupCurrentBeaconStateError:                     {-1150, "Backup Current Beacon State Error"},
 	GetListOutputCoinsByKeysetError:                   {-2000, "Get List Output Coins By Keyset Error"},
 	CreateShardToBeaconBlockError:                     {-1143, "Create ShardToBeaconBlock Error"},
+	InterfaceNotCompatibleError:                       {-1144, "Interface Not Compatible Error"},
 }
 
 type BlockChainError struct {
