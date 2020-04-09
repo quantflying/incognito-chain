@@ -131,10 +131,6 @@ func (blockchain *BlockChain) InsertShardBlock(shardBlock *ShardBlock, isValidat
 	if err != nil {
 		return NewBlockChainError(BackUpBestStateError, err)
 	}
-	oldCommittee, err := incognitokey.CommitteeKeyListToString(tempShardBestState.ShardCommittee)
-	if err != nil {
-		return err
-	}
 	Logger.log.Infof("SHARD %+v | Update ShardBestState, block height %+v with hash %+v \n", shardID, blockHeight, blockHash)
 	if err := tempShardBestState.updateShardBestState(blockchain, shardBlock, beaconBlocks, committeeChange); err != nil {
 		if errRevert := blockchain.revertShardBestState(shardID); errRevert != nil {
@@ -145,15 +141,7 @@ func (blockchain *BlockChain) InsertShardBlock(shardBlock *ShardBlock, isValidat
 
 	Logger.log.Infof("SHARD %+v | Update NumOfBlocksByProducers, block height %+v with hash %+v \n", shardID, blockHeight, blockHash)
 	// update number of blocks produced by producers to shard best state
-	tempShardBestState.updateNumOfBlocksByProducers(shardBlock)
-	newCommittee, err := incognitokey.CommitteeKeyListToString(tempShardBestState.ShardCommittee)
-	if err != nil {
-		if errRevert := blockchain.revertShardBestState(shardID); errRevert != nil {
-			return errRevert
-		}
-		return err
-	}
-	if !common.CompareStringArray(oldCommittee, newCommittee) {
+	if committeeChange.isShardCommitteeChanged(shardID) {
 		go blockchain.config.ConsensusEngine.CommitteeChange(common.GetShardChainKey(shardID))
 	}
 	//========Post verification: verify new beaconstate with corresponding block
@@ -673,6 +661,7 @@ func (shardBestState *ShardBestState) updateShardBestState(blockchain *BlockChai
 		}
 	}
 	shardBestState.TotalTxnsExcludeSalary += uint64(temp)
+	shardBestState.updateNumOfBlocksByProducers(shardBlock)
 	//======END
 	Logger.log.Debugf("SHARD %+v | Finish update Beststate with new Block with height %+v at hash %+v", shardBlock.Header.ShardID, shardBlock.Header.Height, shardBlock.Hash())
 	return nil

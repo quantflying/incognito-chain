@@ -41,3 +41,11 @@ func newCommitteeChange() *committeeChange {
 	}
 	return committeeChange
 }
+
+func (committeeChange *committeeChange) isShardCommitteeChanged(shardID byte) bool {
+	return len(committeeChange.shardCommitteeAdded[shardID]) > 0 || len(committeeChange.shardCommitteeRemoved[shardID]) > 0
+}
+
+func (committeeChange *committeeChange) isBeaconCommitteeChanged() bool {
+	return len(committeeChange.beaconCommitteeAdded) > 0 || len(committeeChange.beaconCommitteeRemoved) > 0
+}
