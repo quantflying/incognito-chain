@@ -149,14 +149,6 @@ func (blockchain *BlockChain) InsertShardBlock(shardBlock *ShardBlock, isValidat
 	} else {
 		Logger.log.Infof("SHARD %+v | SKIP Verify Post Processing, block height %+v with hash %+v \n", shardID, blockHeight, blockHash)
 	}
-	Logger.log.Infof("SHARD %+v | Update Beacon Instruction, block height %+v with hash %+v \n", shardID, blockHeight, blockHash)
-	err = blockchain.processSalaryInstructions(tempShardBestState.rewardStateDB, beaconBlocks, shardID)
-	if err != nil {
-		if errRevert := blockchain.revertShardBestState(shardID); errRevert != nil {
-			return errRevert
-		}
-		return err
-	}
 	Logger.log.Infof("SHARD %+v | Store New Shard Block And Update Data, block height %+v with hash %+v \n", shardID, blockHeight, blockHash)
 	//========Store new  Shard block and new shard bestState
 	confirmBeaconBlock := NewBeaconBlock()
@@ -608,8 +600,12 @@ func (shardBestState *ShardBestState) updateShardBestState(blockchain *BlockChai
 	} else {
 		shardBestState.ShardProposerIdx = (shardBestState.ShardProposerIdx + shardBlock.Header.Round) % len(shardBestState.ShardCommittee)
 	}
-	//shardBestState.processBeaconBlocks(shardBlock, beaconBlocks)
+	Logger.log.Infof("SHARD %+v | Update Beacon Instruction, block height %+v with hash %+v \n", shardID, shardBestState.ShardHeight, shardBestState.BestBlockHash)
 	shardPendingValidator, newShardPendingValidator, stakingTx := blockchain.processInstructionFromBeacon(beaconBlocks, shardBlock.Header.ShardID, committeeChange)
+	err = blockchain.processSalaryInstructions(shardBestState.rewardStateDB, beaconBlocks, shardID)
+	if err != nil {
+		return err
+	}
 	shardBestState.ShardPendingValidator, err = incognitokey.CommitteeBase58KeyListToStruct(shardPendingValidator)
 	if err != nil {
 		return err
@@ -700,6 +696,8 @@ func (shardBestState *ShardBestState) initShardBestState(blockchain *BlockChain,
 func (shardBestState *ShardBestState) processShardBlockInstruction(blockchain *BlockChain, shardBlock *ShardBlock, committeeChange *committeeChange) error {
 	var err error
 	shardID := shardBestState.ShardID
+	shardSwappedCommittees := []string{}
+	shardNewCommittees := []string{}
 	shardPendingValidator, err := incognitokey.CommitteeKeyListToString(shardBestState.ShardPendingValidator)
 	if err != nil {
 		return err
@@ -708,8 +706,6 @@ func (shardBestState *ShardBestState) processShardBlockInstruction(blockchain *B
 	if err != nil {
 		return err
 	}
-	shardSwappedCommittees := []string{}
-	shardNewCommittees := []string{}
 	if len(shardBlock.Body.Instructions) != 0 {
 		Logger.log.Debugf("Shard Process/updateShardBestState: Shard Instruction %+v", shardBlock.Body.Instructions)
 	}
