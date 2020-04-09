@@ -96,9 +96,6 @@ func (blockchain *BlockChain) InsertShardBlock(shardBlock *ShardBlock, isValidat
 		}
 		Logger.log.Debugf("REVERTED SHARDID %+v, Revert Current Block Height %+v, Block Hash %+v", shardBlock.Header.ShardID, tempShardBestState.ShardHeight, tempShardBestState.BestBlockHash)
 	}
-	if blockHeight != GetBestStateShard(shardID).ShardHeight+1 {
-		return errors.New("Not expected height")
-	}
 	// fetch beacon blocks
 	beaconBlocks, err := FetchBeaconBlockFromHeight(blockchain.GetDatabase(), tempShardBestState.BeaconHeight+1, shardBlock.Header.BeaconHeight)
 	if err != nil {
