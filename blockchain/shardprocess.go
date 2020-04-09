@@ -149,7 +149,6 @@ func (blockchain *BlockChain) InsertShardBlock(shardBlock *ShardBlock, isValidat
 	} else {
 		Logger.log.Infof("SHARD %+v | SKIP Verify Post Processing, block height %+v with hash %+v \n", shardID, blockHeight, blockHash)
 	}
-	Logger.log.Infof("SHARD %+v | Remove Data After Processed, block height %+v with hash %+v \n", shardID, blockHeight, blockHash)
 	Logger.log.Infof("SHARD %+v | Update Beacon Instruction, block height %+v with hash %+v \n", shardID, blockHeight, blockHash)
 	err = blockchain.processSalaryInstructions(tempShardBestState.rewardStateDB, beaconBlocks, shardID)
 	if err != nil {
@@ -546,9 +545,7 @@ func (blockchain *BlockChain) verifyPreProcessingShardBlockForSigning(shardBlock
 // Get beacon state of this block
 // For example, new blockHeight is 91 then beacon state of this block must have height 90
 // OR new block has previous has is beacon best block hash
-//	- Producer
-//	- committee length and validatorIndex length
-//	- Producer + sig
+//	- Producer position
 //	- New Shard Block has parent (previous) hash is current shard state best block hash (compatible with current beststate)
 //	- New Shard Block Height must be compatible with best shard state
 //	- New Shard Block has beacon must higher or equal to beacon height of shard best state
