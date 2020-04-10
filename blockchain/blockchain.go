@@ -124,25 +124,32 @@ func (blockchain *BlockChain) initChainState() error {
 	}
 
 	blockchain.ShardChain = make([]*ShardChain, blockchain.GetBeaconBestState().ActiveShards)
+	shouldPanic := false
 	for shard := 1; shard <= blockchain.GetBeaconBestState().ActiveShards; shard++ {
 		shardID := byte(shard - 1)
-		blockchain.ShardChain[shardID] = &ShardChain{
+		blockchain.ShardChain[int(shardID)] = &ShardChain{
 			shardID:    shard - 1,
 			multiView:  multiview.NewMultiView(),
 			BlockGen:   blockchain.config.BlockGen,
 			ChainName:  common.GetShardChainKey(shardID),
 			Blockchain: blockchain,
 		}
+
 		if err := blockchain.RestoreShardViews(shardID); err != nil {
-			fmt.Println("debug restore shard fail, init")
+			if err.Error() == "panic" {
+				shouldPanic = true
+				continue
+			}
 			err := blockchain.initShardState(shardID)
 			if err != nil {
-				fmt.Println("debug shard state init error")
 				return err
 			}
 		}
-	}
 
+	}
+	if shouldPanic {
+		panic("shouldPanic")
+	}
 	return nil
 }
 
@@ -454,11 +461,13 @@ Backup shard views
 */
 func (blockchain *BlockChain) BackupShardViews(db incdb.KeyValueWriter, shardID byte) error {
 	allViews := []*ShardBestState{}
-	for _, v := range blockchain.ShardChain[shardID].multiView.GetAllViewsWithBFS() {
+	for _, v := range blockchain.ShardChain[int(shardID)].multiView.GetAllViewsWithBFS() {
 		allViews = append(allViews, v.(*ShardBestState))
 	}
-	fmt.Println("debug BackupShardViews", len(allViews))
-	return rawdbv2.StoreShardBestState(db, shardID, allViews)
+
+	err := rawdbv2.StoreShardBestState(db, shardID, allViews)
+
+	return err
 }
 
 /*
@@ -476,8 +485,11 @@ func (blockchain *BlockChain) RestoreShardViews(shardID byte) error {
 		fmt.Println("debug Cannot unmarshall shard best state", string(b))
 		return err
 	}
-	fmt.Println("debug RestoreShardViews", len(allViews))
+	fmt.Println("debug RestoreShardViews", shardID, len(allViews))
+	vShardID := byte(0)
 	for _, v := range allViews {
+		fmt.Println("add view", v.ShardID, v.ShardHeight)
+		vShardID = v.ShardID
 		if !blockchain.ShardChain[shardID].multiView.AddView(v) {
 			panic("Restart shard views fail")
 		}
@@ -485,6 +497,9 @@ func (blockchain *BlockChain) RestoreShardViews(shardID byte) error {
 		if err != nil {
 			panic(err)
 		}
+	}
+	if vShardID != shardID {
+		return errors.New("panic")
 	}
 	return nil
 }

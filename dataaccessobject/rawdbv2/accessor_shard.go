@@ -252,6 +252,7 @@ func StoreShardBestState(db incdb.KeyValueWriter, shardID byte, v interface{}) e
 	if err != nil {
 		return NewRawdbError(StoreShardBestStateError, err)
 	}
+	fmt.Println("StoreShardBestState", shardID, string(val))
 	if err := db.Put(key, val); err != nil {
 		return NewRawdbError(StoreShardBestStateError, err)
 	}
@@ -264,6 +265,7 @@ func GetShardBestState(db incdb.KeyValueReader, shardID byte) ([]byte, error) {
 	if err != nil {
 		return nil, NewRawdbError(StoreShardBestStateError, err)
 	}
+	fmt.Println("GetShardBestState", shardID, string(shardBestStateBytes))
 	return shardBestStateBytes, nil
 }
 

@@ -126,6 +126,10 @@ func (blockchain *BlockChain) InsertShardBlock(shardBlock *ShardBlock, shouldVal
 	}
 	curView := preView.(*ShardBestState)
 
+	if shardID != preView.(*ShardBestState).ShardID {
+		panic(fmt.Sprintf("Something wrong with shardID %v %v ", shardID, preView.(*ShardBestState).ShardID))
+	}
+
 	if blockHeight != curView.ShardHeight+1 {
 		return errors.New("Not expected height")
 	}
@@ -1151,7 +1155,7 @@ func (blockchain *BlockChain) processStoreShardBlock(newShardState *ShardBestSta
 		}
 	}
 
-	err = blockchain.BackupShardViews(batchData, shardBlock.Header.ShardID)
+	err = blockchain.BackupShardViews(blockchain.GetDatabase(), shardBlock.Header.ShardID)
 	if err != nil {
 		panic("Backup shard view error")
 	}
@@ -1159,6 +1163,25 @@ func (blockchain *BlockChain) processStoreShardBlock(newShardState *ShardBestSta
 	if err := batchData.Write(); err != nil {
 		return NewBlockChainError(StoreShardBlockError, err)
 	}
+
+	allViews := []*ShardBestState{}
+	b, err := rawdbv2.GetShardBestState(blockchain.GetDatabase(), shardBlock.Header.ShardID)
+	if err != nil {
+		fmt.Println("debug Cannot see shard best state")
+		return err
+	}
+	err = json.Unmarshal(b, &allViews)
+	if err != nil {
+		fmt.Println("debug Cannot unmarshall shard best state", string(b))
+		return err
+	}
+	for _, v := range allViews {
+		fmt.Println("store view", shardBlock.Header.ShardID, v.ShardID, newShardState.ShardID, v.ShardHeight)
+		if shardBlock.Header.ShardID != v.ShardID {
+			panic("abc")
+		}
+	}
+
 	Logger.log.Infof("SHARD %+v | 🔎 %d transactions in block height %+v \n", shardBlock.Header.ShardID, len(shardBlock.Body.Transactions), blockHeight)
 	return nil
 }

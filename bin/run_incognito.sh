@@ -1,6 +1,8 @@
 #!/bin/sh
 mkdir -p /data
 
+cp /data/log.txt /data/log_bk.txt
+
 echo "/data/*.txt {
   rotate 3
   secondly

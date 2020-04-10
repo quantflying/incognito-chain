@@ -10,9 +10,9 @@ import (
 	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
 )
 
-func (blockchain *BlockChain) StoreShardBestState(shardID byte) error {
-	return rawdbv2.StoreShardBestState(blockchain.GetDatabase(), shardID, blockchain.GetBestStateShard(shardID))
-}
+//func (blockchain *BlockChain) StoreShardBestState(shardID byte) error {
+//	return rawdbv2.StoreShardBestState(blockchain.GetDatabase(), shardID, blockchain.GetBestStateShard(shardID))
+//}
 
 func (blockchain *BlockChain) FinalizedShardBlock(shardBlock *ShardBlock) error {
 	return rawdbv2.FinalizedShardBlock(blockchain.GetDatabase(), shardBlock.Header.ShardID, shardBlock.Header.Hash())
