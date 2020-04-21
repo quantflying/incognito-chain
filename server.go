@@ -623,7 +623,7 @@ func (serverObj *Server) Stop() error {
 		Logger.log.Debugf("Fee estimator data when saving #%d", feeEstimator)
 		feeEstimatorData := feeEstimator.Save()
 		if len(feeEstimatorData) > 0 {
-			err := rawdbv2.StoreFeeEstimator(serverObj.dataBase, feeEstimatorData, shardID)
+			err := rawdbv2.StoreFeeEstimator(serverObj.dataBase[int(shardID)], feeEstimatorData, shardID)
 			if err != nil {
 				Logger.log.Errorf("Can't save fee estimator data on chain #%d: %v", shardID, err)
 			} else {

@@ -171,7 +171,7 @@ func (blockchain *BlockChain) GetBeaconFeatureStateDB() *statedb.StateDB {
 }
 
 func (blockchain *BlockChain) GetBeaconFeatureStateDBByHeight(height uint64, db incdb.Database) (*statedb.StateDB, error) {
-	rootHash, err := blockchain.GetBeaconFeatureRootHash(blockchain.GetBeaconChainDatabase(), height)
+	rootHash, err := blockchain.GetBeaconFeatureRootHash(db, height)
 	if err != nil {
 		return nil, fmt.Errorf("Beacon Feature State DB Not found, height %+v, error %+v", height, err)
 	}

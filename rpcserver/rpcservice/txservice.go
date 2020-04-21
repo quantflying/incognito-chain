@@ -15,7 +15,6 @@ import (
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
 	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
-	"github.com/incognitochain/incognito-chain/incdb"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/mempool"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -388,7 +387,7 @@ func (txService TxService) BuildRawTransaction(params *bean.CreateRawTxParam, me
 	return &tx, nil
 }
 
-func (txService TxService) CreateRawTransaction(params *bean.CreateRawTxParam, meta metadata.Metadata, db incdb.Database) (*common.Hash, []byte, byte, *RPCError) {
+func (txService TxService) CreateRawTransaction(params *bean.CreateRawTxParam, meta metadata.Metadata) (*common.Hash, []byte, byte, *RPCError) {
 	var err error
 	tx, err := txService.BuildRawTransaction(params, meta)
 	if err.(*RPCError) != nil {
@@ -1074,7 +1073,7 @@ func (txService TxService) SendRawPrivacyCustomTokenTransaction(base58CheckData 
 	return txMsg, &tx, nil
 }
 
-func (txService TxService) BuildRawDefragmentAccountTransaction(params interface{}, meta metadata.Metadata, db incdb.Database) (*transaction.Tx, *RPCError) {
+func (txService TxService) BuildRawDefragmentAccountTransaction(params interface{}, meta metadata.Metadata) (*transaction.Tx, *RPCError) {
 	arrayParams := common.InterfaceSlice(params)
 	if len(arrayParams) < 4 {
 		return nil, NewRPCError(RPCInvalidParamsError, nil)

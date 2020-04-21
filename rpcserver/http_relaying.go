@@ -141,7 +141,7 @@ func (httpServer *HttpServer) handleGetRelayingBNBHeaderState(params interface{}
 		return nil, rpcservice.NewRPCError(rpcservice.RPCInvalidParamsError, errors.New("Beacon height is invalid"))
 	}
 	bc := httpServer.config.BlockChain
-	relayingState, err := bc.InitRelayingHeaderChainStateFromDB(bc.GetDatabase(), uint64(beaconHeight))
+	relayingState, err := bc.InitRelayingHeaderChainStateFromDB(bc.GetBeaconChainDatabase(), uint64(beaconHeight))
 	if err != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.GetRelayingBNBHeaderError, err)
 	}
@@ -177,7 +177,7 @@ func (httpServer *HttpServer) handleGetRelayingBNBHeaderByBlockHeight(params int
 	if !ok {
 		return nil, rpcservice.NewRPCError(rpcservice.RPCInvalidParamsError, errors.New("Beacon height is invalid"))
 	}
-	bnbHeaderBytes, err := rawdbv2.GetRelayingBNBHeaderChain(httpServer.GetBlockchain().GetDatabase(), uint64(blockHeight))
+	bnbHeaderBytes, err := rawdbv2.GetRelayingBNBHeaderChain(httpServer.GetBeaconChainDatabase(), uint64(blockHeight))
 	if err != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.GetRelayingBNBHeaderByBlockHeightError, err)
 	}
@@ -210,7 +210,7 @@ func (httpServer *HttpServer) handleGetLatestBNBHeaderBlockHeight(params interfa
 
 	bc := httpServer.config.BlockChain
 	latestBeaconHeight := httpServer.config.BlockChain.BestState.Beacon.BeaconHeight
-	relayingState, err := bc.InitRelayingHeaderChainStateFromDB(httpServer.config.BlockChain.GetDatabase(), uint64(latestBeaconHeight))
+	relayingState, err := bc.InitRelayingHeaderChainStateFromDB(httpServer.GetBeaconChainDatabase(), uint64(latestBeaconHeight))
 	if err != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.GetLatestBNBHeaderBlockHeightError, err)
 	}
@@ -229,7 +229,7 @@ func (httpServer *HttpServer) handleGetLatestBNBHeaderBlockHeight(params interfa
 		LatestBNBHeaderBlockHeight int64 `json:"LatestBNBHeaderBlockHeight"`
 		BeaconTimeStamp            int64 `json:"BeaconTimeStamp"`
 	}
-	result := LatestBNBHeaderBlockHeight {
+	result := LatestBNBHeaderBlockHeight{
 		LatestBNBHeaderBlockHeight: latestBNBHeaderBlockHeight,
 		BeaconTimeStamp:            beaconBlock.Header.Timestamp,
 	}

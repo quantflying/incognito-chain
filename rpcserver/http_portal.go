@@ -211,13 +211,13 @@ func (httpServer *HttpServer) handleGetPortalState(params interface{}, closeChan
 	}
 
 	//stateDB := httpServer.config.BlockChain.BestState.Beacon.GetCopiedFeatureStateDB()
-	featureStateRootHash, err := httpServer.config.BlockChain.GetBeaconFeatureRootHash(httpServer.config.BlockChain.GetDatabase(), uint64(beaconHeight))
+	beaconFeatureStateRootHash, err := httpServer.config.BlockChain.GetBeaconFeatureRootHash(httpServer.GetBeaconChainDatabase(), uint64(beaconHeight))
 	if err != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.GetPortalStateError, fmt.Errorf("Can't found FeatureStateRootHash of beacon height %+v, error %+v", beaconHeight, err))
 	}
-	stateDB, err := statedb.NewWithPrefixTrie(featureStateRootHash, statedb.NewDatabaseAccessWarper(httpServer.config.BlockChain.GetDatabase()))
+	beaconFeatureStateDB, err := statedb.NewWithPrefixTrie(beaconFeatureStateRootHash, statedb.NewDatabaseAccessWarper(httpServer.GetBeaconChainDatabase()))
 
-	portalState, err := blockchain.InitCurrentPortalStateFromDB(stateDB, uint64(beaconHeight))
+	portalState, err := blockchain.InitCurrentPortalStateFromDB(beaconFeatureStateDB, uint64(beaconHeight))
 	if err != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.GetPortalStateError, err)
 	}
@@ -715,13 +715,13 @@ func (httpServer *HttpServer) handleGetPortalReward(params interface{}, closeCha
 	}
 
 	latestBeaconHeight := httpServer.config.BlockChain.BestState.Beacon.BeaconHeight
-	featureStateRootHash, err := httpServer.config.BlockChain.GetBeaconFeatureRootHash(httpServer.config.BlockChain.GetDatabase(), latestBeaconHeight)
+	beaconFeatureStateRootHash, err := httpServer.config.BlockChain.GetBeaconFeatureRootHash(httpServer.GetBeaconChainDatabase(), latestBeaconHeight)
 	if err != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.GetPortalRewardError, fmt.Errorf("Can't found FeatureStateRootHash of beacon height %+v, error %+v", incognitoAddress, err))
 	}
-	stateDB, err := statedb.NewWithPrefixTrie(featureStateRootHash, statedb.NewDatabaseAccessWarper(httpServer.config.BlockChain.GetDatabase()))
+	beaconFeatureStateDB, err := statedb.NewWithPrefixTrie(beaconFeatureStateRootHash, statedb.NewDatabaseAccessWarper(httpServer.GetBeaconChainDatabase()))
 
-	portalState, err := blockchain.InitCurrentPortalStateFromDB(stateDB, latestBeaconHeight)
+	portalState, err := blockchain.InitCurrentPortalStateFromDB(beaconFeatureStateDB, latestBeaconHeight)
 	if err != nil {
 		return nil, rpcservice.NewRPCError(rpcservice.GetPortalRewardError, err)
 	}
