@@ -16,7 +16,7 @@ func (blockchain *BlockChain) BackupCurrentBeaconState(block *BeaconBlock) error
 	if err != nil {
 		return NewBlockChainError(BackupCurrentBeaconStateError, err)
 	}
-	if err := rawdbv2.StorePreviousBeaconBestState(blockchain.GetDatabase(), beaconBestStateBytes); err != nil {
+	if err := rawdbv2.StorePreviousBeaconBestState(blockchain.GetBeaconChainDatabase(), beaconBestStateBytes); err != nil {
 		return NewBlockChainError(BackupCurrentBeaconStateError, err)
 	}
 	return nil
@@ -27,14 +27,14 @@ func (blockchain *BlockChain) BackupCurrentShardState(shardBlock *ShardBlock) er
 	if err != nil {
 		return NewBlockChainError(BackUpShardStateError, err)
 	}
-	if err := rawdbv2.StorePreviousShardBestState(blockchain.GetDatabase(), shardBlock.Header.ShardID, shardBestStateBytes); err != nil {
+	if err := rawdbv2.StorePreviousShardBestState(blockchain.GetShardChainDatabase(shardBlock.Header.ShardID), shardBlock.Header.ShardID, shardBestStateBytes); err != nil {
 		return NewBlockChainError(BackUpShardStateError, err)
 	}
 	return nil
 }
 
 func (blockchain *BlockChain) ValidateBlockWithPreviousBeaconBestState(beaconBlock *BeaconBlock) error {
-	previousBeaconBestStateBytes, err := rawdbv2.GetPreviousBeaconBestState(blockchain.GetDatabase())
+	previousBeaconBestStateBytes, err := rawdbv2.GetPreviousBeaconBestState(blockchain.GetBeaconChainDatabase())
 	if err != nil {
 		return NewBlockChainError(ValidateBlockWithPreviousBeaconBestStateError, err)
 	}
@@ -54,7 +54,7 @@ func (blockchain *BlockChain) ValidateBlockWithPreviousBeaconBestState(beaconBlo
 	}
 	prevBlockHash := beaconBlock.Header.PreviousBlockHash
 	// Verify parent hash exist or not
-	parentBlockBytes, err := rawdbv2.GetBeaconBlockByHash(blockchain.GetDatabase(), prevBlockHash)
+	parentBlockBytes, err := rawdbv2.GetBeaconBlockByHash(blockchain.GetBeaconChainDatabase(), prevBlockHash)
 	if err != nil {
 		return NewBlockChainError(DatabaseError, err)
 	}
@@ -71,7 +71,7 @@ func (blockchain *BlockChain) ValidateBlockWithPreviousBeaconBestState(beaconBlo
 }
 
 func (blockchain *BlockChain) ValidateBlockWithPreviousShardBestState(shardBlock *ShardBlock) error {
-	prevBST, err := rawdbv2.GetPreviousShardBestState(blockchain.GetDatabase(), shardBlock.Header.ShardID)
+	prevBST, err := rawdbv2.GetPreviousShardBestState(blockchain.GetShardChainDatabase(shardBlock.Header.ShardID), shardBlock.Header.ShardID)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (blockchain *BlockChain) ValidateBlockWithPreviousShardBestState(shardBlock
 	}
 	// Verify parent hash exist or not
 	previousBlockHash := shardBlock.Header.PreviousBlockHash
-	parentBlockBytes, err := rawdbv2.GetShardBlockByHash(blockchain.GetDatabase(), previousBlockHash)
+	parentBlockBytes, err := rawdbv2.GetShardBlockByHash(blockchain.GetShardChainDatabase(shardBlock.Header.ShardID), previousBlockHash)
 	if err != nil {
 		return NewBlockChainError(ValidateBlockWithPreviousShardBestStateError, err)
 	}
@@ -133,26 +133,26 @@ func (blockchain *BlockChain) revertShardState(shardID byte) error {
 		return NewBlockChainError(RevertStateError, err)
 	}
 	for _, tx := range revertedBestShardBlock.Body.Transactions {
-		if err := rawdbv2.DeleteTransactionIndex(blockchain.GetDatabase(), *tx.Hash()); err != nil {
+		if err := rawdbv2.DeleteTransactionIndex(blockchain.GetShardChainDatabase(shardID), *tx.Hash()); err != nil {
 			return NewBlockChainError(RevertStateError, err)
 		}
 	}
-	if err = rawdbv2.DeleteShardBlock(blockchain.GetDatabase(), shardID, revertedBestShardBlock.Header.Height, revertedBestShardBlock.Header.Hash()); err != nil {
+	if err = rawdbv2.DeleteShardBlock(blockchain.GetShardChainDatabase(shardID), shardID, revertedBestShardBlock.Header.Height, revertedBestShardBlock.Header.Hash()); err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	if err := rawdbv2.DeleteShardConsensusRootHash(blockchain.GetDatabase(), shardID, revertedBestShardBlock.Header.Height); err != nil {
+	if err := rawdbv2.DeleteShardConsensusRootHash(blockchain.GetShardChainDatabase(shardID), shardID, revertedBestShardBlock.Header.Height); err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	if err := rawdbv2.DeleteShardTransactionRootHash(blockchain.GetDatabase(), shardID, revertedBestShardBlock.Header.Height); err != nil {
+	if err := rawdbv2.DeleteShardTransactionRootHash(blockchain.GetShardChainDatabase(shardID), shardID, revertedBestShardBlock.Header.Height); err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	if err := rawdbv2.DeleteShardFeatureRootHash(blockchain.GetDatabase(), shardID, revertedBestShardBlock.Header.Height); err != nil {
+	if err := rawdbv2.DeleteShardFeatureRootHash(blockchain.GetShardChainDatabase(shardID), shardID, revertedBestShardBlock.Header.Height); err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	if err := rawdbv2.DeleteShardCommitteeRewardRootHash(blockchain.GetDatabase(), shardID, revertedBestShardBlock.Header.Height); err != nil {
+	if err := rawdbv2.DeleteShardCommitteeRewardRootHash(blockchain.GetShardChainDatabase(shardID), shardID, revertedBestShardBlock.Header.Height); err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	if err := rawdbv2.DeleteShardSlashRootHash(blockchain.GetDatabase(), shardID, revertedBestShardBlock.Header.Height); err != nil {
+	if err := rawdbv2.DeleteShardSlashRootHash(blockchain.GetShardChainDatabase(shardID), shardID, revertedBestShardBlock.Header.Height); err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
 	Logger.log.Criticalf("REVERT SHARD SUCCESS FROM height %+v to %+v", revertedBestShardBlock.Header.Height, blockchain.BestState.Shard[shardID].ShardHeight)
@@ -160,7 +160,7 @@ func (blockchain *BlockChain) revertShardState(shardID byte) error {
 }
 
 func (blockchain *BlockChain) revertShardBestState(shardID byte) error {
-	previousShardBestStateBytes, err := rawdbv2.GetPreviousShardBestState(blockchain.GetDatabase(), shardID)
+	previousShardBestStateBytes, err := rawdbv2.GetPreviousShardBestState(blockchain.GetShardChainDatabase(shardID), shardID)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
@@ -171,31 +171,31 @@ func (blockchain *BlockChain) revertShardBestState(shardID byte) error {
 	if previousShardBestState.ShardHeight == blockchain.BestState.Shard[shardID].ShardHeight {
 		return NewBlockChainError(RevertStateError, fmt.Errorf("can't revert same best state, best shard height %+v", previousShardBestState.ShardHeight))
 	}
-	consensusRootHash, err := blockchain.GetShardConsensusRootHash(blockchain.GetDatabase(), shardID, previousShardBestState.ShardHeight)
+	consensusRootHash, err := blockchain.GetShardConsensusRootHash(blockchain.GetShardChainDatabase(shardID), shardID, previousShardBestState.ShardHeight)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	previousShardBestState.consensusStateDB, err = statedb.NewWithPrefixTrie(consensusRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
-	transactionRootHash, err := blockchain.GetShardTransactionRootHash(blockchain.GetDatabase(), shardID, previousShardBestState.ShardHeight)
+	previousShardBestState.consensusStateDB, err = statedb.NewWithPrefixTrie(consensusRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetShardChainDatabase(shardID)))
+	transactionRootHash, err := blockchain.GetShardTransactionRootHash(blockchain.GetShardChainDatabase(shardID), shardID, previousShardBestState.ShardHeight)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	previousShardBestState.transactionStateDB, err = statedb.NewWithPrefixTrie(transactionRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
-	featureRootHash, err := blockchain.GetShardFeatureRootHash(blockchain.GetDatabase(), shardID, previousShardBestState.ShardHeight)
+	previousShardBestState.transactionStateDB, err = statedb.NewWithPrefixTrie(transactionRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetShardChainDatabase(shardID)))
+	featureRootHash, err := blockchain.GetShardFeatureRootHash(blockchain.GetShardChainDatabase(shardID), shardID, previousShardBestState.ShardHeight)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	previousShardBestState.featureStateDB, err = statedb.NewWithPrefixTrie(featureRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
-	rewardRootHash, err := blockchain.GetShardCommitteeRewardRootHash(blockchain.GetDatabase(), shardID, previousShardBestState.ShardHeight)
+	previousShardBestState.featureStateDB, err = statedb.NewWithPrefixTrie(featureRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetShardChainDatabase(shardID)))
+	rewardRootHash, err := blockchain.GetShardCommitteeRewardRootHash(blockchain.GetShardChainDatabase(shardID), shardID, previousShardBestState.ShardHeight)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	previousShardBestState.rewardStateDB, err = statedb.NewWithPrefixTrie(rewardRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
-	slashRootHash, err := blockchain.GetShardSlashRootHash(blockchain.GetDatabase(), shardID, previousShardBestState.ShardHeight)
+	previousShardBestState.rewardStateDB, err = statedb.NewWithPrefixTrie(rewardRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetShardChainDatabase(shardID)))
+	slashRootHash, err := blockchain.GetShardSlashRootHash(blockchain.GetShardChainDatabase(shardID), shardID, previousShardBestState.ShardHeight)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	previousShardBestState.slashStateDB, err = statedb.NewWithPrefixTrie(slashRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
+	previousShardBestState.slashStateDB, err = statedb.NewWithPrefixTrie(slashRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetShardChainDatabase(shardID)))
 	SetBestStateShard(shardID, &previousShardBestState)
 	blockchain.config.ShardPool[shardID].RevertShardPool(blockchain.BestState.Shard[shardID].ShardHeight)
 	for sid, height := range blockchain.BestState.Shard[shardID].BestCrossShard {
@@ -230,14 +230,14 @@ func (blockchain *BlockChain) revertBeaconState() error {
 	lastCrossShardState := beaconBestState.LastCrossShardState
 	for fromShard, toShards := range lastCrossShardState {
 		for toShard, height := range toShards {
-			err := rawdbv2.RestoreCrossShardNextHeights(blockchain.GetDatabase(), fromShard, toShard, height)
+			err := rawdbv2.RestoreCrossShardNextHeights(blockchain.GetBeaconChainDatabase(), fromShard, toShard, height)
 			if err != nil {
 				return NewBlockChainError(RevertStateError, err)
 			}
 		}
 		blockchain.config.CrossShardPool[fromShard].UpdatePool()
 	}
-	err = rawdbv2.DeleteBeaconBlock(blockchain.GetDatabase(), currentBestBeaconBlock.Header.Height, currentBestBeaconBlock.Header.Hash())
+	err = rawdbv2.DeleteBeaconBlock(blockchain.GetBeaconChainDatabase(), currentBestBeaconBlock.Header.Height, currentBestBeaconBlock.Header.Hash())
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func (blockchain *BlockChain) revertBeaconState() error {
 }
 
 func (blockchain *BlockChain) revertBeaconBestState() error {
-	previousBeaconBestStatebytes, err := rawdbv2.GetPreviousBeaconBestState(blockchain.GetDatabase())
+	previousBeaconBestStatebytes, err := rawdbv2.GetPreviousBeaconBestState(blockchain.GetBeaconChainDatabase())
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
@@ -260,26 +260,26 @@ func (blockchain *BlockChain) revertBeaconBestState() error {
 	if previousBeaconBestState.BeaconHeight == blockchain.BestState.Beacon.BeaconHeight {
 		return NewBlockChainError(RevertStateError, errors.New("can't revert same beststate"))
 	}
-	consensusRootHash, err := blockchain.GetBeaconConsensusRootHash(blockchain.GetDatabase(), previousBeaconBestState.BeaconHeight)
+	consensusRootHash, err := blockchain.GetBeaconConsensusRootHash(blockchain.GetBeaconChainDatabase(), previousBeaconBestState.BeaconHeight)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	previousBeaconBestState.consensusStateDB, err = statedb.NewWithPrefixTrie(consensusRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
-	featureRootHash, err := blockchain.GetBeaconFeatureRootHash(blockchain.GetDatabase(), previousBeaconBestState.BeaconHeight)
+	previousBeaconBestState.consensusStateDB, err = statedb.NewWithPrefixTrie(consensusRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetBeaconChainDatabase()))
+	featureRootHash, err := blockchain.GetBeaconFeatureRootHash(blockchain.GetBeaconChainDatabase(), previousBeaconBestState.BeaconHeight)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	previousBeaconBestState.featureStateDB, err = statedb.NewWithPrefixTrie(featureRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
-	rewardRootHash, err := blockchain.GetBeaconRewardRootHash(blockchain.GetDatabase(), previousBeaconBestState.BeaconHeight)
+	previousBeaconBestState.featureStateDB, err = statedb.NewWithPrefixTrie(featureRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetBeaconChainDatabase()))
+	rewardRootHash, err := blockchain.GetBeaconRewardRootHash(blockchain.GetBeaconChainDatabase(), previousBeaconBestState.BeaconHeight)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	previousBeaconBestState.rewardStateDB, err = statedb.NewWithPrefixTrie(rewardRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
-	slashRootHash, err := blockchain.GetBeaconSlashRootHash(blockchain.GetDatabase(), previousBeaconBestState.BeaconHeight)
+	previousBeaconBestState.rewardStateDB, err = statedb.NewWithPrefixTrie(rewardRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetBeaconChainDatabase()))
+	slashRootHash, err := blockchain.GetBeaconSlashRootHash(blockchain.GetBeaconChainDatabase(), previousBeaconBestState.BeaconHeight)
 	if err != nil {
 		return NewBlockChainError(RevertStateError, err)
 	}
-	previousBeaconBestState.slashStateDB, err = statedb.NewWithPrefixTrie(slashRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
+	previousBeaconBestState.slashStateDB, err = statedb.NewWithPrefixTrie(slashRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetBeaconChainDatabase()))
 	SetBeaconBestState(&previousBeaconBestState)
 	previousBeaconBestState.lock = blockchain.BestState.Beacon.lock
 	blockchain.BestState.Beacon = &previousBeaconBestState

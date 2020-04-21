@@ -177,6 +177,9 @@ const (
 	ProcessAutoStakingError
 	ProcessPortalRelayingError
 	GetTotalLockedCollateralError
+	GetShardBlockHeightByHashError
+	GetShardBlockByHashError
+	GetTransactionHashByReceiverError
 )
 
 var ErrCodeMessage = map[int]struct {
@@ -337,6 +340,9 @@ var ErrCodeMessage = map[int]struct {
 	BackupCurrentBeaconStateError:                     {-1151, "Backup Current Beacon State Error"},
 	ProcessAutoStakingError:                           {-1152, "Process Auto Staking Error"},
 	ProcessPortalRelayingError:                        {-1153, "Process Portal Relaying Error"},
+	GetShardBlockHeightByHashError:                    {-1154, "Get Shard Block Height By Hash Error"},
+	GetShardBlockByHashError:                          {-1155, "Get Shard Block By Hash Error"},
+	GetTransactionHashByReceiverError:                 {-1156, "Get Transaction Hash By Receiver Error"},
 	GetListOutputCoinsByKeysetError:                   {-2000, "Get List Output Coins By Keyset Error"},
 	GetTotalLockedCollateralError:                     {-3000, "Get Total Locked Collateral Error"},
 }

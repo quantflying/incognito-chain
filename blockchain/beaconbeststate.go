@@ -145,7 +145,7 @@ func GetBeaconBestState() *BeaconBestState {
 func (beaconBestState *BeaconBestState) InitStateRootHash(bc *BlockChain) error {
 	beaconBestState.lock.Lock()
 	defer beaconBestState.lock.Unlock()
-	db := bc.GetDatabase()
+	db := bc.GetBeaconChainDatabase()
 	var dbAccessWarper = statedb.NewDatabaseAccessWarper(db)
 	if rootHash, err := bc.GetBeaconConsensusRootHash(db, beaconBestState.BeaconHeight); err == nil {
 		beaconBestState.consensusStateDB, err = statedb.NewWithPrefixTrie(rootHash, dbAccessWarper)

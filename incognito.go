@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 	"strconv"
 
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/incognitochain/incognito-chain/blockchain"
 	"github.com/incognitochain/incognito-chain/common"
 	_ "github.com/incognitochain/incognito-chain/consensus/blsbft"
@@ -20,9 +21,8 @@ import (
 	_ "github.com/incognitochain/incognito-chain/incdb/lvdb"
 	"github.com/incognitochain/incognito-chain/limits"
 	"github.com/incognitochain/incognito-chain/metrics"
-	"github.com/incognitochain/incognito-chain/wallet"
 	btcrelaying "github.com/incognitochain/incognito-chain/relaying/btc"
-	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/incognitochain/incognito-chain/wallet"
 )
 
 //go:generate mockery -dir=incdb/ -name=Database
@@ -50,7 +50,6 @@ func getBTCRelayingChain(btcRelayingChainID string) (*btcrelaying.BlockChain, er
 	)
 }
 
-
 // mainMaster is the real main function for Incognito network.  It is necessary to work around
 // the fact that deferred functions do not run when os.Exit() is called.  The
 // optional serverChan parameter is mainly used by the service code to be
@@ -76,7 +75,7 @@ func mainMaster(serverChan chan<- *Server) error {
 	if interruptRequested(interrupt) {
 		return nil
 	}
-	db, err := incdb.Open("leveldb", filepath.Join(cfg.DataDir, cfg.DatabaseDir))
+	db, err := incdb.OpenMultipleDB("leveldb", filepath.Join(cfg.DataDir, cfg.DatabaseDir))
 	// Create db and use it.
 	if err != nil {
 		Logger.log.Error("could not open connection to leveldb")

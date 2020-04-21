@@ -27,7 +27,7 @@ func makeBlockChain(databaseDir string, testNet bool) (*blockchain.BlockChain, e
 	mempool.Logger.Init(common.NewBackend(nil).Logger("ChainCMD", true))
 	dataaccessobject.Logger.Init(common.NewBackend(nil).Logger("ChainCMD", true))
 	trie.Logger.Init(common.NewBackend(nil).Logger("ChainCMD", true))
-	db, err := incdb.Open("leveldb", filepath.Join(databaseDir))
+	db, err := incdb.OpenMultipleDB("leveldb", filepath.Join(databaseDir))
 	if err != nil {
 		return nil, err
 	}

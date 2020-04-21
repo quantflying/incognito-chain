@@ -302,11 +302,11 @@ func (blockGenerator *BlockGenerator) GetShardState(beaconBestState *BeaconBestS
 		Logger.log.Infof("Beacon Producer/ AFTER FILTER, Shard %+v ONLY GET %+v block", shardID, totalBlock+1)
 		for _, shardBlock := range shardBlocks[:totalBlock+1] {
 			shardState,
-			validStakeInstruction,
-			tempValidStakePublicKeys, validSwapInstruction, bridgeInstruction,
-			acceptedRewardInstruction, stopAutoStakingInstruction,
+				validStakeInstruction,
+				tempValidStakePublicKeys, validSwapInstruction, bridgeInstruction,
+				acceptedRewardInstruction, stopAutoStakingInstruction,
 
-			statefulActions := blockGenerator.chain.GetShardStateFromBlock(beaconBestState.BeaconHeight+1, shardBlock, shardID, true, validStakePublicKeys)
+				statefulActions := blockGenerator.chain.GetShardStateFromBlock(beaconBestState.BeaconHeight+1, shardBlock, shardID, true, validStakePublicKeys)
 			shardStates[shardID] = append(shardStates[shardID], shardState[shardID])
 			validStakeInstructions = append(validStakeInstructions, validStakeInstruction...)
 			validSwapInstructions[shardID] = append(validSwapInstructions[shardID], validSwapInstruction[shardID]...)
@@ -620,11 +620,11 @@ func (beaconBestState *BeaconBestState) GenerateInstruction(
 		if err != nil {
 			return [][]string{}, err
 		}
-		rootHash, err := blockchain.GetBeaconSlashRootHash(blockchain.GetDatabase(), newBeaconHeight-1)
+		rootHash, err := blockchain.GetBeaconSlashRootHash(blockchain.GetBeaconChainDatabase(), newBeaconHeight-1)
 		if err != nil {
 			return [][]string{}, err
 		}
-		slashStateDB, err := statedb.NewWithPrefixTrie(rootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
+		slashStateDB, err := statedb.NewWithPrefixTrie(rootHash, statedb.NewDatabaseAccessWarper(blockchain.GetBeaconChainDatabase()))
 		producersBlackList, err := blockchain.getUpdatedProducersBlackList(slashStateDB, true, -1, beaconCommitteeStr, newBeaconHeight-1)
 		if err != nil {
 			Logger.log.Error(err)

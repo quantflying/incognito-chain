@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
 	"github.com/incognitochain/incognito-chain/metadata"
@@ -18,7 +18,7 @@ import (
 
 func (blockchain *BlockChain) processRelayingInstructions(block *BeaconBlock) error {
 	beaconHeight := block.Header.Height - 1
-	db := blockchain.GetDatabase()
+	db := blockchain.GetBeaconChainDatabase()
 
 	relayingState, err := blockchain.InitRelayingHeaderChainStateFromDB(db, beaconHeight)
 	if err != nil {
@@ -101,7 +101,7 @@ func (blockchain *BlockChain) processRelayingBNBHeaderInst(
 	if len(instructions) != 4 {
 		return nil // skip the instruction
 	}
-	db := blockchain.GetDatabase()
+	db := blockchain.GetBeaconChainDatabase()
 
 	// unmarshal instructions content
 	var actionData metadata.RelayingHeaderContent

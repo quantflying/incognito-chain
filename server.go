@@ -40,11 +40,11 @@ import (
 	"github.com/incognitochain/incognito-chain/netsync"
 	"github.com/incognitochain/incognito-chain/peer"
 	"github.com/incognitochain/incognito-chain/pubsub"
+	btcrelaying "github.com/incognitochain/incognito-chain/relaying/btc"
 	"github.com/incognitochain/incognito-chain/rpcserver"
 	"github.com/incognitochain/incognito-chain/transaction"
 	"github.com/incognitochain/incognito-chain/wallet"
 	"github.com/incognitochain/incognito-chain/wire"
-	btcrelaying "github.com/incognitochain/incognito-chain/relaying/btc"
 	libp2p "github.com/libp2p/go-libp2p-peer"
 
 	p2ppubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -61,7 +61,7 @@ type Server struct {
 	chainParams       *blockchain.Params
 	connManager       *connmanager.ConnManager
 	blockChain        *blockchain.BlockChain
-	dataBase          incdb.Database
+	dataBase          map[int]incdb.Database
 	memCache          *memcache.MemoryCache
 	rpcServer         *rpcserver.RpcServer
 	memPool           *mempool.TxPool
@@ -192,7 +192,7 @@ NewServer - create server object which control all process of node
 */
 func (serverObj *Server) NewServer(
 	listenAddrs string,
-	db incdb.Database,
+	db map[int]incdb.Database,
 	dbmp databasemp.DatabaseInterface,
 	chainParams *blockchain.Params,
 	protocolVer string,
@@ -326,7 +326,7 @@ func (serverObj *Server) NewServer(
 	)
 
 	err = serverObj.blockChain.Init(&blockchain.Config{
-		BTCChain: btcChain,
+		BTCChain:    btcChain,
 		ChainParams: serverObj.chainParams,
 		DataBase:    serverObj.dataBase,
 		MemCache:    serverObj.memCache,
@@ -359,7 +359,7 @@ func (serverObj *Server) NewServer(
 	//init shard pool
 	mempool.InitShardPool(serverObj.shardPool, serverObj.pusubManager)
 	//init cross shard pool
-	mempool.InitCrossShardPool(serverObj.crossShardPool, db, serverObj.blockChain)
+	mempool.InitCrossShardPool(serverObj.crossShardPool, db[common.BeaconChainDataBaseID], serverObj.blockChain)
 
 	//init shard to beacon bool
 	mempool.InitShardToBeaconPool()
@@ -369,7 +369,7 @@ func (serverObj *Server) NewServer(
 		serverObj.feeEstimator = make(map[byte]*mempool.FeeEstimator)
 		for shardID, bestState := range serverObj.blockChain.BestState.Shard {
 			_ = bestState
-			feeEstimatorData, err := rawdbv2.GetFeeEstimator(serverObj.dataBase, shardID)
+			feeEstimatorData, err := rawdbv2.GetFeeEstimator(serverObj.dataBase[int(shardID)], shardID)
 			if err == nil && len(feeEstimatorData) > 0 {
 				feeEstimator, err := mempool.RestoreFeeEstimator(feeEstimatorData)
 				if err != nil {

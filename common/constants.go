@@ -91,7 +91,7 @@ const (
 )
 
 const (
-	BeaconChainDBID = -1
+	BeaconChainDataBaseID = -1
 )
 
 // Ethereum Decentralized bridge

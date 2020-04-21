@@ -52,7 +52,7 @@ func (blockchain *BlockChain) collectStatefulActions(
 			metadata.PortalRedeemLiquidateExchangeRatesMeta,
 			metadata.PortalLiquidationCustodianDepositMeta,
 			metadata.PortalLiquidationCustodianDepositResponseMeta:
-				statefulInsts = append(statefulInsts, inst)
+			statefulInsts = append(statefulInsts, inst)
 
 		default:
 			continue
@@ -91,7 +91,7 @@ func (blockchain *BlockChain) buildStatefulInstructions(
 	}
 
 	pm := NewPortalManager()
-	db := blockchain.GetDatabase()
+	db := blockchain.GetBeaconChainDatabase()
 	relayingHeaderState, err := blockchain.InitRelayingHeaderChainStateFromDB(db, beaconHeight-1)
 	if err != nil {
 		Logger.log.Error(err)
