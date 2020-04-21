@@ -28,7 +28,6 @@ import (
 )
 
 type TxService struct {
-	DB           incdb.Database
 	BlockChain   *blockchain.BlockChain
 	Wallet       *wallet.Wallet
 	FeeEstimator map[byte]*mempool.FeeEstimator
@@ -705,7 +704,7 @@ func (txService TxService) GetTransactionByHash(txHashStr string) (*jsonresult.T
 		result.IsInMempool = true
 		return result, nil
 	}
-	blockHeight, _, err := rawdbv2.GetIndexOfBlock(txService.DB, blockHash)
+	blockHeight, _, err := txService.BlockChain.GetShardBlockHeightByHash(blockHash)
 	if err != nil {
 		return nil, NewRPCError(UnexpectedError, err)
 	}

@@ -43,7 +43,7 @@ type HttpServer struct {
 	poolStateService  *rpcservice.PoolStateService
 	txService         *rpcservice.TxService
 	walletService     *rpcservice.WalletService
-	portal     		  *rpcservice.PortalService
+	portal            *rpcservice.PortalService
 }
 
 func (httpServer *HttpServer) Init(config *RpcServerConfig) {
@@ -63,7 +63,6 @@ func (httpServer *HttpServer) Init(config *RpcServerConfig) {
 	// init service
 	httpServer.blockService = &rpcservice.BlockService{
 		BlockChain: httpServer.config.BlockChain,
-		DB:         httpServer.config.Database,
 		MemCache:   httpServer.config.MemCache,
 	}
 	httpServer.outputCoinService = &rpcservice.CoinService{
@@ -76,7 +75,6 @@ func (httpServer *HttpServer) Init(config *RpcServerConfig) {
 		ConnMgr: httpServer.config.ConnMgr,
 	}
 	httpServer.txService = &rpcservice.TxService{
-		DB:           httpServer.config.Database,
 		BlockChain:   httpServer.config.BlockChain,
 		Wallet:       httpServer.config.Wallet,
 		FeeEstimator: httpServer.config.FeeEstimator,

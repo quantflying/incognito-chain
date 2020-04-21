@@ -202,11 +202,11 @@ func (crossShardPool *CrossShardPool) validateCrossShardBlock(crossShardBlock *b
 		return NewBlockPoolError(ValidateAggSignatureForCrossShardBlockError, err)
 	}
 	beaconHeight = beaconHeight - 1
-	consensusStateRootHash, err := crossShardPool.bc.GetBeaconConsensusRootHash(crossShardPool.bc.GetDatabase(), beaconHeight)
+	consensusStateRootHash, err := crossShardPool.bc.GetBeaconConsensusRootHash(crossShardPool.bc.GetBeaconChainDatabase(), beaconHeight)
 	if err != nil {
 		return NewBlockPoolError(ValidateAggSignatureForCrossShardBlockError, fmt.Errorf("Can't found ConsensusStateRootHash of beacon height %+v, error %+v", beaconHeight, err))
 	}
-	consensusStateDB, err := statedb.NewWithPrefixTrie(consensusStateRootHash, statedb.NewDatabaseAccessWarper(crossShardPool.bc.GetDatabase()))
+	consensusStateDB, err := statedb.NewWithPrefixTrie(consensusStateRootHash, statedb.NewDatabaseAccessWarper(crossShardPool.bc.GetBeaconChainDatabase()))
 	if err != nil {
 		return NewBlockPoolError(ValidateAggSignatureForCrossShardBlockError, err)
 	}

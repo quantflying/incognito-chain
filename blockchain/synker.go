@@ -435,7 +435,7 @@ func (synker *Synker) UpdateState() {
 						}
 					}
 					blkMissing := GetMissingCrossShardBlock(
-						synker.blockchain.GetDatabase(),
+						synker.blockchain.GetBeaconChainDatabase(),
 						beaconStateClone.LastCrossShardState,
 						shardsStateClone[byte(userShardIDInt)].BestCrossShard,
 						byte(userShardIDInt),

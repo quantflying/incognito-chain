@@ -183,6 +183,7 @@ func GetMissingBlockHashesFromPeersState(
 	return res
 }
 
+//TODO: 0xkumi review this function, and its usage plz
 func GetMissingCrossShardBlock(
 	db incdb.Database,
 	bestCrossShardState map[byte]map[byte]uint64,

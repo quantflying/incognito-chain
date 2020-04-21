@@ -34,7 +34,7 @@ func (blockchain *BlockChain) VerifyPreSignShardBlock(shardBlock *ShardBlock, sh
 	if shardBlock.Header.BeaconHeight > blockchain.BestState.Beacon.BeaconHeight {
 		return errors.New(fmt.Sprintf("Beacon %d not ready, latest is %d", shardBlock.Header.BeaconHeight, blockchain.BestState.Beacon.BeaconHeight))
 	}
-	beaconBlocks, err := FetchBeaconBlockFromHeight(blockchain.GetDatabase(), previousBeaconHeight+1, shardBlock.Header.BeaconHeight)
+	beaconBlocks, err := FetchBeaconBlockFromHeight(blockchain.GetShardChainDatabase(shardID), previousBeaconHeight+1, shardBlock.Header.BeaconHeight)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (blockchain *BlockChain) InsertShardBlock(shardBlock *ShardBlock, isValidat
 		return errors.New("Not expected height")
 	}
 	// fetch beacon blocks
-	beaconBlocks, err := FetchBeaconBlockFromHeight(blockchain.GetDatabase(), tempShardBestState.BeaconHeight+1, shardBlock.Header.BeaconHeight)
+	beaconBlocks, err := FetchBeaconBlockFromHeight(blockchain.GetBeaconChainDatabase(), tempShardBestState.BeaconHeight+1, shardBlock.Header.BeaconHeight)
 	if err != nil {
 		return NewBlockChainError(FetchBeaconBlocksError, err)
 	}
@@ -119,7 +119,7 @@ func (blockchain *BlockChain) InsertShardBlock(shardBlock *ShardBlock, isValidat
 	}
 	Logger.log.Infof("SHARD %+v | BackupCurrentShardState, block height %+v with hash %+v \n", shardID, blockHeight, blockHash)
 	// Backup beststate
-	err = rawdbv2.CleanUpPreviousShardBestState(blockchain.GetDatabase(), shardID)
+	err = rawdbv2.CleanUpPreviousShardBestState(blockchain.GetShardChainDatabase(shardID), shardID)
 	if err != nil {
 		return NewBlockChainError(CleanBackUpError, err)
 	}
@@ -268,7 +268,7 @@ func (blockchain *BlockChain) verifyPreProcessingShardBlock(shardBlock *ShardBlo
 	}
 	// Verify parent hash exist or not
 	previousBlockHash := shardBlock.Header.PreviousBlockHash
-	previousShardBlockData, err := rawdbv2.GetShardBlockByHash(blockchain.GetDatabase(), previousBlockHash)
+	previousShardBlockData, err := rawdbv2.GetShardBlockByHash(blockchain.GetShardChainDatabase(shardID), previousBlockHash)
 	if err != nil {
 		Logger.log.Criticalf("FORK SHARD DETECTED shardID=%+v at BlockHeight=%+v hash=%+v pre-hash=%+v",
 			shardID,
@@ -391,7 +391,7 @@ func (blockchain *BlockChain) verifyPreProcessingShardBlock(shardBlock *ShardBlo
 	}
 	//Get beacon hash by height in db
 	//If hash not found then fail to verify
-	beaconHashs, err := rawdbv2.GetBeaconBlockHashByIndex(blockchain.GetDatabase(), shardBlock.Header.BeaconHeight)
+	beaconHashs, err := rawdbv2.GetBeaconBlockHashByIndex(blockchain.GetBeaconChainDatabase(), shardBlock.Header.BeaconHeight)
 	if err != nil {
 		return NewBlockChainError(FetchBeaconBlockHashError, err)
 	}
@@ -501,7 +501,7 @@ func (blockchain *BlockChain) verifyPreProcessingShardBlockForSigning(shardBlock
 			for index, toShardCrossShardBlock := range toShardCrossShardBlocks {
 				//Compare block height and block hash
 				if crossTransaction.BlockHeight == toShardCrossShardBlock.Header.Height {
-					nextHeight, err := rawdbv2.GetCrossShardNextHeight(blockchain.GetDatabase(), fromShard, toShard, startHeight)
+					nextHeight, err := rawdbv2.GetCrossShardNextHeight(blockchain.GetBeaconChainDatabase(), fromShard, toShard, startHeight)
 					if err != nil {
 						return NewBlockChainError(NextCrossShardBlockError, err)
 					}
@@ -515,12 +515,12 @@ func (blockchain *BlockChain) verifyPreProcessingShardBlockForSigning(shardBlock
 						break
 					}
 					beaconHeight = beaconHeight - 1
-					consensusRootHash, err := blockchain.GetBeaconConsensusRootHash(blockchain.GetDatabase(), beaconHeight)
+					consensusRootHash, err := blockchain.GetBeaconConsensusRootHash(blockchain.GetBeaconChainDatabase(), beaconHeight)
 					if err != nil {
 						Logger.log.Errorf("Can't found ConsensusStateRootHash of beacon height %+v, error %+v", beaconHeight, err)
 						break
 					}
-					stateDB, err := statedb.NewWithPrefixTrie(consensusRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
+					stateDB, err := statedb.NewWithPrefixTrie(consensusRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetBeaconChainDatabase()))
 					if err != nil {
 						Logger.log.Errorf("Init trie err", err)
 						break
@@ -927,11 +927,11 @@ func (blockchain *BlockChain) processStoreShardBlock(shardBlock *ShardBlock, com
 	if len(shardBlock.Body.CrossTransactions) != 0 {
 		Logger.log.Critical("processStoreShardBlock/CrossTransactions	", shardBlock.Body.CrossTransactions)
 	}
-	featureStateRootHash, err := blockchain.GetBeaconFeatureRootHash(blockchain.GetDatabase(), beaconBlock.Header.Height)
+	featureStateRootHash, err := blockchain.GetBeaconFeatureRootHash(blockchain.GetBeaconChainDatabase(), beaconBlock.Header.Height)
 	if err != nil {
 		return NewBlockChainError(StoreShardBlockError, fmt.Errorf("can't get ConsensusStateRootHash of height %+v ,error %+v", beaconBlock.Header.Height, err))
 	}
-	featureStateDB, err := statedb.NewWithPrefixTrie(featureStateRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
+	featureStateDB, err := statedb.NewWithPrefixTrie(featureStateRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetBeaconChainDatabase()))
 	if err != nil {
 		return NewBlockChainError(StoreShardBlockError, err)
 	}
@@ -940,7 +940,7 @@ func (blockchain *BlockChain) processStoreShardBlock(shardBlock *ShardBlock, com
 	}
 
 	for index, tx := range shardBlock.Body.Transactions {
-		if err := rawdbv2.StoreTransactionIndex(blockchain.GetDatabase(), *tx.Hash(), shardBlock.Header.Hash(), index); err != nil {
+		if err := rawdbv2.StoreTransactionIndex(blockchain.GetShardChainDatabase(shardID), *tx.Hash(), shardBlock.Header.Hash(), index); err != nil {
 			return NewBlockChainError(FetchAndStoreTransactionError, err)
 		}
 		// Process Transaction Metadata
@@ -976,11 +976,11 @@ func (blockchain *BlockChain) processStoreShardBlock(shardBlock *ShardBlock, com
 		}
 	}
 	if len(committeeChange.shardCommitteeAdded[shardID]) > 0 || len(committeeChange.shardSubstituteAdded[shardID]) > 0 {
-		consensusStateRootHash, err := blockchain.GetBeaconConsensusRootHash(blockchain.GetDatabase(), beaconBlock.Header.Height)
+		consensusStateRootHash, err := blockchain.GetBeaconConsensusRootHash(blockchain.GetBeaconChainDatabase(), beaconBlock.Header.Height)
 		if err != nil {
 			return NewBlockChainError(StoreShardBlockError, fmt.Errorf("can't get ConsensusStateRootHash of height %+v ,error %+v", beaconBlock.Header.Height, err))
 		}
-		consensusStateDB, err := statedb.NewWithPrefixTrie(consensusStateRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
+		consensusStateDB, err := statedb.NewWithPrefixTrie(consensusStateRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetBeaconChainDatabase()))
 		if err != nil {
 			return NewBlockChainError(StoreShardBlockError, err)
 		}
@@ -1053,7 +1053,7 @@ func (blockchain *BlockChain) processStoreShardBlock(shardBlock *ShardBlock, com
 	tempShardBestState.featureStateDB.ClearObjects()
 	tempShardBestState.rewardStateDB.ClearObjects()
 	tempShardBestState.slashStateDB.ClearObjects()
-	batchData := blockchain.GetDatabase().NewBatch()
+	batchData := blockchain.GetShardChainDatabase(shardID).NewBatch()
 	if err := rawdbv2.StoreShardConsensusRootHash(batchData, shardID, blockHeight, consensusRootHash); err != nil {
 		return NewBlockChainError(StoreShardBlockError, err)
 	}

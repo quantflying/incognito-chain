@@ -84,12 +84,12 @@ func (blockGenerator *BlockGenerator) NewBlockShard(shardID byte, round int, cro
 	if beaconHeight-shardBestState.BeaconHeight > MAX_BEACON_BLOCK {
 		beaconHeight = shardBestState.BeaconHeight + MAX_BEACON_BLOCK
 	}
-	beaconHashes, err := rawdbv2.GetBeaconBlockHashByIndex(blockGenerator.chain.GetDatabase(), beaconHeight)
+	beaconHashes, err := rawdbv2.GetBeaconBlockHashByIndex(blockGenerator.chain.GetBeaconChainDatabase(), beaconHeight)
 	if err != nil {
 		return nil, err
 	}
 	beaconHash := beaconHashes[0]
-	beaconBlockBytes, err := rawdbv2.GetBeaconBlockByHash(blockGenerator.chain.GetDatabase(), beaconHash)
+	beaconBlockBytes, err := rawdbv2.GetBeaconBlockByHash(blockGenerator.chain.GetBeaconChainDatabase(), beaconHash)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (blockGenerator *BlockGenerator) NewBlockShard(shardID byte, round int, cro
 	epoch := beaconBlock.Header.Epoch
 	if epoch-shardBestState.Epoch >= 1 {
 		beaconHeight = shardBestState.Epoch * blockGenerator.chain.config.ChainParams.Epoch
-		newBeaconHashes, err := rawdbv2.GetBeaconBlockHashByIndex(blockGenerator.chain.GetDatabase(), beaconHeight)
+		newBeaconHashes, err := rawdbv2.GetBeaconBlockHashByIndex(blockGenerator.chain.GetBeaconChainDatabase(), beaconHeight)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +111,7 @@ func (blockGenerator *BlockGenerator) NewBlockShard(shardID byte, round int, cro
 	}
 	Logger.log.Infof("Get Beacon Block With Height %+v, Shard BestState %+v", beaconHeight, shardBestState.BeaconHeight)
 	//Fetch beacon block from height
-	beaconBlocks, err := FetchBeaconBlockFromHeight(blockGenerator.chain.GetDatabase(), shardBestState.BeaconHeight+1, beaconHeight)
+	beaconBlocks, err := FetchBeaconBlockFromHeight(blockGenerator.chain.GetBeaconChainDatabase(), shardBestState.BeaconHeight+1, beaconHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (blockGenerator *BlockGenerator) NewBlockShard(shardID byte, round int, cro
 	Logger.log.Critical("Cross Transaction: ", crossTransactions)
 	// Get Transaction for new block
 	blockCreationLeftOver := blockGenerator.chain.BestState.Shard[shardID].BlockMaxCreateTime.Nanoseconds() - time.Since(start).Nanoseconds()
-	txsToAddFromBlock, err := blockGenerator.getTransactionForNewBlock(&tempPrivateKey, shardID, blockGenerator.chain.GetDatabase(), beaconBlocks, blockCreationLeftOver, beaconHeight)
+	txsToAddFromBlock, err := blockGenerator.getTransactionForNewBlock(&tempPrivateKey, shardID, blockGenerator.chain.GetShardChainDatabase(shardID), beaconBlocks, blockCreationLeftOver, beaconHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -302,15 +302,15 @@ func (blockGenerator *BlockGenerator) buildResponseTxsFromBeaconInstructions(bea
 	for _, beaconBlock := range beaconBlocks {
 		autoStaking, ok := tempAutoStakingM[beaconBlock.Header.Height]
 		if !ok {
-			consensusStateRootHash, err := blockGenerator.chain.GetBeaconConsensusRootHash(blockGenerator.chain.GetDatabase(), beaconBlock.Header.Height-1)
+			beaconConsensusStateRootHash, err := blockGenerator.chain.GetBeaconConsensusRootHash(blockGenerator.chain.GetBeaconChainDatabase(), beaconBlock.Header.Height-1)
 			if err != nil {
 				return []metadata.Transaction{}, errorInstructions, NewBlockChainError(FetchAutoStakingByHeightError, fmt.Errorf("can't get ConsensusStateRootHash of height %+v ,error %+v", beaconBlock.Header.Height, err))
 			}
-			consensusStateDB, err := statedb.NewWithPrefixTrie(consensusStateRootHash, statedb.NewDatabaseAccessWarper(blockGenerator.chain.GetDatabase()))
+			beaconConsensusStateDB, err := statedb.NewWithPrefixTrie(beaconConsensusStateRootHash, statedb.NewDatabaseAccessWarper(blockGenerator.chain.GetBeaconChainDatabase()))
 			if err != nil {
 				return []metadata.Transaction{}, errorInstructions, NewBlockChainError(FetchAutoStakingByHeightError, err)
 			}
-			_, newAutoStaking := statedb.GetRewardReceiverAndAutoStaking(consensusStateDB, blockGenerator.chain.GetShardIDs())
+			_, newAutoStaking := statedb.GetRewardReceiverAndAutoStaking(beaconConsensusStateDB, blockGenerator.chain.GetShardIDs())
 			tempAutoStakingM[beaconBlock.Header.Height] = newAutoStaking
 			autoStaking = newAutoStaking
 		}
@@ -427,9 +427,9 @@ func (blockGenerator *BlockGenerator) buildResponseTxsFromBeaconInstructions(bea
 				responsedTxs = append(responsedTxs, newTx)
 				responsedHashTxs = append(responsedHashTxs, newTxHash)
 			}
-}
-}
-return responsedTxs, errorInstructions, nil
+		}
+	}
+	return responsedTxs, errorInstructions, nil
 }
 
 // Process Instruction From Beacon Blocks:
@@ -529,15 +529,15 @@ func (blockchain *BlockChain) generateInstruction(shardID byte, beaconHeight uin
 		Logger.log.Info("ShardCommittee", shardCommittee)
 		Logger.log.Info("MaxShardCommitteeSize", blockchain.BestState.Shard[shardID].MaxShardCommitteeSize)
 		Logger.log.Info("ShardID", shardID)
-		rootHash, err := blockchain.GetBeaconSlashRootHash(blockchain.GetDatabase(), beaconHeight)
+		beaconSlashRootHash, err := blockchain.GetBeaconSlashRootHash(blockchain.GetBeaconChainDatabase(), beaconHeight)
 		if err != nil {
 			return instructions, shardPendingValidator, shardCommittee, err
 		}
-		slashStateDB, err := statedb.NewWithPrefixTrie(rootHash, statedb.NewDatabaseAccessWarper(blockchain.GetDatabase()))
+		beaconSlashStateDB, err := statedb.NewWithPrefixTrie(beaconSlashRootHash, statedb.NewDatabaseAccessWarper(blockchain.GetBeaconChainDatabase()))
 		if err != nil {
 			return instructions, shardPendingValidator, shardCommittee, err
 		}
-		producersBlackList, err := blockchain.getUpdatedProducersBlackList(slashStateDB, false, int(shardID), shardCommittee, beaconHeight)
+		producersBlackList, err := blockchain.getUpdatedProducersBlackList(beaconSlashStateDB, false, int(shardID), shardCommittee, beaconHeight)
 		if err != nil {
 			Logger.log.Error(err)
 			return instructions, shardPendingValidator, shardCommittee, err
@@ -619,7 +619,7 @@ func (blockGenerator *BlockGenerator) getCrossShardData(toShard byte, lastBeacon
 			if crossShardBlock.Header.Height <= startHeight {
 				break
 			}
-			nextHeight, err := rawdbv2.GetCrossShardNextHeight(blockGenerator.chain.GetDatabase(), fromShard, toShard, startHeight)
+			nextHeight, err := rawdbv2.GetCrossShardNextHeight(blockGenerator.chain.GetBeaconChainDatabase(), fromShard, toShard, startHeight)
 			if err != nil {
 				break
 			}
@@ -633,17 +633,17 @@ func (blockGenerator *BlockGenerator) getCrossShardData(toShard byte, lastBeacon
 				break
 			}
 			beaconHeight = beaconHeight - 1
-			consensusStateRootHash, err := blockGenerator.chain.GetBeaconConsensusRootHash(blockGenerator.chain.GetDatabase(), beaconHeight)
+			beaconConsensusStateRootHash, err := blockGenerator.chain.GetBeaconConsensusRootHash(blockGenerator.chain.GetBeaconChainDatabase(), beaconHeight)
 			if err != nil {
 				Logger.log.Errorf("Can't found ConsensusStateRootHash of beacon height %+v, error %+v", beaconHeight, err)
 				break
 			}
-			consensusStateDB, err := statedb.NewWithPrefixTrie(consensusStateRootHash, statedb.NewDatabaseAccessWarper(blockGenerator.chain.GetDatabase()))
+			beaconConsensusStateDB, err := statedb.NewWithPrefixTrie(beaconConsensusStateRootHash, statedb.NewDatabaseAccessWarper(blockGenerator.chain.GetBeaconChainDatabase()))
 			if err != nil {
 				Logger.log.Error(err)
 				break
 			}
-			shardCommittee := statedb.GetOneShardCommittee(consensusStateDB, crossShardBlock.Header.ShardID)
+			shardCommittee := statedb.GetOneShardCommittee(beaconConsensusStateDB, crossShardBlock.Header.ShardID)
 			err = crossShardBlock.VerifyCrossShardBlock(blockGenerator.chain, shardCommittee)
 			if err != nil {
 				Logger.log.Error(err)
