@@ -44,6 +44,15 @@ func TestDb_Setup(t *testing.T) {
 	os.RemoveAll(dbPath)
 }
 
+func TestDb_SetupMultipleDB(t *testing.T) {
+	dbPath := "data"
+	t.Log(dbPath)
+	_, err := incdb.OpenMultipleDB("leveldb", dbPath)
+	if err != nil {
+		t.Fatalf("could not open db path: %s, %+v", dbPath, err)
+	}
+}
+
 func TestDb_Base(t *testing.T) {
 	if db != nil {
 		db.Put([]byte("a"), []byte{1})
@@ -65,21 +74,6 @@ func TestDb_Base(t *testing.T) {
 		has, err = db.Has([]byte("a"))
 		assert.Equal(t, err, nil)
 		assert.Equal(t, has, false)
-
-		batchData := []incdb.BatchData{}
-		batchData = append(batchData, incdb.BatchData{
-			Key:   []byte("abc1"),
-			Value: []byte("abc1"),
-		})
-		batchData = append(batchData, incdb.BatchData{
-			Key:   []byte("abc2"),
-			Value: []byte("abc2"),
-		})
-		err = db.PutBatch(batchData)
-		assert.Equal(t, err, nil)
-		v, err := db.Get([]byte("abc2"))
-		assert.Equal(t, err, nil)
-		assert.Equal(t, "abc2", string(v))
 	} else {
 		t.Error("DB is not open")
 	}
