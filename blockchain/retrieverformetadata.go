@@ -2,10 +2,8 @@ package blockchain
 
 import (
 	"encoding/json"
-	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
-	"github.com/incognitochain/incognito-chain/incdb"
-
 	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
@@ -13,14 +11,6 @@ import (
 
 func (blockchain *BlockChain) GetStakingAmountShard() uint64 {
 	return blockchain.config.ChainParams.StakingAmountShard
-}
-
-func (blockchain *BlockChain) GetBeaconChainDatabase() incdb.Database {
-	return blockchain.config.DataBase[common.BeaconChainDataBaseID]
-}
-
-func (blockchain *BlockChain) GetShardChainDatabase(shardID byte) incdb.Database {
-	return blockchain.config.DataBase[int(shardID)]
 }
 
 func (blockchain *BlockChain) GetTxChainHeight(tx metadata.Transaction) (uint64, error) {

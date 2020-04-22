@@ -3,9 +3,6 @@ package blockchain
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
-	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
-	"github.com/incognitochain/incognito-chain/incdb"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -13,6 +10,8 @@ import (
 	"time"
 
 	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
@@ -126,7 +125,7 @@ func (blockGenerator *BlockGenerator) NewBlockShard(shardID byte, round int, cro
 	Logger.log.Critical("Cross Transaction: ", crossTransactions)
 	// Get Transaction for new block
 	blockCreationLeftOver := blockGenerator.chain.BestState.Shard[shardID].BlockMaxCreateTime.Nanoseconds() - time.Since(start).Nanoseconds()
-	txsToAddFromBlock, err := blockGenerator.getTransactionForNewBlock(&tempPrivateKey, shardID, blockGenerator.chain.GetShardChainDatabase(shardID), beaconBlocks, blockCreationLeftOver, beaconHeight)
+	txsToAddFromBlock, err := blockGenerator.getTransactionForNewBlock(&tempPrivateKey, shardID, beaconBlocks, blockCreationLeftOver, beaconHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +259,7 @@ func (blockGenerator *BlockGenerator) NewBlockShard(shardID byte, round int, cro
 // 3. Build response Transaction For Shard
 // 4. Build response Transaction For Beacon
 // 5. Return valid transaction from pending, response transactions from shard and beacon
-func (blockGenerator *BlockGenerator) getTransactionForNewBlock(privatekey *privacy.PrivateKey, shardID byte, db incdb.Database, beaconBlocks []*BeaconBlock, blockCreation int64, beaconHeight uint64) ([]metadata.Transaction, error) {
+func (blockGenerator *BlockGenerator) getTransactionForNewBlock(privatekey *privacy.PrivateKey, shardID byte, beaconBlocks []*BeaconBlock, blockCreation int64, beaconHeight uint64) ([]metadata.Transaction, error) {
 	txsToAdd, txToRemove, _ := blockGenerator.getPendingTransaction(shardID, beaconBlocks, blockCreation, beaconHeight)
 	if len(txsToAdd) == 0 {
 		Logger.log.Info("Creating empty block...")

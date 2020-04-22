@@ -529,3 +529,11 @@ func (blockchain *BlockChain) BackupBeaconChain(writer io.Writer) error {
 func (blockchain *BlockChain) GetConfig() *Config {
 	return &blockchain.config
 }
+
+func (blockchain *BlockChain) GetBeaconChainDatabase() incdb.Database {
+	return blockchain.config.DataBase[common.BeaconChainDataBaseID]
+}
+
+func (blockchain *BlockChain) GetShardChainDatabase(shardID byte) incdb.Database {
+	return blockchain.config.DataBase[int(shardID)]
+}
