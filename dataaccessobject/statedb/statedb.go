@@ -2,12 +2,10 @@ package statedb
 
 import (
 	"encoding/json"
-	"github.com/incognitochain/incognito-chain/dataaccessobject"
 	"math/big"
 	"strconv"
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/trie"
@@ -78,7 +76,7 @@ func NewWithPrefixTrie(root common.Hash, db DatabaseAccessWarper) (*StateDB, err
 	if err != nil {
 		return nil, err
 	}
-	metrics.EnabledExpensive = true
+	//metrics.EnabledExpensive = true
 	return &StateDB{
 		db:                  db,
 		trie:                tr,
@@ -137,9 +135,9 @@ func (stateDB *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 		stateDB.stateObjectsPending = make(map[common.Hash]struct{})
 	}
 	// Track the amount of time wasted on hashing the account trie
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { stateDB.StateObjectHashes += time.Since(start) }(time.Now())
-	}
+	//if metrics.EnabledExpensive {
+	//	defer func(start time.Time) { stateDB.StateObjectHashes += time.Since(start) }(time.Now())
+	//}
 	return stateDB.trie.Hash()
 }
 func (stateDB *StateDB) markDeleteEmptyStateObject(deleteEmptyObjects bool) {
@@ -153,13 +151,13 @@ func (stateDB *StateDB) markDeleteEmptyStateObject(deleteEmptyObjects bool) {
 // Commit writes the state to the underlying in-memory trie database.
 func (stateDB *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	// Finalize any pending changes and merge everything into the tries
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) {
-			elapsed := time.Since(start)
-			stateDB.StateObjectCommits += elapsed
-			dataaccessobject.Logger.Log.Infof("StateDB commit and return root hash time %+v", elapsed)
-		}(time.Now())
-	}
+	//if metrics.EnabledExpensive {
+	//	defer func(start time.Time) {
+	//		elapsed := time.Since(start)
+	//		stateDB.StateObjectCommits += elapsed
+	//		dataaccessobject.Logger.Log.Infof("StateDB commit and return root hash time %+v", elapsed)
+	//	}(time.Now())
+	//}
 	stateDB.IntermediateRoot(deleteEmptyObjects)
 
 	if len(stateDB.stateObjectsDirty) > 0 {
@@ -213,9 +211,9 @@ func (stateDB *StateDB) getDeletedStateObject(objectType int, hash common.Hash) 
 		return obj, nil
 	}
 	// Track the amount of time wasted on loading the object from the database
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { stateDB.StateObjectReads += time.Since(start) }(time.Now())
-	}
+	//if metrics.EnabledExpensive {
+	//	defer func(start time.Time) { stateDB.StateObjectReads += time.Since(start) }(time.Now())
+	//}
 	// Load the object from the database
 	enc, err := stateDB.trie.TryGet(hash[:])
 	if len(enc) == 0 {
@@ -236,9 +234,9 @@ func (stateDB *StateDB) getDeletedStateObject(objectType int, hash common.Hash) 
 // updateStateObject writes the given object to the trie.
 func (stateDB *StateDB) updateStateObject(obj StateObject) {
 	// Track the amount of time wasted on updating the account from the trie
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { stateDB.StateObjectUpdates += time.Since(start) }(time.Now())
-	}
+	//if metrics.EnabledExpensive {
+	//	defer func(start time.Time) { stateDB.StateObjectUpdates += time.Since(start) }(time.Now())
+	//}
 	// Encode the account and update the account trie
 	addr := obj.GetHash()
 	data := obj.GetValueBytes()
@@ -248,9 +246,9 @@ func (stateDB *StateDB) updateStateObject(obj StateObject) {
 // deleteStateObject removes the given object from the state trie.
 func (stateDB *StateDB) deleteStateObject(obj StateObject) {
 	// Track the amount of time wasted on deleting the account from the trie
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { stateDB.StateObjectUpdates += time.Since(start) }(time.Now())
-	}
+	//if metrics.EnabledExpensive {
+	//	defer func(start time.Time) { stateDB.StateObjectUpdates += time.Since(start) }(time.Now())
+	//}
 	// Delete the account from the trie
 	addr := obj.GetHash()
 	stateDB.setError(stateDB.trie.TryDelete(addr[:]))
