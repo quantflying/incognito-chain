@@ -23,6 +23,11 @@ import (
 
 var monitorFile *os.File
 var globalParam *logKV
+var connChecker ConnectionChecker
+
+type ConnectionChecker interface {
+	IsReady() bool
+}
 
 func getCPUSample() (idle, total uint64) {
 	contents, err := ioutil.ReadFile("/proc/stat")
@@ -122,6 +127,16 @@ func init() {
 			}
 			l.Add("CPU_USAGE", fmt.Sprintf("%.2f", cpuUsage), "MEM_USAGE", m.Sys>>20, "Beacon", fmt.Sprintf("%v:%v", bheight, bhash.String()))
 			idle0, total0 = getCPUSample()
+
+			if connChecker != nil {
+				ready := connChecker.IsReady()
+				connected := int(0)
+				if ready {
+					connected = 1
+				}
+				l.Add("connected", connected)
+			}
+
 			l.Write()
 		}
 	}()
