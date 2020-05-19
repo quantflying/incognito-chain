@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -36,6 +37,19 @@ type ChainInterface interface {
 
 const TIMESLOT = 10
 
+var currentRawTimeSlot = int64(0)
+var currentTimeSlot = int64(0)
+
 func CalculateTimeSlot(time int64) int64 {
-	return int64(math.Floor(float64(time / TIMESLOT)))
+	defer fmt.Println(currentTimeSlot)
+
+	if int64(math.Floor(float64(time/TIMESLOT)))-currentRawTimeSlot > 0 {
+		currentRawTimeSlot = int64(math.Floor(float64(time / TIMESLOT)))
+		currentTimeSlot++
+	} else {
+		if int64(math.Floor(float64(time/TIMESLOT)))-currentRawTimeSlot < 0 {
+			return currentTimeSlot - 1
+		}
+	}
+	return currentTimeSlot
 }
