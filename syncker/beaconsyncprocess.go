@@ -73,11 +73,11 @@ func NewBeaconSyncProcess(server Server, chain BeaconChainInterface) *BeaconSync
 				f()
 			case beaconPeerState := <-s.beaconPeerStateCh:
 				Logger.Debugf("Got new peerstate, last height %v", beaconPeerState.Beacon.Height)
-				s.beaconPeerStates[beaconPeerState.SenderID] = BeaconPeerState{
-					Timestamp:      beaconPeerState.Timestamp,
-					BestViewHash:   beaconPeerState.Beacon.BlockHash.String(),
-					BestViewHeight: beaconPeerState.Beacon.Height,
-				}
+				// s.beaconPeerStates[beaconPeerState.SenderID] = BeaconPeerState{
+				// 	Timestamp:      beaconPeerState.Timestamp,
+				// 	BestViewHash:   beaconPeerState.Beacon.BlockHash.String(),
+				// 	BestViewHeight: beaconPeerState.Beacon.Height,
+				// }
 				s.chain.SetReady(true)
 			case <-ticker.C:
 				for sender, ps := range s.beaconPeerStates {

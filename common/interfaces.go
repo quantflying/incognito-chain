@@ -48,7 +48,7 @@ func CalculateTimeSlot(time int64) int64 {
 		currentTimeSlot++
 	} else {
 		if int64(math.Floor(float64(time/TIMESLOT)))-currentRawTimeSlot < 0 {
-			return currentTimeSlot - 1
+			return currentTimeSlot + int64(math.Floor(float64(time/TIMESLOT))) - currentRawTimeSlot
 		}
 	}
 	return currentTimeSlot

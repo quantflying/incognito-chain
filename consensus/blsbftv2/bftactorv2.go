@@ -127,7 +127,7 @@ func (e *BLSBFT_V2) Start() error {
 					e.receiveBlockByHash[blkHash].block = block
 				}
 
-				e.Logger.Info("[Monitor] Receive block ", block.Hash().String(), "height", block.GetHeight(), ",block timeslot ", common.CalculateTimeSlot(block.GetProposeTime()))
+				e.Logger.Info("[Monitor] Receive block ", block.Hash().String(), "height", block.GetHeight(), ", current timeslot", common.CalculateTimeSlot(block.GetProposeTime()), " block timeslot", common.CalculateTimeSlot(block.GetProduceTime()))
 				if block.GetHeight() <= e.Chain.GetBestViewHeight() {
 					e.Logger.Info("Send proposer to update views. Propose view Height less than latest height: ", block.GetHeight(), "<=", e.Chain.GetBestViewHeight())
 					//e.Node.NotifyOutdatedView(proposeMsg.PeerID, e.Chain.GetBestView().Hash().String())
