@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/incognitochain/incognito-chain/incmemdb"
 	"github.com/incognitochain/incognito-chain/metrics/monitor"
 	bnbrelaying "github.com/incognitochain/incognito-chain/relaying/bnb"
 	"log"
@@ -19,7 +20,6 @@ import (
 	_ "github.com/incognitochain/incognito-chain/consensus/blsbft"
 	"github.com/incognitochain/incognito-chain/databasemp"
 	_ "github.com/incognitochain/incognito-chain/databasemp/lvdb"
-	"github.com/incognitochain/incognito-chain/incdb"
 	_ "github.com/incognitochain/incognito-chain/incdb/lvdb"
 	"github.com/incognitochain/incognito-chain/limits"
 	btcrelaying "github.com/incognitochain/incognito-chain/relaying/btc"
@@ -89,7 +89,7 @@ func mainMaster(serverChan chan<- *Server) error {
 	if interruptRequested(interrupt) {
 		return nil
 	}
-	db, err := incdb.OpenMultipleDB("leveldb", filepath.Join(cfg.DataDir, cfg.DatabaseDir))
+	db, err := incmemdb.OpenMultipleDB("leveldb", filepath.Join(cfg.DataDir, cfg.DatabaseDir))
 	// Create db and use it.
 	if err != nil {
 		Logger.log.Error("could not open connection to leveldb")

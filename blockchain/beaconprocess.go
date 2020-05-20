@@ -1401,7 +1401,7 @@ func (blockchain *BlockChain) processStoreBeaconBlock(
 	newBestState.featureStateDB.ClearObjects()
 	newBestState.slashStateDB.ClearObjects()
 	//statedb===========================END
-	batch := blockchain.GetBeaconChainDatabase().NewBatch()
+	batch := blockchain.GetBeaconChainDatabase()
 	//State Root Hash
 	if err := rawdbv2.StoreBeaconConsensusStateRootHash(batch, blockHeight, consensusRootHash); err != nil {
 		return NewBlockChainError(StoreBeaconBlockError, err)
@@ -1449,9 +1449,9 @@ func (blockchain *BlockChain) processStoreBeaconBlock(
 	if err != nil {
 		panic("Backup shard view error")
 	}
-	if err := batch.Write(); err != nil {
-		return NewBlockChainError(StoreBeaconBlockError, err)
-	}
+	//if err := batch.Write(); err != nil {
+	//	return NewBlockChainError(StoreBeaconBlockError, err)
+	//}
 	beaconStoreBlockTimer.UpdateSince(startTimeProcessStoreBeaconBlock)
 	return nil
 }

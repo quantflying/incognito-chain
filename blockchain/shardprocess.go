@@ -1043,7 +1043,7 @@ func (blockchain *BlockChain) processStoreShardBlock(newShardState *ShardBestSta
 	newShardState.rewardStateDB.ClearObjects()
 	newShardState.slashStateDB.ClearObjects()
 
-	batchData := blockchain.GetShardChainDatabase(shardID).NewBatch()
+	batchData := blockchain.GetShardChainDatabase(shardID)
 	if err := rawdbv2.StoreShardConsensusRootHash(batchData, shardID, blockHeight, consensusRootHash); err != nil {
 		return NewBlockChainError(StoreShardBlockError, err)
 	}
@@ -1092,9 +1092,6 @@ func (blockchain *BlockChain) processStoreShardBlock(newShardState *ShardBestSta
 		panic("Backup shard view error")
 	}
 
-	if err := batchData.Write(); err != nil {
-		return NewBlockChainError(StoreShardBlockError, err)
-	}
 	shardStoreBlockTimer.UpdateSince(startTimeProcessStoreShardBlock)
 	Logger.log.Infof("SHARD %+v | 🔎 %d transactions in block height %+v \n", shardBlock.Header.ShardID, len(shardBlock.Body.Transactions), blockHeight)
 	return nil
