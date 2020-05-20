@@ -2,7 +2,6 @@ package statedb
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/incognitochain/incognito-chain/dataaccessobject"
 	"math/big"
 	"strconv"
@@ -127,9 +126,7 @@ func (stateDB *StateDB) ClearObjects() {
 func (stateDB *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	stateDB.markDeleteEmptyStateObject(deleteEmptyObjects)
 	for addr := range stateDB.stateObjectsPending {
-		fmt.Println(addr.String())
 		obj := stateDB.stateObjects[addr]
-		fmt.Println(addr.String(), obj)
 		if obj.IsDeleted() {
 			stateDB.deleteStateObject(obj)
 		} else {
@@ -329,7 +326,6 @@ func (stateDB *StateDB) getOrNewStateObjectWithValue(objectType int, hash common
 	}
 	if stateObject == nil {
 		stateObject, _, err = stateDB.createStateObjectWithValue(objectType, hash, value)
-		fmt.Println("DEBUG", objectType, hash, value, err)
 		if err != nil {
 			return nil, err
 		}
@@ -341,7 +337,6 @@ func (stateDB *StateDB) getOrNewStateObjectWithValue(objectType int, hash common
 func (stateDB *StateDB) setStateObject(object StateObject) {
 	key := object.GetHash()
 	stateDB.stateObjects[key] = object
-	fmt.Println("DEBUG setstate", key.String(), object)
 }
 
 // getStateObject retrieves a state object given by the address, returning nil if
