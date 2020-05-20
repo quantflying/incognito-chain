@@ -800,7 +800,7 @@ func (httpServer *HttpServer) handleExtractPDEInstsFromBeaconBlock(
 
 	bcHeight := uint64(beaconHeight)
 	beaconBlocks, err := blockchain.FetchBeaconBlockFromHeight(
-		httpServer.GetBeaconChainDatabase(),
+		httpServer.config.BlockChain,
 		bcHeight,
 		bcHeight,
 	)
