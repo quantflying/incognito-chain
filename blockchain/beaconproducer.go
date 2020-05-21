@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
+	mrand "math/rand"
 	"reflect"
 	"sort"
 	"strconv"
@@ -747,8 +748,9 @@ func (beaconBestState *BeaconBestState) generateRandomInstruction(timestamp int6
 		strs = append(strs, strconv.Itoa(int(chainTimestamp)))
 		return strs, int64(nonce), nil
 	} else {
+		ran := mrand.New(mrand.NewSource(timestamp))
 		var strs []string
-		reses := []string{"1000", strconv.Itoa(int(timestamp)), strconv.Itoa(int(timestamp) + 1)}
+		reses := []string{strconv.Itoa(ran.Int()), strconv.Itoa(int(timestamp)), strconv.Itoa(int(timestamp) + 1)}
 		strs = append(strs, RandomAction)
 		strs = append(strs, reses...)
 		strs = append(strs, strconv.Itoa(int(timestamp)))
