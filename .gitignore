@@ -13,6 +13,8 @@
 
 *.lock
 
+*.log
+
 .idea
 
 .vscode
@@ -70,3 +72,5 @@ bin/data
 *~
 tags
 .txt
+
+run_new_local.sh

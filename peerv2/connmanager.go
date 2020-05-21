@@ -23,6 +23,22 @@ import (
 )
 
 var HighwayBeaconID = byte(255)
+var beaconPublishableMap = map[string]bool{
+	wire.CmdBlockShard: true,
+	wire.CmdBFT:        true,
+	// wire.CmdBlockBeacon:        true,
+	wire.CmdTx:                 true,
+	wire.CmdPrivacyCustomToken: true,
+	wire.CmdPeerState:          true,
+	wire.CmdBlkShardToBeacon:   true,
+	wire.CmdCrossShard:         true,
+}
+
+var shardPublishableMap = map[string]bool{
+	wire.CmdBlockShard: true,
+	wire.CmdBFT:        true,
+	wire.CmdCrossShard: true,
+}
 
 func NewConnManager(
 	host *Host,
@@ -53,54 +69,92 @@ func NewConnManager(
 }
 
 func (cm *ConnManager) PublishMessage(msg wire.Message) error {
+
 	var topic string
-	publishable := []string{wire.CmdBlockShard, wire.CmdBFT, wire.CmdTx, wire.CmdPrivacyCustomToken, wire.CmdPeerState, wire.CmdBlkShardToBeacon, wire.CmdCrossShard}
+	// publishable := []string{wire.CmdBlockShard, wire.CmdBFT, wire.CmdTx, wire.CmdPrivacyCustomToken, wire.CmdPeerState, wire.CmdBlkShardToBeacon, wire.CmdCrossShard}
 
 	// msgCrossShard := msg.(wire.MessageCrossShard)
 	msgType := msg.MessageType()
 	subs := cm.subscriber.GetMsgToTopics()
-	for _, p := range publishable {
+
+	if beaconPublishableMap[msgType] {
 		topic = ""
-		if msgType == p {
-			for _, availableTopic := range subs[msgType] {
-				// Logger.Info("[hy]", availableTopic)
-				if (availableTopic.Act == proto.MessageTopicPair_PUB) || (availableTopic.Act == proto.MessageTopicPair_PUBSUB) {
-					topic = availableTopic.Name
-					err := broadcastMessage(msg, topic, cm.ps)
-					if err != nil {
-						Logger.Errorf("Broadcast to topic %v error %v", topic, err)
-						return err
-					}
+		for _, availableTopic := range subs[msgType] {
+			// Logger.Info("[hy]", availableTopic)
+			if (availableTopic.Act == proto.MessageTopicPair_PUB) || (availableTopic.Act == proto.MessageTopicPair_PUBSUB) {
+				topic = availableTopic.Name
+				err := broadcastMessage(msg, topic, cm.ps)
+				if err != nil {
+					Logger.Errorf("Broadcast to topic %v error %v", topic, err)
+					return err
 				}
-
-			}
-			if topic == "" {
-				return errors.New("Can not find topic of this message type " + msgType + "for publish")
 			}
 
-			// return broadcastMessage(msg, topic, cm.ps)
 		}
+		if topic == "" {
+			return errors.New("Can not find topic of this message type " + msgType + "for publish")
+		}
+
+		// return broadcastMessage(msg, topic, cm.ps)
+	} else {
+		delete(beaconPublishableMap, msgType)
 	}
+	// for _, p := range publishable {
+	// 	topic = ""
+	// 	if msgType == p {
+	// 		for _, availableTopic := range subs[msgType] {
+	// 			// Logger.Info("[hy]", availableTopic)
+	// 			if (availableTopic.Act == proto.MessageTopicPair_PUB) || (availableTopic.Act == proto.MessageTopicPair_PUBSUB) {
+	// 				topic = availableTopic.Name
+	// 				err := broadcastMessage(msg, topic, cm.ps)
+	// 				if err != nil {
+	// 					Logger.Errorf("Broadcast to topic %v error %v", topic, err)
+	// 					return err
+	// 				}
+	// 			}
+
+	// 		}
+	// 		if topic == "" {
+	// 			return errors.New("Can not find topic of this message type " + msgType + "for publish")
+	// 		}
+
+	// 		// return broadcastMessage(msg, topic, cm.ps)
+	// 	}
+	// }
 
 	return nil
 }
 
 func (cm *ConnManager) PublishMessageToShard(msg wire.Message, shardID byte) error {
-	publishable := []string{wire.CmdBlockShard, wire.CmdCrossShard, wire.CmdBFT}
+	// publishable := []string{wire.CmdBlockShard, wire.CmdCrossShard, wire.CmdBFT}
 	msgType := msg.MessageType()
 	subs := cm.subscriber.GetMsgToTopics()
-	for _, p := range publishable {
-		if msgType == p {
-			// Get topic for mess
-			for _, availableTopic := range subs[msgType] {
-				Logger.Info(availableTopic)
-				cID := GetCommitteeIDOfTopic(availableTopic.Name)
-				if (byte(cID) == shardID) && ((availableTopic.Act == proto.MessageTopicPair_PUB) || (availableTopic.Act == proto.MessageTopicPair_PUBSUB)) {
-					return broadcastMessage(msg, availableTopic.Name, cm.ps)
-				}
+
+	if shardPublishableMap[msgType] {
+		// Get topic for mess
+		for _, availableTopic := range subs[msgType] {
+			Logger.Info(availableTopic)
+			cID := GetCommitteeIDOfTopic(availableTopic.Name)
+			if (byte(cID) == shardID) && ((availableTopic.Act == proto.MessageTopicPair_PUB) || (availableTopic.Act == proto.MessageTopicPair_PUBSUB)) {
+				return broadcastMessage(msg, availableTopic.Name, cm.ps)
 			}
 		}
+	} else {
+		delete(shardPublishableMap, msgType)
 	}
+
+	// for _, p := range publishable {
+	// 	if msgType == p {
+	// 		// Get topic for mess
+	// 		for _, availableTopic := range subs[msgType] {
+	// 			Logger.Info(availableTopic)
+	// 			cID := GetCommitteeIDOfTopic(availableTopic.Name)
+	// 			if (byte(cID) == shardID) && ((availableTopic.Act == proto.MessageTopicPair_PUB) || (availableTopic.Act == proto.MessageTopicPair_PUBSUB)) {
+	// 				return broadcastMessage(msg, availableTopic.Name, cm.ps)
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	Logger.Warn("Cannot publish message", msgType)
 	return nil
