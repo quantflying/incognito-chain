@@ -20,6 +20,11 @@ const (
 	GetBeaconBlockByIndexError
 	DeleteBeaconBlockError
 	StoreBeaconBestStateError
+	GetBeaconViewError
+	GetBeaconMultiViewError
+	StoreBeaconViewError
+	StoreBeaconMultiViewError
+
 	GetBeaconBestStateError
 	FinalizedBeaconBlockError
 	GetFinalizedBeaconBlockError
@@ -54,6 +59,10 @@ const (
 	StoreShardBlockWithViewError
 	UpdateShardBlockViewError
 	GetShardBlockByViewError
+	GetShardViewError
+	GetShardMultiViewError
+	StoreShardViewError
+	StoreShardMultiViewError
 	DeleteShardBlockByViewError
 	FinalizedShardBlockError
 	GetFinalizedShardBlockError
@@ -114,14 +123,24 @@ var ErrCodeMessage = map[int]struct {
 	StoreShardBlockIndexError:      {-2007, "Store Shard Block Index Error"},
 	GetIndexOfBlockError:           {-2008, "Get Index Of Shard Block Error"},
 	StoreShardBestStateError:       {-2009, "Store Shard Best State Error"},
-	StoreFeeEstimatorError:         {-2010, "Store Fee Estimator Error"},
-	GetFeeEstimatorError:           {-2011, "Get Fee Estimator Error"},
-	StoreShardBlockWithViewError:   {-2012, "Store Shard Block With View Error"},
-	UpdateShardBlockViewError:      {-2013, "Update Shard Block View Error"},
-	GetShardBlockByViewError:       {-2014, "Get Shard Block By View Error"},
-	DeleteShardBlockByViewError:    {-2015, "Delete Shard Block By View"},
-	FinalizedShardBlockError:       {-2016, "Finalized Shard Block Error "},
-	GetFinalizedShardBlockError:    {-2017, "Get Finalized Shard Block Error"},
+
+	StoreFeeEstimatorError:       {-2010, "Store Fee Estimator Error"},
+	GetFeeEstimatorError:         {-2011, "Get Fee Estimator Error"},
+	StoreShardBlockWithViewError: {-2012, "Store Shard Block With View Error"},
+	UpdateShardBlockViewError:    {-2013, "Update Shard Block View Error"},
+	GetShardBlockByViewError:     {-2014, "Get Shard Block By View Error"},
+	DeleteShardBlockByViewError:  {-2015, "Delete Shard Block By View"},
+	FinalizedShardBlockError:     {-2016, "Finalized Shard Block Error "},
+	GetFinalizedShardBlockError:  {-2017, "Get Finalized Shard Block Error"},
+
+	GetShardViewError:         {-2018, "Get Shard View Error"},
+	GetShardMultiViewError:    {-2019, "Get Shard MultiView Error"},
+	StoreShardViewError:       {-2020, "Store Shard View Error"},
+	StoreShardMultiViewError:  {-2021, "Store Shard MultiView Error"},
+	GetBeaconViewError:        {-2022, "Get Beacon View Error"},
+	GetBeaconMultiViewError:   {-2023, "Get Beacon View Error"},
+	StoreBeaconViewError:      {-2024, "Get Beacon View Error"},
+	StoreBeaconMultiViewError: {-2025, "Get Beacon View Error"},
 
 	StoreTransactionIndexError:   {-3000, "Store Transaction Index Error"},
 	GetTransactionByHashError:    {-3001, "Get Transaction By Hash Error"},
@@ -161,9 +180,9 @@ var ErrCodeMessage = map[int]struct {
 	RestoreCrossShardNextHeightsError:       {-4029, "Restore Cross Shard Next Heights Error"},
 
 	// relaying
-	StoreRelayingBNBHeaderError:     {-5001, "Store relaying header bnb error"},
-	GetRelayingBNBHeaderError:       {-5002, "Get relaying header bnb error"},
-	GetBNBDataHashError:             {-5003, "Get bnb data hash by block height error"},
+	StoreRelayingBNBHeaderError: {-5001, "Store relaying header bnb error"},
+	GetRelayingBNBHeaderError:   {-5002, "Get relaying header bnb error"},
+	GetBNBDataHashError:         {-5003, "Get bnb data hash by block height error"},
 }
 
 type RawdbError struct {

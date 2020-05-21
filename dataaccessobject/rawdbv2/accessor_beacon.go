@@ -249,19 +249,40 @@ func GetBeaconBlockByHash(db incdb.KeyValueReader, hash common.Hash) ([]byte, er
 //	return beaconBlockHashes, nil
 //}
 
-func StoreBeaconViews(db incdb.KeyValueWriter, val []byte) error {
-	key := GetBeaconViewsKey()
+func StoreBeaconView(db incdb.KeyValueWriter, hash common.Hash, v interface{}) error {
+	key := GetBeaconViewKey(hash)
+	val, err := json.Marshal(v)
+	if err != nil {
+		return NewRawdbError(StoreBeaconViewError, err)
+	}
 	if err := db.Put(key, val); err != nil {
-		return NewRawdbError(StoreBeaconBestStateError, err)
+		return NewRawdbError(StoreBeaconViewError, err)
 	}
 	return nil
 }
 
-func GetBeaconViews(db incdb.KeyValueReader) ([]byte, error) {
-	key := GetBeaconViewsKey()
+func GetBeaconView(db incdb.KeyValueReader, hash common.Hash) ([]byte, error) {
+	key := GetBeaconViewKey(hash)
+	beaconViewBytes, err := db.Get(key)
+	if err != nil {
+		return nil, NewRawdbError(GetBeaconViewError, err)
+	}
+	return beaconViewBytes, nil
+}
+
+func StoreBeaconMultiView(db incdb.KeyValueWriter, val []byte) error {
+	key := GetBeaconMultiViewKey()
+	if err := db.Put(key, val); err != nil {
+		return NewRawdbError(StoreBeaconMultiViewError, err)
+	}
+	return nil
+}
+
+func GetBeaconMultiView(db incdb.KeyValueReader) ([]byte, error) {
+	key := GetBeaconMultiViewKey()
 	block, err := db.Get(key)
 	if err != nil {
-		return nil, NewRawdbError(GetBeaconBestStateError, err)
+		return nil, NewRawdbError(GetBeaconMultiViewError, err)
 	}
 	return block, nil
 }

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
+
 	"io"
 	"log"
 	"sort"
@@ -316,47 +316,48 @@ func GetNumberOfByteToRead(value []byte) (int, error) {
 }
 
 func (blockchain *BlockChain) BackupShardChain(writer io.Writer, shardID byte) error {
-	bestStateBytes, err := rawdbv2.GetShardBestState(blockchain.GetShardChainDatabase(shardID), shardID)
-	if err != nil {
-		return err
-	}
-	shardBestState := &ShardBestState{}
-	err = json.Unmarshal(bestStateBytes, shardBestState)
-	bestShardHeight := shardBestState.ShardHeight
-	var i uint64
-	for i = 1; i < bestShardHeight; i++ {
-		shardBlocks, err := blockchain.GetShardBlockByHeight(i, shardID)
-		if err != nil {
-			return err
-		}
-		var shardBlock *ShardBlock
-		for _, v := range shardBlocks {
-			shardBlock = v
-		}
-		data, err := json.Marshal(shardBlocks)
-		if err != nil {
-			return err
-		}
-		_, err = writer.Write(CalculateNumberOfByteToRead(len(data)))
-		if err != nil {
-			return err
-		}
-		_, err = writer.Write(data)
-		if err != nil {
-			return err
-		}
-		if i%100 == 0 {
-			log.Printf("Backup Shard %+v Block %+v", shardBlock.Header.ShardID, i)
-		}
-		if i == bestShardHeight-1 {
-			log.Printf("Finish Backup Shard %+v with Block %+v", shardBlock.Header.ShardID, i)
-		}
-	}
+	//TODO: refactor to use multiview
+	//bestStateBytes, err := rawdbv2.GetShardMultiView(blockchain.GetShardChainDatabase(shardID), shardID)
+	//if err != nil {
+	//	return err
+	//}
+	//shardBestState := &ShardBestState{}
+	//err = json.Unmarshal(bestStateBytes, shardBestState)
+	//bestShardHeight := shardBestState.ShardHeight
+	//var i uint64
+	//for i = 1; i < bestShardHeight; i++ {
+	//	shardBlocks, err := blockchain.GetShardBlockByHeight(i, shardID)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	var shardBlock *ShardBlock
+	//	for _, v := range shardBlocks {
+	//		shardBlock = v
+	//	}
+	//	data, err := json.Marshal(shardBlocks)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	_, err = writer.Write(CalculateNumberOfByteToRead(len(data)))
+	//	if err != nil {
+	//		return err
+	//	}
+	//	_, err = writer.Write(data)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	if i%100 == 0 {
+	//		log.Printf("Backup Shard %+v Block %+v", shardBlock.Header.ShardID, i)
+	//	}
+	//	if i == bestShardHeight-1 {
+	//		log.Printf("Finish Backup Shard %+v with Block %+v", shardBlock.Header.ShardID, i)
+	//	}
+	//}
 	return nil
 }
 
 func (blockchain *BlockChain) BackupBeaconChain(writer io.Writer) error {
-	bestStateBytes, err := rawdbv2.GetBeaconViews(blockchain.GetBeaconChainDatabase())
+	bestStateBytes, err := rawdbv2.GetBeaconMultiView(blockchain.GetBeaconChainDatabase())
 	if err != nil {
 		return err
 	}
@@ -401,41 +402,41 @@ func (blockchain *BlockChain) BackupBeaconChain(writer io.Writer) error {
 Backup all BeaconView into Database
 */
 func (blockchain *BlockChain) BackupBeaconViews(db incdb.KeyValueWriter) error {
-	allViews := []*BeaconBestState{}
+	allViews := []common.Hash{}
 	for _, v := range blockchain.BeaconChain.multiView.GetAllViewsWithBFS() {
-		allViews = append(allViews, v.(*BeaconBestState))
+		allViews = append(allViews, *v.(*BeaconBestState).GetHash())
 	}
 	b, _ := json.Marshal(allViews)
-	return rawdbv2.StoreBeaconViews(db, b)
+	return rawdbv2.StoreBeaconMultiView(db, b)
 }
 
 /*
 Restart all BeaconView from Database
 */
 func (blockchain *BlockChain) RestoreBeaconViews() error {
-	allViews := []*BeaconBestState{}
-	b, err := rawdbv2.GetBeaconViews(blockchain.GetBeaconChainDatabase())
+	allViewsHash := []common.Hash{}
+	b, err := rawdbv2.GetBeaconMultiView(blockchain.GetBeaconChainDatabase())
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(b, &allViews)
+	err = json.Unmarshal(b, &allViewsHash)
 	if err != nil {
-		return err
+		panic(err)
 	}
-	for _, v := range allViews {
-		if !blockchain.BeaconChain.multiView.AddView(v) {
-			panic("Restart beacon views fail")
-		}
-		err := v.InitStateRootHash(blockchain)
+	for _, v := range allViewsHash {
+		viewByte, err := rawdbv2.GetBeaconView(blockchain.GetBeaconChainDatabase(), v)
+		view := &BeaconBestState{}
+		err = json.Unmarshal(viewByte, &view)
 		if err != nil {
 			panic(err)
 		}
-		currentPDEState, err := InitCurrentPDEStateFromDB(v.featureStateDB, v.BeaconHeight)
+		err = view.InitStateRootHash(blockchain)
 		if err != nil {
-			Logger.log.Error(err)
-			return nil
+			panic(err)
 		}
-		v.currentPDEState = currentPDEState
+		if !blockchain.BeaconChain.multiView.AddView(view) {
+			panic("Restart beacon views fail")
+		}
 	}
 	return nil
 }
@@ -444,37 +445,41 @@ func (blockchain *BlockChain) RestoreBeaconViews() error {
 Backup shard views
 */
 func (blockchain *BlockChain) BackupShardViews(db incdb.KeyValueWriter, shardID byte) error {
-	allViews := []*ShardBestState{}
+	allViews := []common.Hash{}
 	for _, v := range blockchain.ShardChain[shardID].multiView.GetAllViewsWithBFS() {
-		allViews = append(allViews, v.(*ShardBestState))
+		allViews = append(allViews, *v.(*ShardBestState).GetHash())
 	}
-	fmt.Println("debug BackupShardViews", len(allViews))
-	return rawdbv2.StoreShardBestState(db, shardID, allViews)
+	//fmt.Println("debug BackupShardViews", len(allViews))
+	b, _ := json.Marshal(allViews)
+	return rawdbv2.StoreShardMultiView(db, shardID, b)
 }
 
 /*
 Restart all BeaconView from Database
 */
 func (blockchain *BlockChain) RestoreShardViews(shardID byte) error {
-	allViews := []*ShardBestState{}
-	b, err := rawdbv2.GetShardBestState(blockchain.GetShardChainDatabase(shardID), shardID)
+	allViewsHash := []common.Hash{}
+	b, err := rawdbv2.GetShardMultiView(blockchain.GetShardChainDatabase(shardID), shardID)
 	if err != nil {
-		fmt.Println("debug Cannot see shard best state")
 		return err
 	}
-	err = json.Unmarshal(b, &allViews)
+	err = json.Unmarshal(b, &allViewsHash)
 	if err != nil {
-		fmt.Println("debug Cannot unmarshall shard best state", string(b))
-		return err
+		panic(err)
 	}
-	fmt.Println("debug RestoreShardViews", len(allViews))
-	for _, v := range allViews {
-		if !blockchain.ShardChain[shardID].multiView.AddView(v) {
-			panic("Restart shard views fail")
-		}
-		err := v.InitStateRootHash(blockchain.GetShardChainDatabase(shardID), blockchain)
+	for _, v := range allViewsHash {
+		viewByte, err := rawdbv2.GetShardView(blockchain.GetShardChainDatabase(shardID), v)
+		view := &ShardBestState{}
+		err = json.Unmarshal(viewByte, &view)
 		if err != nil {
 			panic(err)
+		}
+		err = view.InitStateRootHash(blockchain.GetShardChainDatabase(shardID), blockchain)
+		if err != nil {
+			panic(err)
+		}
+		if !blockchain.ShardChain[shardID].multiView.AddView(view) {
+			panic("Restart shard views fail")
 		}
 	}
 	return nil

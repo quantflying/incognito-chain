@@ -6,9 +6,14 @@ import (
 
 // Header key will be used for light mode in the future
 var (
-	lastShardBlockKey                  = []byte("LastShardBlock" + string(splitter))
-	lastBeaconBlockKey                 = []byte("LastBeaconBlock")
-	beaconViewsPrefix                  = []byte("BeaconViews")
+	lastShardBlockKey     = []byte("LastShardBlock" + string(splitter))
+	lastBeaconBlockKey    = []byte("LastBeaconBlock")
+	beaconViewPrefix      = []byte("BeaconView")
+	beaconMultiViewPrefix = []byte("BeaconMultiView")
+
+	shardViewPrefix      = []byte("ShardView" + string(splitter))
+	shardMultiViewPrefix = []byte("ShardMultiView" + string(splitter))
+
 	shardBestStatePrefix               = []byte("ShardBestState" + string(splitter))
 	shardHashToBlockPrefix             = []byte("s-b-h" + string(splitter))
 	viewPrefix                         = []byte("V" + string(splitter))
@@ -88,14 +93,16 @@ func GetShardIndexToBlockHashKey(shardID byte, index uint64, hash common.Hash) [
 	return append(key, hash[:]...)
 }
 
-func GetShardIndexToBlockHashPrefix(shardID byte, index uint64) []byte {
-	buf := common.Uint64ToBytes(index)
-	temp := make([]byte, 0, len(shardIndexToBlockHashPrefix))
-	temp = append(temp, shardIndexToBlockHashPrefix...)
-	key := append(temp, shardID)
-	key = append(key, splitter...)
-	key = append(key, buf...)
-	return key
+func GetShardViewKey(hash common.Hash) []byte {
+	temp := make([]byte, 0, len(shardViewPrefix))
+	temp = append(temp, shardViewPrefix...)
+	return append(temp, hash[:]...)
+}
+
+func GetShardMultiViewKey(shardID byte) []byte {
+	temp := make([]byte, 0, len(shardMultiViewPrefix))
+	temp = append(temp, shardMultiViewPrefix...)
+	return append(temp, shardID)
 }
 
 func GetShardBlockHashToIndexKey(hash common.Hash) []byte {
@@ -140,9 +147,15 @@ func GetBeaconBlockHashToIndexKey(hash common.Hash) []byte {
 	return append(temp, hash[:]...)
 }
 
-func GetBeaconViewsKey() []byte {
-	temp := make([]byte, 0, len(beaconViewsPrefix))
-	temp = append(temp, beaconViewsPrefix...)
+func GetBeaconViewKey(hash common.Hash) []byte {
+	temp := make([]byte, 0, len(beaconViewPrefix))
+	temp = append(temp, beaconViewPrefix...)
+	return append(temp, hash[:]...)
+}
+
+func GetBeaconMultiViewKey() []byte {
+	temp := make([]byte, 0, len(beaconMultiViewPrefix))
+	temp = append(temp, beaconMultiViewPrefix...)
 	return temp
 }
 
