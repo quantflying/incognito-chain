@@ -749,11 +749,12 @@ func (beaconBestState *BeaconBestState) generateRandomInstruction(timestamp int6
 		return strs, int64(nonce), nil
 	} else {
 		ran := mrand.New(mrand.NewSource(timestamp))
+		randInt := ran.Int()
 		var strs []string
-		reses := []string{strconv.Itoa(ran.Int()), strconv.Itoa(int(timestamp)), strconv.Itoa(int(timestamp) + 1)}
+		reses := []string{strconv.Itoa(randInt), strconv.Itoa(int(timestamp)), strconv.Itoa(int(timestamp) + 1)}
 		strs = append(strs, RandomAction)
 		strs = append(strs, reses...)
 		strs = append(strs, strconv.Itoa(int(timestamp)))
-		return strs, int64(1000), nil
+		return strs, int64(randInt), nil
 	}
 }
