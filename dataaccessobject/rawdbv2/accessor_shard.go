@@ -53,14 +53,14 @@ func StoreShardBlock(db incdb.KeyValueWriter, hash common.Hash, v interface{}) e
 	return nil
 }
 
-func StoreShardBlockWithView(db incdb.Database, view common.Hash, shardID byte, height uint64, blockHash common.Hash) error {
-	key := GetViewShardKey(view, shardID, height)
-	err := db.Put(key, blockHash[:])
-	if err != nil {
-		return NewRawdbError(StoreShardBlockWithViewError, err)
-	}
-	return nil
-}
+//func StoreShardBlockWithView(db incdb.Database, view common.Hash, shardID byte, height uint64, blockHash common.Hash) error {
+//	key := GetViewShardKey(view, shardID, height)
+//	err := db.Put(key, blockHash[:])
+//	if err != nil {
+//		return NewRawdbError(StoreShardBlockWithViewError, err)
+//	}
+//	return nil
+//}
 
 //func GetShardBlockByView(db incdb.Database, view common.Hash) (map[uint64]common.Hash, error) {
 //	iter := db.NewIteratorWithPrefix(GetViewPrefixWithValue(view))
@@ -240,26 +240,64 @@ func GetIndexOfBlock(db incdb.KeyValueReader, hash common.Hash) (uint64, byte, e
 	return index, shardID, nil
 }
 
-func StoreShardBestState(db incdb.KeyValueWriter, shardID byte, v interface{}) error {
-	key := GetShardBestStateKey(shardID)
+func StoreShardView(db incdb.KeyValueWriter, hash common.Hash, v interface{}) error {
+	key := GetShardViewKey(hash)
 	val, err := json.Marshal(v)
 	if err != nil {
-		return NewRawdbError(StoreShardBestStateError, err)
+		return NewRawdbError(StoreShardViewError, err)
 	}
 	if err := db.Put(key, val); err != nil {
-		return NewRawdbError(StoreShardBestStateError, err)
+		return NewRawdbError(StoreShardViewError, err)
 	}
 	return nil
 }
 
-func GetShardBestState(db incdb.KeyValueReader, shardID byte) ([]byte, error) {
-	key := GetShardBestStateKey(shardID)
-	shardBestStateBytes, err := db.Get(key)
+func GetShardView(db incdb.KeyValueReader, hash common.Hash) ([]byte, error) {
+	key := GetShardViewKey(hash)
+	beaconViewBytes, err := db.Get(key)
 	if err != nil {
-		return nil, NewRawdbError(StoreShardBestStateError, err)
+		return nil, NewRawdbError(GetShardViewError, err)
 	}
-	return shardBestStateBytes, nil
+	return beaconViewBytes, nil
 }
+
+func StoreShardMultiView(db incdb.KeyValueWriter, shardID byte, val []byte) error {
+	key := GetShardMultiViewKey(shardID)
+	if err := db.Put(key, val); err != nil {
+		return NewRawdbError(StoreShardMultiViewError, err)
+	}
+	return nil
+}
+
+func GetShardMultiView(db incdb.KeyValueReader, shardID byte) ([]byte, error) {
+	key := GetShardMultiViewKey(shardID)
+	block, err := db.Get(key)
+	if err != nil {
+		return nil, NewRawdbError(GetShardMultiViewError, err)
+	}
+	return block, nil
+}
+
+//func StoreShardBestState(db incdb.KeyValueWriter, shardID byte, v interface{}) error {
+//	key := GetShardBestStateKey(shardID)
+//	val, err := json.Marshal(v)
+//	if err != nil {
+//		return NewRawdbError(StoreShardBestStateError, err)
+//	}
+//	if err := db.Put(key, val); err != nil {
+//		return NewRawdbError(StoreShardBestStateError, err)
+//	}
+//	return nil
+//}
+//
+//func GetShardBestState(db incdb.KeyValueReader, shardID byte) ([]byte, error) {
+//	key := GetShardBestStateKey(shardID)
+//	shardBestStateBytes, err := db.Get(key)
+//	if err != nil {
+//		return nil, NewRawdbError(StoreShardBestStateError, err)
+//	}
+//	return shardBestStateBytes, nil
+//}
 
 // StoreFeeEstimator - Store data for FeeEstimator object
 func StoreFeeEstimator(db incdb.KeyValueWriter, val []byte, shardID byte) error {

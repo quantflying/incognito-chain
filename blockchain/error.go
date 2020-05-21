@@ -84,6 +84,7 @@ const (
 	ShardCommitteeAndPendingValidatorRootError
 	ShardCandidateRootError
 	BeaconCandidateRootError
+	StoreShardBestStateError
 	StoreShardBlockError
 	StoreBestStateError
 	FetchAndStoreTransactionError
@@ -343,6 +344,7 @@ var ErrCodeMessage = map[int]struct {
 	InsertShardBlockError:                             {-1154, "Insert Shard Block Error"},
 	GetShardBlockHeightByHashError:                    {-1155, "Get Shard Block Height By Hash Error"},
 	GetShardBlockByHashError:                          {-1156, "Get Shard Block By Hash Error"},
+	StoreShardBestStateError:                          {-1157, "Store Shard View Error"},
 	GetListOutputCoinsByKeysetError:                   {-2000, "Get List Output Coins By Keyset Error"},
 	GetTotalLockedCollateralError:                     {-3000, "Get Total Locked Collateral Error"},
 }

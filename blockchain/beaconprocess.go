@@ -1419,6 +1419,9 @@ func (blockchain *BlockChain) processStoreBeaconBlock(
 	if err := rawdbv2.StoreBeaconBlock(batch, blockHeight, blockHash, beaconBlock); err != nil {
 		return NewBlockChainError(StoreBeaconBlockError, err)
 	}
+	if err := rawdbv2.StoreBeaconView(batch, *newBestState.GetHash(), newBestState); err != nil {
+		return NewBlockChainError(StoreBeaconBestStateError, err)
+	}
 
 	//fmt.Printf("debug AddView %s %+v\n", newBestState.Hash().String(), newBestState.BestBlock)
 	//finalView := blockchain.BeaconChain.GetFinalView()

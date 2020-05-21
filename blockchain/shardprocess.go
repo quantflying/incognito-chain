@@ -1063,7 +1063,9 @@ func (blockchain *BlockChain) processStoreShardBlock(newShardState *ShardBestSta
 	if err := rawdbv2.StoreShardBlock(batchData, blockHash, shardBlock); err != nil {
 		return NewBlockChainError(StoreShardBlockError, err)
 	}
-
+	if err := rawdbv2.StoreShardView(batchData, *newShardState.GetHash(), newShardState); err != nil {
+		return NewBlockChainError(StoreShardBestStateError, err)
+	}
 	//finalView := blockchain.ShardChain[shardBlock.Header.ShardID].GetFinalView()
 	blockchain.ShardChain[shardBlock.Header.ShardID].multiView.AddView(newShardState)
 	//newFinalView := blockchain.ShardChain[shardBlock.Header.ShardID].GetFinalView()
