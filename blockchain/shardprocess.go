@@ -840,12 +840,15 @@ func (shardBestState *ShardBestState) processShardBlockInstructionForKeyListV2(b
 			if err != nil {
 				return err
 			}
-			remainedShardCommittees := shardBestState.ShardCommittee[:shardBestState.MinShardCommitteeSize]
-			tempShardSwappedCommittees := shardBestState.ShardCommittee[shardBestState.MinShardCommitteeSize:]
+			if len(shardNewCommittees) != len(shardSwappedCommittees) {
+				return NewBlockChainError(ProcessSwapInstructionError, fmt.Errorf("length new committee %+v, length out committee %+v", len(shardNewCommittees), len(shardSwappedCommittees)))
+			}
+			removedCommitteeSize := len(shardNewCommittees)
+			remainedShardCommittees := shardBestState.ShardCommittee[removedCommitteeSize:]
+			tempShardSwappedCommittees := shardBestState.ShardCommittee[:shardBestState.MinShardCommitteeSize]
 			if !reflect.DeepEqual(shardSwappedCommitteesStruct, tempShardSwappedCommittees) {
 				return NewBlockChainError(SwapValidatorError, fmt.Errorf("expect swapped committe %+v but got %+v", tempShardSwappedCommittees, shardSwappedCommitteesStruct))
 			}
-
 			shardCommitteesStruct := append(shardNewCommitteesStruct, remainedShardCommittees...)
 			shardBestState.ShardPendingValidator = shardPendingValidatorStruct
 			shardBestState.ShardCommittee = shardCommitteesStruct
