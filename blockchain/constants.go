@@ -88,6 +88,11 @@ var PreSelectBeaconNodeMainnetSerializedPaymentAddress = []string{}
 var PreSelectShardNodeMainnetSerializedPubkey = []string{}
 var PreSelectShardNodeMainnetSerializedPaymentAddress = []string{}
 
+var SelectBeaconNodeMainnetSerializedPubkeyV2 = []string{}
+var SelectBeaconNodeMainnetSerializedPaymentAddressV2 = []string{}
+var SelectShardNodeMainnetSerializedPubkeyV2 = []string{}
+var SelectShardNodeMainnetSerializedPaymentAddressV2 = []string{}
+
 // END CONSTANT for network MAINNET
 
 // CONSTANT for network TESTNET
@@ -140,14 +145,26 @@ var PreSelectBeaconNodeTestnetSerializedPaymentAddress = []string{}
 var PreSelectShardNodeTestnetSerializedPubkey = []string{}
 var PreSelectShardNodeTestnetSerializedPaymentAddress = []string{}
 
+// VARIABLE for testnet
+var SelectBeaconNodeTestnetSerializedPubkeyV2 = []string{}
+var SelectBeaconNodeTestnetSerializedPaymentAddressV2 = []string{}
+var SelectShardNodeTestnetSerializedPubkeyV2 = []string{}
+var SelectShardNodeTestnetSerializedPaymentAddressV2 = []string{}
+
 func init() {
 	if len(os.Args) > 0 && (strings.Contains(os.Args[0], "test") || strings.Contains(os.Args[0], "Test")) {
 		return
 	}
 	var keyData []byte
+	var keyDataV2 []byte
 	var err error
 
 	keyData, err = ioutil.ReadFile("keylist.json")
+	if err != nil {
+		panic(err)
+	}
+
+	keyDataV2, err = ioutil.ReadFile("keylist-v2.json")
 	if err != nil {
 		panic(err)
 	}
@@ -165,8 +182,14 @@ func init() {
 	}
 
 	keylist := KeyList{}
+	keylistV2 := KeyList{}
 
 	err = json.Unmarshal(keyData, &keylist)
+	if err != nil {
+		panic(err)
+	}
+
+	err = json.Unmarshal(keyDataV2, &keylistV2)
 	if err != nil {
 		panic(err)
 	}
@@ -184,16 +207,39 @@ func init() {
 				PreSelectShardNodeTestnetSerializedPaymentAddress = append(PreSelectShardNodeTestnetSerializedPaymentAddress, keylist.Shard[i][j].PaymentAddress)
 			}
 		}
+
+		for i := 0; i < TestNetMinBeaconCommitteeSize; i++ {
+			SelectBeaconNodeTestnetSerializedPubkeyV2 = append(SelectBeaconNodeTestnetSerializedPubkeyV2, keylistV2.Beacon[i].CommitteePublicKey)
+			SelectBeaconNodeTestnetSerializedPaymentAddressV2 = append(SelectBeaconNodeTestnetSerializedPaymentAddressV2, keylistV2.Beacon[i].PaymentAddress)
+		}
+
+		for i := 0; i < TestNetActiveShards; i++ {
+			for j := 0; j < TestNetMinShardCommitteeSize; j++ {
+				SelectShardNodeTestnetSerializedPubkeyV2 = append(SelectShardNodeTestnetSerializedPubkeyV2, keylistV2.Shard[i][j].CommitteePublicKey)
+				SelectShardNodeTestnetSerializedPaymentAddressV2 = append(SelectShardNodeTestnetSerializedPaymentAddressV2, keylistV2.Shard[i][j].PaymentAddress)
+			}
+		}
 	} else {
 		for i := 0; i < MainNetMinBeaconCommitteeSize; i++ {
 			PreSelectBeaconNodeMainnetSerializedPubkey = append(PreSelectBeaconNodeMainnetSerializedPubkey, keylist.Beacon[i].CommitteePublicKey)
 			PreSelectBeaconNodeMainnetSerializedPaymentAddress = append(PreSelectBeaconNodeMainnetSerializedPaymentAddress, keylist.Beacon[i].PaymentAddress)
 		}
-
 		for i := 0; i < MainNetActiveShards; i++ {
 			for j := 0; j < MainNetMinShardCommitteeSize; j++ {
 				PreSelectShardNodeMainnetSerializedPubkey = append(PreSelectShardNodeMainnetSerializedPubkey, keylist.Shard[i][j].CommitteePublicKey)
 				PreSelectShardNodeMainnetSerializedPaymentAddress = append(PreSelectShardNodeMainnetSerializedPaymentAddress, keylist.Shard[i][j].PaymentAddress)
+			}
+		}
+
+		for i := 0; i < MainNetMinBeaconCommitteeSize; i++ {
+			SelectBeaconNodeMainnetSerializedPubkeyV2 = append(SelectBeaconNodeMainnetSerializedPubkeyV2, keylistV2.Beacon[i].CommitteePublicKey)
+			SelectBeaconNodeMainnetSerializedPaymentAddressV2 = append(SelectBeaconNodeMainnetSerializedPaymentAddressV2, keylistV2.Beacon[i].PaymentAddress)
+		}
+
+		for i := 0; i < MainNetActiveShards; i++ {
+			for j := 0; j < MainNetMinShardCommitteeSize; j++ {
+				SelectShardNodeMainnetSerializedPubkeyV2 = append(SelectShardNodeMainnetSerializedPubkeyV2, keylistV2.Shard[i][j].CommitteePublicKey)
+				SelectShardNodeMainnetSerializedPaymentAddressV2 = append(SelectShardNodeMainnetSerializedPaymentAddressV2, keylistV2.Shard[i][j].PaymentAddress)
 			}
 		}
 	}

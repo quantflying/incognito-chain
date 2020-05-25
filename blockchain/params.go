@@ -70,10 +70,14 @@ type GenesisParams struct {
 	InitialIncognito                            []string // init tx for genesis block
 	FeePerTxKb                                  uint64
 	PreSelectBeaconNodeSerializedPubkey         []string
+	SelectBeaconNodeSerializedPubkeyV2          []string
 	PreSelectBeaconNodeSerializedPaymentAddress []string
+	SelectBeaconNodeSerializedPaymentAddressV2  []string
 	PreSelectBeaconNode                         []string
 	PreSelectShardNodeSerializedPubkey          []string
+	SelectShardNodeSerializedPubkeyV2           []string
 	PreSelectShardNodeSerializedPaymentAddress  []string
+	SelectShardNodeSerializedPaymentAddressV2   []string
 	PreSelectShardNode                          []string
 	ConsensusAlgorithm                          string
 }
@@ -88,6 +92,10 @@ func init() {
 		PreSelectBeaconNodeSerializedPaymentAddress: PreSelectBeaconNodeTestnetSerializedPaymentAddress,
 		PreSelectShardNodeSerializedPubkey:          PreSelectShardNodeTestnetSerializedPubkey,
 		PreSelectShardNodeSerializedPaymentAddress:  PreSelectShardNodeTestnetSerializedPaymentAddress,
+		SelectBeaconNodeSerializedPubkeyV2:          SelectBeaconNodeTestnetSerializedPubkeyV2,
+		SelectBeaconNodeSerializedPaymentAddressV2:  SelectBeaconNodeTestnetSerializedPaymentAddressV2,
+		SelectShardNodeSerializedPubkeyV2:           SelectShardNodeTestnetSerializedPubkeyV2,
+		SelectShardNodeSerializedPaymentAddressV2:   SelectShardNodeTestnetSerializedPaymentAddressV2,
 		//@Notice: InitTxsForBenchmark is for testing and testparams only
 		//InitialIncognito: IntegrationTestInitPRV,
 		InitialIncognito:   TestnetInitPRV,
@@ -155,6 +163,10 @@ func init() {
 		PreSelectBeaconNodeSerializedPaymentAddress: PreSelectBeaconNodeMainnetSerializedPaymentAddress,
 		PreSelectShardNodeSerializedPubkey:          PreSelectShardNodeMainnetSerializedPubkey,
 		PreSelectShardNodeSerializedPaymentAddress:  PreSelectShardNodeMainnetSerializedPaymentAddress,
+		SelectBeaconNodeSerializedPubkeyV2:          SelectBeaconNodeMainnetSerializedPubkeyV2,
+		SelectBeaconNodeSerializedPaymentAddressV2:  SelectBeaconNodeMainnetSerializedPaymentAddressV2,
+		SelectShardNodeSerializedPubkeyV2:           SelectShardNodeMainnetSerializedPubkeyV2,
+		SelectShardNodeSerializedPaymentAddressV2:   SelectShardNodeMainnetSerializedPaymentAddressV2,
 		InitialIncognito:                            MainnetInitPRV,
 		ConsensusAlgorithm:                          common.BlsConsensus,
 	}
