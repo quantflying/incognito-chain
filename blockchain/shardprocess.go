@@ -635,7 +635,11 @@ func (oldBestState *ShardBestState) updateShardBestState(blockchain *BlockChain,
 	for stakePublicKey, txHash := range stakingTx {
 		shardBestState.StakingTx[stakePublicKey] = txHash
 	}
-	err = shardBestState.processShardBlockInstruction(blockchain, shardBlock, committeeChange)
+	if false {
+		err = shardBestState.processShardBlockInstructionForKeyListV2(blockchain, shardBlock, committeeChange)
+	} else {
+		err = shardBestState.processShardBlockInstruction(blockchain, shardBlock, committeeChange)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -816,6 +820,38 @@ func (shardBestState *ShardBestState) processShardBlockInstruction(blockchain *B
 	shardBestState.ShardCommittee, err = incognitokey.CommitteeBase58KeyListToStruct(shardCommittee)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+//TODO: validate hard-code swap instruction before process
+func (shardBestState *ShardBestState) processShardBlockInstructionForKeyListV2(blockchain *BlockChain, shardBlock *ShardBlock, committeeChange *committeeChange) error {
+	shardID := shardBlock.Header.ShardID
+	for _, l := range shardBlock.Body.Instructions {
+		if l[0] == SwapAction {
+			shardPendingValidatorStruct := shardBestState.ShardPendingValidator
+			shardNewCommittees := strings.Split(l[1], ",")
+			shardNewCommitteesStruct, err := incognitokey.CommitteeBase58KeyListToStruct(shardNewCommittees)
+			if err != nil {
+				return err
+			}
+			shardSwappedCommittees := strings.Split(l[2], ",")
+			shardSwappedCommitteesStruct, err := incognitokey.CommitteeBase58KeyListToStruct(shardSwappedCommittees)
+			if err != nil {
+				return err
+			}
+			remainedShardCommittees := shardBestState.ShardCommittee[:shardBestState.MinShardCommitteeSize]
+			tempShardSwappedCommittees := shardBestState.ShardCommittee[shardBestState.MinShardCommitteeSize:]
+			if !reflect.DeepEqual(shardSwappedCommitteesStruct, tempShardSwappedCommittees) {
+				return NewBlockChainError(SwapValidatorError, fmt.Errorf("expect swapped committe %+v but got %+v", tempShardSwappedCommittees, shardSwappedCommitteesStruct))
+			}
+
+			shardCommitteesStruct := append(shardNewCommitteesStruct, remainedShardCommittees...)
+			shardBestState.ShardPendingValidator = shardPendingValidatorStruct
+			shardBestState.ShardCommittee = shardCommitteesStruct
+			committeeChange.shardCommitteeAdded[shardID] = shardNewCommitteesStruct
+			committeeChange.shardCommitteeRemoved[shardID] = shardSwappedCommitteesStruct
+		}
 	}
 	return nil
 }

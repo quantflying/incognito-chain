@@ -3,6 +3,7 @@ package blockchain
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/incognitochain/incognito-chain/common"
@@ -46,25 +47,21 @@ func CreateShardGenesisBlock(
 	return block
 }
 
-func GetShardSwapInstructionKeyListV2(genesisParams GenesisParams) map[byte][][]string {
-	allShardSwapInstructionKeyListV2 := make(map[byte][][]string)
+func GetShardSwapInstructionKeyListV2(genesisParams *GenesisParams) (map[byte][]string, map[byte][]string) {
+	allShardSwapInstructionKeyListV2 := make(map[byte][]string)
+	allShardNewKeyListV2 := make(map[byte][]string)
 	selectShardNodeSerializedPubkeyV2 := genesisParams.SelectShardNodeSerializedPubkeyV2
 	preSelectShardNodeSerializedPubkey := genesisParams.PreSelectShardNodeSerializedPubkey
 	shardCommitteeSize := MainNetMinShardCommitteeSize
 	for i := 0; i < MainNetActiveShards; i++ {
 		shardID := byte(i)
-		shardSwapInstructionKeyListV2 := [][]string{}
 		newCommittees := selectShardNodeSerializedPubkeyV2[:shardCommitteeSize]
 		oldCommittees := preSelectShardNodeSerializedPubkey[:shardCommitteeSize]
-		for i := 0; i < shardCommitteeSize; i++ {
-			newCommittee := newCommittees[i]
-			oldCommittee := oldCommittees[i]
-			swapInstruction := []string{SwapAction, newCommittee, oldCommittee, "shard", strconv.Itoa(i)}
-			shardSwapInstructionKeyListV2 = append(shardSwapInstructionKeyListV2, swapInstruction)
-		}
+		shardSwapInstructionKeyListV2 := []string{SwapAction, strings.Join(newCommittees, ","), strings.Join(oldCommittees, ","), "shard", strconv.Itoa(i)}
+		allShardNewKeyListV2[shardID] = newCommittees
 		selectShardNodeSerializedPubkeyV2 = selectShardNodeSerializedPubkeyV2[shardCommitteeSize:]
 		preSelectShardNodeSerializedPubkey = preSelectShardNodeSerializedPubkey[shardCommitteeSize:]
 		allShardSwapInstructionKeyListV2[shardID] = shardSwapInstructionKeyListV2
 	}
-	return allShardSwapInstructionKeyListV2
+	return allShardSwapInstructionKeyListV2, allShardNewKeyListV2
 }

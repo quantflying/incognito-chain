@@ -45,6 +45,7 @@ type Config struct {
 	MemCache          *memcache.MemoryCache
 	Interrupt         <-chan struct{}
 	ChainParams       *Params
+	GenesisParams     *GenesisParams
 	RelayShards       []byte
 	NodeMode          string
 	BlockGen          *BlockGenerator

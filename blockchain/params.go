@@ -33,6 +33,7 @@ type Params struct {
 	Name                             string // Name defines a human-readable identifier for the network.
 	Net                              uint32 // Net defines the magic bytes used to identify the network.
 	DefaultPort                      string // DefaultPort defines the default peer-to-peer port for the network.
+	GenesisParams                    *GenesisParams
 	MaxShardCommitteeSize            int
 	MinShardCommitteeSize            int
 	MaxBeaconCommitteeSize           int
@@ -105,6 +106,7 @@ func init() {
 		Name:                   TestnetName,
 		Net:                    Testnet,
 		DefaultPort:            TestnetDefaultPort,
+		GenesisParams:          &genesisParamsTestnetNew,
 		MaxShardCommitteeSize:  TestNetShardCommitteeSize,     //TestNetShardCommitteeSize,
 		MinShardCommitteeSize:  TestNetMinShardCommitteeSize,  //TestNetShardCommitteeSize,
 		MaxBeaconCommitteeSize: TestNetBeaconCommitteeSize,    //TestNetBeaconCommitteeSize,
@@ -174,6 +176,7 @@ func init() {
 		Name:                   MainetName,
 		Net:                    Mainnet,
 		DefaultPort:            MainnetDefaultPort,
+		GenesisParams:          &genesisParamsMainnetNew,
 		MaxShardCommitteeSize:  MainNetShardCommitteeSize, //MainNetShardCommitteeSize,
 		MinShardCommitteeSize:  MainNetMinShardCommitteeSize,
 		MaxBeaconCommitteeSize: MainNetBeaconCommitteeSize, //MainNetBeaconCommitteeSize,
