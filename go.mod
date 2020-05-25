@@ -61,5 +61,5 @@ require (
 	google.golang.org/grpc v1.27.1
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc // indirect
-	stathat.com/c/consistent v1.0.0 // indirect
+	stathat.com/c/consistent v1.0.0
 )

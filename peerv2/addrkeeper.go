@@ -19,12 +19,19 @@ type AddrKeeper struct {
 	ignoreUntil map[rpcclient.HighwayAddr]time.Time
 }
 
+func NewAddrKeeper() *AddrKeeper {
+	return &AddrKeeper{
+		addrs:       addresses{},
+		ignoreUntil: map[rpcclient.HighwayAddr]time.Time{},
+	}
+}
+
 // ChooseHighway refreshes the list of highways by asking a random one and choose a (consistently) random highway to connect
-func (keeper *AddrKeeper) ChooseHighway(discoverer HighwayDiscoverer, ourPID peer.ID) (*peer.AddrInfo, error) {
+func (keeper *AddrKeeper) ChooseHighway(discoverer HighwayDiscoverer, ourPID peer.ID) (rpcclient.HighwayAddr, error) {
 	// Get a list of new highways
 	newAddrs, err := getHighwayAddrs(discoverer, keeper.addrs)
 	if err != nil {
-		return nil, err
+		return rpcclient.HighwayAddr{}, err
 	}
 
 	// Update the local list of known highways
@@ -32,11 +39,11 @@ func (keeper *AddrKeeper) ChooseHighway(discoverer HighwayDiscoverer, ourPID pee
 	Logger.Infof("Updated highway addresses: %+v", keeper.addrs)
 
 	// Choose one and return
-	chosePID, err := chooseHighwayFromList(keeper.addrs, ourPID)
+	chosenAddr, err := chooseHighwayFromList(keeper.addrs, ourPID)
 	if err != nil {
-		return nil, err
+		return rpcclient.HighwayAddr{}, err
 	}
-	return chosePID, nil
+	return chosenAddr, nil
 }
 
 func (keeper *AddrKeeper) Add(addr rpcclient.HighwayAddr) {
@@ -69,9 +76,9 @@ func mergeAddrs(allAddrs ...addresses) addresses {
 }
 
 // chooseHighwayFromList returns a random highway address from a list using consistent hashing; ourPID is the anchor of the hashing
-func chooseHighwayFromList(hwAddrs addresses, ourPID peer.ID) (*peer.AddrInfo, error) {
+func chooseHighwayFromList(hwAddrs addresses, ourPID peer.ID) (rpcclient.HighwayAddr, error) {
 	if len(hwAddrs) == 0 {
-		return nil, errors.New("cannot choose highway from empty list")
+		return rpcclient.HighwayAddr{}, errors.New("cannot choose highway from empty list")
 	}
 
 	// Filter out bootnode address (address with only rpcUrl)
@@ -92,9 +99,9 @@ func chooseHighwayFromList(hwAddrs addresses, ourPID peer.ID) (*peer.AddrInfo, e
 
 	addr, err := choosePeer(filterAddrs, ourPID)
 	if err != nil {
-		return nil, err
+		return rpcclient.HighwayAddr{}, err
 	}
-	return getAddressInfo(addr.Libp2pAddr)
+	return addr, nil
 }
 
 // choosePeer picks a peer from a list using consistent hashing

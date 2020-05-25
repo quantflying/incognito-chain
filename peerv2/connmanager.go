@@ -37,7 +37,7 @@ func NewConnManager(
 			nodeMode:      nodeMode,
 			peerID:        host.Host.ID(),
 		},
-		keeper:               &AddrKeeper{},
+		keeper:               NewAddrKeeper(),
 		LocalHost:            host,
 		DiscoverPeersAddress: dpa,
 		discoverer:           new(rpcclient.RPCClient),
@@ -223,7 +223,7 @@ func (cm *ConnManager) keepHighwayConnection() {
 			RPCUrl:     cm.DiscoverPeersAddress,
 		},
 	)
-	var currentHighway *peer.AddrInfo
+	var currentHighway *rpcclient.HighwayAddr
 
 	watchTimestep := time.NewTicker(ReconnectHighwayTimestep)
 	refreshTimestep := time.NewTicker(UpdateHighwayListTimestep)
@@ -232,14 +232,14 @@ func (cm *ConnManager) keepHighwayConnection() {
 	cm.disconnected = 1 // Init, to make first connection to highway
 	pid := cm.LocalHost.Host.ID()
 
-	refreshHighway := func() (*peer.AddrInfo, error) {
+	refreshHighway := func() (*rpcclient.HighwayAddr, error) {
 		newHighway, err := cm.keeper.ChooseHighway(cm.discoverer, pid)
 		if err != nil {
 			Logger.Errorf("Failed refreshing highway: %v", err)
 			return currentHighway, err
 		}
 		Logger.Infof("Chose new highway: %+v", newHighway)
-		return newHighway, nil
+		return &newHighway, nil
 	}
 
 	for {
@@ -252,7 +252,8 @@ func (cm *ConnManager) keepHighwayConnection() {
 				}
 			}
 
-			if cm.checkConnection(currentHighway) {
+			addrInfo, err := getAddressInfo(currentHighway.Libp2pAddr)
+			if err != nil || cm.checkConnection(addrInfo) {
 				currentHighway = nil // Failed retries, connect to new highway next iteration
 			}
 
