@@ -14,22 +14,31 @@ import (
 
 type addresses []rpcclient.HighwayAddr
 
+// AddrKeeper stores all highway addresses for ConnManager to choose from.
+// The address can be used to:
+// 1. Make an RPC call to get a new list of highway
+// 2. Choose a highway (consistent hashed) and connect to it
+// For the 1st type, if it fails, AddrKeeper will ignore the requested address
+// for some time so that the next few calls will be more likely to succeed.
+// For the 2nd type, caller can manually ignore the chosen address.
 type AddrKeeper struct {
-	addrs       addresses
-	ignoreUntil map[rpcclient.HighwayAddr]time.Time
+	addrs          addresses
+	ignoreRPCUntil map[rpcclient.HighwayAddr]time.Time
+	ignoreHWUntil  map[rpcclient.HighwayAddr]time.Time
 }
 
 func NewAddrKeeper() *AddrKeeper {
 	return &AddrKeeper{
-		addrs:       addresses{},
-		ignoreUntil: map[rpcclient.HighwayAddr]time.Time{},
+		addrs:          addresses{},
+		ignoreRPCUntil: map[rpcclient.HighwayAddr]time.Time{},
+		ignoreHWUntil:  map[rpcclient.HighwayAddr]time.Time{},
 	}
 }
 
 // ChooseHighway refreshes the list of highways by asking a random one and choose a (consistently) random highway to connect
 func (keeper *AddrKeeper) ChooseHighway(discoverer HighwayDiscoverer, ourPID peer.ID) (rpcclient.HighwayAddr, error) {
 	// Get a list of new highways
-	newAddrs, err := getHighwayAddrs(discoverer, keeper.addrs)
+	newAddrs, err := keeper.getHighwayAddrs(discoverer)
 	if err != nil {
 		return rpcclient.HighwayAddr{}, err
 	}
@@ -124,17 +133,42 @@ func choosePeer(peers addresses, id peer.ID) (rpcclient.HighwayAddr, error) {
 	return rpcclient.HighwayAddr{}, errors.Errorf("could not find closest peer %v %v %v", peers, id, closest)
 }
 
-func getHighwayAddrs(discoverer HighwayDiscoverer, hwAddrs addresses) (addresses, error) {
-	// Pick random peer to get new list of highways
-	if len(hwAddrs) == 0 {
+// getHighwayAddrs picks a random highway, makes an RPC call to get an updated list of highways
+// If fails, the picked address will be ignore for some time.
+func (keeper *AddrKeeper) getHighwayAddrs(discoverer HighwayDiscoverer) (addresses, error) {
+	if len(keeper.addrs) == 0 {
 		return nil, errors.New("No peer to get list of highways")
 	}
-	addr := hwAddrs[rand.Intn(len(hwAddrs))]
-	newAddrs, err := getAllHighways(discoverer, addr.RPCUrl)
-	if err != nil {
-		return nil, err
+
+	// Pick random highway to make an RPC call
+	addrs := getNonIgnoredAddrs(keeper.addrs, keeper.ignoreRPCUntil)
+	if len(addrs) == 0 {
+		// All ignored, pick random one
+		addrs = keeper.addrs
 	}
-	return newAddrs, nil
+	addr := addrs[rand.Intn(len(addrs))]
+	Logger.Infof("RPCing addr %v from list %v", addr, addrs)
+
+	newAddrs, err := getAllHighways(discoverer, addr.RPCUrl)
+	if err == nil {
+		return newAddrs, nil
+	}
+
+	// Ignore for a while
+	keeper.ignoreRPCUntil[addr] = time.Now().Add(IgnoreRPCDuration)
+	Logger.Infof("Ignoring RPC of address %v until %s", addr, keeper.ignoreRPCUntil[addr].Format(time.RFC3339))
+	return nil, err
+}
+
+func getNonIgnoredAddrs(addrs addresses, ignoreUntil map[rpcclient.HighwayAddr]time.Time) addresses {
+	now := time.Now()
+	valids := addresses{}
+	for _, addr := range addrs {
+		if deadline, ok := ignoreUntil[addr]; !ok || now.After(deadline) {
+			valids = append(valids, addr)
+		}
+	}
+	return valids
 }
 
 func getAllHighways(discoverer HighwayDiscoverer, rpcUrl string) (addresses, error) {

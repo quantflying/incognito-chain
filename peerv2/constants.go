@@ -13,7 +13,7 @@ const (
 
 	RegisterTimestep          = 1 * time.Second  // Re-register to highway
 	ReconnectHighwayTimestep  = 10 * time.Second // Check libp2p connection
-	UpdateHighwayListTimestep = 10 * time.Minute // RPC to update list of highways
+	UpdateHighwayListTimestep = 30 * time.Second // RPC to update list of highways
 	RequesterDialTimestep     = 10 * time.Second // Check gRPC connection
 	MaxTimePerRequest         = 30 * time.Second // Time per request
 	DialTimeout               = 5 * time.Second  // Timeout for dialing's context
@@ -21,4 +21,6 @@ const (
 	RequesterKeepaliveTimeout = 30 * time.Second
 	defaultMaxBlkReqPerPeer   = 900
 	defaultMaxBlkReqPerTime   = 900
+
+	IgnoreRPCDuration = 1 * time.Minute
 )
