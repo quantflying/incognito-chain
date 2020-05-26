@@ -24,6 +24,6 @@ var (
 	defaultMaxBlkReqPerPeer   = 900
 	defaultMaxBlkReqPerTime   = 900
 
-	IgnoreRPCDuration = 1 * time.Minute
-	IgnoreHWDuration  = 1 * time.Minute
+	IgnoreRPCDuration = 60 * time.Minute  // Ignore an address after a failed RPC
+	IgnoreHWDuration  = 360 * time.Minute // Ignore a highway when cannot connect
 )
