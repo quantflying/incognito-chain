@@ -635,7 +635,7 @@ func (oldBestState *ShardBestState) updateShardBestState(blockchain *BlockChain,
 	for stakePublicKey, txHash := range stakingTx {
 		shardBestState.StakingTx[stakePublicKey] = txHash
 	}
-	if false {
+	if shardBlock.Header.BeaconHeight/blockchain.config.ChainParams.Epoch == blockchain.config.ChainParams.EpochBreakPointSwapNewKey {
 		err = shardBestState.processShardBlockInstructionForKeyListV2(blockchain, shardBlock, committeeChange)
 	} else {
 		err = shardBestState.processShardBlockInstruction(blockchain, shardBlock, committeeChange)

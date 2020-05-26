@@ -65,6 +65,7 @@ type Params struct {
 	BNBFullNodeHost                  string
 	BNBFullNodePort                  string
 	PortalParams                     map[uint64]PortalParams
+	EpochBreakPointSwapNewKey        uint64
 }
 
 type GenesisParams struct {
@@ -157,6 +158,7 @@ func init() {
 				MinPercentRedeemFee:                  0.01,
 			},
 		},
+		EpochBreakPointSwapNewKey: 100000,
 	}
 	// END TESTNET
 	// FOR MAINNET
@@ -227,5 +229,6 @@ func init() {
 				MinPercentRedeemFee:                  0.01,
 			},
 		},
+		EpochBreakPointSwapNewKey: 100000,
 	}
 }
