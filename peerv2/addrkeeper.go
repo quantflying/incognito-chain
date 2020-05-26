@@ -52,6 +52,7 @@ func (keeper *AddrKeeper) ChooseHighway(discoverer HighwayDiscoverer, ourPID pee
 	if err != nil {
 		return rpcclient.HighwayAddr{}, err
 	}
+	Logger.Infof("Chosen address: %+v", chosenAddr)
 	return chosenAddr, nil
 }
 
@@ -84,6 +85,7 @@ func (keeper *AddrKeeper) updateAddrs(newAddrs addresses) {
 		} else if !found {
 			delete(keeper.ignoreRPCUntil, oldAddr)
 			delete(keeper.ignoreHWUntil, oldAddr)
+			Logger.Infof("Resetting ignore time of %v", oldAddr)
 		}
 	}
 
@@ -106,9 +108,11 @@ func (keeper *AddrKeeper) chooseHighwayFromList(ourPID peer.ID) (rpcclient.Highw
 	}
 
 	// Filter out ignored address
+	Logger.Infof("Full known addrs: %v", filterAddrs)
 	if addrs := getNonIgnoredAddrs(filterAddrs, keeper.ignoreHWUntil); len(addrs) > 0 {
 		filterAddrs = addrs
 	}
+	Logger.Infof("Choosing highway to connect from non-ignored list %v", filterAddrs)
 
 	// Sort first to make sure always choosing the same highway
 	// if the list doesn't change
@@ -153,6 +157,7 @@ func (keeper *AddrKeeper) getHighwayAddrs(discoverer HighwayDiscoverer) (address
 	}
 
 	// Pick random highway to make an RPC call
+	Logger.Infof("Full RPC address list: %v", keeper.addrs)
 	addrs := getNonIgnoredAddrs(keeper.addrs, keeper.ignoreRPCUntil)
 	if len(addrs) == 0 {
 		// All ignored, pick random one
