@@ -1,6 +1,7 @@
 package peerv2
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/incognitochain/incognito-chain/peerv2/mocks"
@@ -9,6 +10,100 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+// Checks if ignored addresses are skipped when choosing one to connect
+// We ignore 1 address out of 2, randomly choose 100 times and make sure all runs return the same one
+func TestChooseHighwayFilterIgnore(t *testing.T) {
+	hwAddrs := []rpcclient.HighwayAddr{
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress},
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress2},
+	}
+
+	keeper := NewAddrKeeper()
+	keeper.addrs = hwAddrs
+	keeper.IgnoreAddress(hwAddrs[1])
+
+	pid := peer.ID("")
+	for i := 0; i < 100; i++ {
+		chosen, err := keeper.chooseHighwayFromList(pid)
+		assert.Nil(t, err)
+		assert.Equal(t, hwAddrs[0], chosen)
+	}
+}
+
+// Checks the edge case when all addresses are ignored when choosing 1 to connect.
+// In this case, we randomly pick one from the full list.
+// This test ignores all addresses in the list and runs once to make sure an address is returned.
+func TestChooseHighwayIgnoredAll(t *testing.T) {
+	hwAddrs := []rpcclient.HighwayAddr{
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress},
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress2},
+	}
+
+	keeper := NewAddrKeeper()
+	keeper.addrs = hwAddrs
+	keeper.IgnoreAddress(hwAddrs[0])
+	keeper.IgnoreAddress(hwAddrs[1])
+
+	pid := peer.ID("")
+	chosen, err := keeper.chooseHighwayFromList(pid)
+	assert.Nil(t, err)
+	assert.NotNil(t, chosen)
+}
+
+// Makes sure ignored addresses had their timing reset when the new list doesn't contain them
+func TestResetRPCIgnoreTiming(t *testing.T) {
+	hwAddrs := []rpcclient.HighwayAddr{
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress},
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress2},
+	}
+	keeper := NewAddrKeeper()
+	keeper.addrs = hwAddrs[:1]
+	keeper.IgnoreAddress(hwAddrs[0])
+
+	keeper.updateAddrs(hwAddrs[1:])
+	assert.Equal(t, 0, len(keeper.ignoreRPCUntil))
+	assert.Equal(t, 0, len(keeper.ignoreHWUntil))
+}
+
+// Makes sure an address is ignored when the RPC call to it failed
+func TestRPCIgnoreWhenFail(t *testing.T) {
+	var resultAddrs map[string][]rpcclient.HighwayAddr
+	discoverer := &mocks.HighwayDiscoverer{}
+	discoverer.On("DiscoverHighway", mock.Anything, mock.Anything).Return(resultAddrs, fmt.Errorf("dummy"))
+
+	hwAddrs := []rpcclient.HighwayAddr{
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress},
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress2},
+	}
+	keeper := NewAddrKeeper()
+	keeper.addrs = hwAddrs
+
+	_, err := keeper.getHighwayAddrs(discoverer)
+	assert.NotNil(t, err)
+	assert.Equal(t, 1, len(keeper.ignoreRPCUntil))
+	assert.Equal(t, 0, len(keeper.ignoreHWUntil))
+}
+
+// Makes sure we choose a random address to RPC when all addresses are ignored.
+// To do this, we ignore all addresses and run once to make sure one is returned.
+func TestRPCIgnoredAll(t *testing.T) {
+	resultAddrs := map[string][]rpcclient.HighwayAddr{}
+	discoverer := &mocks.HighwayDiscoverer{}
+	discoverer.On("DiscoverHighway", mock.Anything, mock.Anything).Return(resultAddrs, nil)
+
+	hwAddrs := []rpcclient.HighwayAddr{
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress},
+		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress2},
+	}
+	keeper := NewAddrKeeper()
+	keeper.addrs = hwAddrs
+	keeper.IgnoreAddress(hwAddrs[0])
+	keeper.IgnoreAddress(hwAddrs[1])
+
+	_, err := keeper.getHighwayAddrs(discoverer)
+	assert.Nil(t, err)
+}
 
 func TestChooseHighwayFiltered(t *testing.T) {
 	hwAddrs := []rpcclient.HighwayAddr{

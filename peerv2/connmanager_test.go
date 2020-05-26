@@ -15,6 +15,7 @@ import (
 )
 
 var testHighwayAddress = "/ip4/0.0.0.0/tcp/7337/p2p/QmSPa4gxx6PRmoNRu6P2iFwEwmayaoLdR5By3i3MgM9gMv"
+var testHighwayAddress2 = "/ip4/0.0.0.0/tcp/7338/p2p/Qmba4kphPTHc3bxsgXJ6aT5SvNT2FoCXq8pe4vHs7kVSZm"
 
 func TestDiscoverHighWay(t *testing.T) {
 	type args struct {
@@ -80,7 +81,11 @@ func TestConnectWhenMaxedRetry(t *testing.T) {
 	var err error
 	h.On("Connect", mock.Anything, mock.Anything).Return(err)
 
-	hwAddrs := map[string][]rpcclient.HighwayAddr{"all": []rpcclient.HighwayAddr{rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress}}}
+	hwAddrs := map[string][]rpcclient.HighwayAddr{
+		"all": []rpcclient.HighwayAddr{
+			rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress},
+		},
+	}
 	discoverer := &mocks.HighwayDiscoverer{}
 	discoverer.On("DiscoverHighway", mock.Anything, mock.Anything).Return(hwAddrs, nil).Times(10)
 	cm := &ConnManager{
@@ -95,6 +100,7 @@ func TestConnectWhenMaxedRetry(t *testing.T) {
 	close(cm.stop)
 
 	discoverer.AssertNumberOfCalls(t, "DiscoverHighway", 2)
+	assert.Equal(t, 1, len(cm.keeper.ignoreHWUntil))
 }
 
 // TestReconnect checks if connection is re-established after being disconnected
