@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unsafe"
 
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incdb"
@@ -52,6 +53,10 @@ func StoreBeaconBlock(db incdb.KeyValueWriter, index uint64, hash common.Hash, v
 	if err := db.Put(keyIndex, []byte{}); err != nil {
 		return NewRawdbError(StoreBeaconBlockError, err)
 	}
+
+	fmt.Println("[monitor-db] {StoreBeaconBlock} key:", keyHash)
+	fmt.Println("[monitor-db] {StoreBeaconBlock} sizeof(val)", unsafe.Sizeof(val))
+
 	if err := db.Put(keyHash, val); err != nil {
 		return NewRawdbError(StoreBeaconBlockError, err)
 	}
@@ -147,6 +152,10 @@ func DeleteBeaconBlockByView(db incdb.Database, view common.Hash) error {
 func StoreBeaconBlockIndex(db incdb.KeyValueWriter, index uint64, hash common.Hash) error {
 	key := GetBeaconBlockHashToIndexKey(hash)
 	buf := common.Uint64ToBytes(index)
+
+	fmt.Println("[monitor-db] {StoreBeaconBlockIndex} key:", key)
+	fmt.Println("[monitor-db] {StoreBeaconBlockIndex} sizeof(val)", unsafe.Sizeof(buf))
+
 	err := db.Put(key, buf)
 	if err != nil {
 		return NewRawdbError(StoreBeaconBlockIndexError, err)

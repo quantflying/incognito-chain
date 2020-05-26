@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"unsafe"
 
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/incdb"
@@ -53,6 +54,10 @@ func StoreShardBlock(db incdb.KeyValueWriter, shardID byte, index uint64, hash c
 	if err := db.Put(keyIndex, []byte{}); err != nil {
 		return NewRawdbError(StoreShardBlockError, err)
 	}
+
+	fmt.Println("[monitor-db] {StoreShardBlock} key:", keyHash)
+	fmt.Println("[monitor-db] {StoreShardBlock} sizeof(val)", unsafe.Sizeof(val))
+
 	if err := db.Put(keyHash, val); err != nil {
 		return NewRawdbError(StoreShardBlockError, err)
 	}
@@ -154,6 +159,10 @@ func StoreShardBlockIndex(db incdb.KeyValueWriter, shardID byte, index uint64, h
 	copy(buf, tempBuf)
 	buf[8] = shardID
 	//{i-[hash]}:index-shardID
+
+	fmt.Println("[monitor-db] {StoreShardBlockIndex} key:", key)
+	fmt.Println("[monitor-db] {StoreShardBlockIndex} sizeof(val)", unsafe.Sizeof(buf))
+
 	if err := db.Put(key, buf); err != nil {
 		return NewRawdbError(StoreShardBlockIndexError, err)
 	}
