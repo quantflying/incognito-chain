@@ -44,7 +44,7 @@ func (keeper *AddrKeeper) ChooseHighway(discoverer HighwayDiscoverer, ourPID pee
 	}
 
 	// Update the local list of known highways
-	keeper.addrs = mergeAddrs(keeper.addrs, newAddrs)
+	keeper.updateAddrs(newAddrs)
 	Logger.Infof("Updated highway addresses: %+v", keeper.addrs)
 
 	// Choose one and return
@@ -66,29 +66,29 @@ func (keeper *AddrKeeper) IgnoreAddress(addr rpcclient.HighwayAddr) {
 	Logger.Infof("Ignoring address %v until %s", addr, keeper.ignoreHWUntil[addr].Format(time.RFC3339))
 }
 
-// mergeAddrs finds the union of N lists of highway addresses
-// 2 addresses are considered the same when both RPCUrl and Libp2pAddr are the same
-func mergeAddrs(allAddrs ...addresses) addresses {
-	if len(allAddrs) == 0 {
-		return nil
-	}
-	merged := allAddrs[0]
-	for _, addrs := range allAddrs[1:] {
-		for _, a := range addrs {
-			found := false
-			for _, b := range merged {
-				if b.Libp2pAddr == a.Libp2pAddr && b.RPCUrl == a.RPCUrl {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				merged = append(merged, a)
+// updateAddrs saves the new list of highway addresses
+// Address that aren't in the new list will have their ignore timing reset
+// => the next time it appears we will reconnect to it
+func (keeper *AddrKeeper) updateAddrs(newAddrs addresses) {
+	for _, oldAddr := range keeper.addrs {
+		found := false
+		for _, newAddr := range newAddrs {
+			if newAddr == oldAddr {
+				found = true
+				break
 			}
 		}
+
+		if len(oldAddr.Libp2pAddr) == 0 {
+			newAddrs = append(newAddrs, oldAddr) // Save the bootnode address
+		} else if !found {
+			delete(keeper.ignoreRPCUntil, oldAddr)
+			delete(keeper.ignoreHWUntil, oldAddr)
+		}
 	}
-	return merged
+
+	// Save the new list
+	keeper.addrs = newAddrs
 }
 
 // chooseHighwayFromList returns a random highway address from the known list using consistent hashing; ourPID is the anchor of the hashing
