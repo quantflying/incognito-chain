@@ -54,8 +54,8 @@ func StoreBeaconBlock(db incdb.KeyValueWriter, index uint64, hash common.Hash, v
 		return NewRawdbError(StoreBeaconBlockError, err)
 	}
 
-	fmt.Println("[monitor-db] {StoreBeaconBlock} key:", keyHash)
-	fmt.Println("[monitor-db] {StoreBeaconBlock} sizeof(val)", unsafe.Sizeof(val))
+	fmt.Println("[monitor-db] {StoreBeaconBlock} key:", string(keyHash))
+	fmt.Println("[monitor-db] {StoreBeaconBlock} sizeof(val)", len(val)*int(unsafe.Sizeof(val)))
 
 	if err := db.Put(keyHash, val); err != nil {
 		return NewRawdbError(StoreBeaconBlockError, err)
@@ -153,8 +153,8 @@ func StoreBeaconBlockIndex(db incdb.KeyValueWriter, index uint64, hash common.Ha
 	key := GetBeaconBlockHashToIndexKey(hash)
 	buf := common.Uint64ToBytes(index)
 
-	fmt.Println("[monitor-db] {StoreBeaconBlockIndex} key:", key)
-	fmt.Println("[monitor-db] {StoreBeaconBlockIndex} sizeof(val)", unsafe.Sizeof(buf))
+	fmt.Println("[monitor-db] {StoreBeaconBlockIndex} key:", string(key))
+	fmt.Println("[monitor-db] {StoreBeaconBlockIndex} sizeof(val)", len(buf)*int(unsafe.Sizeof(buf)))
 
 	err := db.Put(key, buf)
 	if err != nil {
