@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"unsafe"
 
 	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/incdb"
 )
 
@@ -55,8 +55,10 @@ func StoreShardBlock(db incdb.KeyValueWriter, shardID byte, index uint64, hash c
 		return NewRawdbError(StoreShardBlockError, err)
 	}
 
-	fmt.Println("[monitor-db] {StoreShardBlock} key:", string(keyHash))
-	fmt.Println("[monitor-db] {StoreShardBlock} sizeof(val)", len(val)*int(unsafe.Sizeof(val)))
+	encodeStr := base58.Base58Check{}.Encode(keyHash, common.Base58Version)
+	fmt.Println("[monitor-db] {StoreShardBlock} key (encode):", encodeStr)
+	// fmt.Println("[monitor-db] {StoreShardBlock} sizeof(val)", len(val)*int(unsafe.Sizeof(val)))
+	fmt.Println("[monitor-db] {StoreShardBlock} sizeof(val)", len(val))
 
 	if err := db.Put(keyHash, val); err != nil {
 		return NewRawdbError(StoreShardBlockError, err)
@@ -160,8 +162,10 @@ func StoreShardBlockIndex(db incdb.KeyValueWriter, shardID byte, index uint64, h
 	buf[8] = shardID
 	//{i-[hash]}:index-shardID
 
-	fmt.Println("[monitor-db] {StoreShardBlockIndex} key:", string(key))
-	fmt.Println("[monitor-db] {StoreShardBlockIndex} sizeof(val)", len(buf)*int(unsafe.Sizeof(buf)))
+	encodeStr := base58.Base58Check{}.Encode(key, common.Base58Version)
+	fmt.Println("[monitor-db] {StoreShardBlockIndex} key (encode):", encodeStr)
+	// fmt.Println("[monitor-db] {StoreShardBlockIndex} sizeof(val)", len(buf)*int(unsafe.Sizeof(buf)))
+	fmt.Println("[monitor-db] {StoreShardBlockIndex} sizeof(val)", len(buf))
 
 	if err := db.Put(key, buf); err != nil {
 		return NewRawdbError(StoreShardBlockIndexError, err)

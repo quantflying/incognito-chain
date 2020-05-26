@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"unsafe"
 
 	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/common/base58"
 	"github.com/incognitochain/incognito-chain/incdb"
 )
 
@@ -54,8 +54,10 @@ func StoreBeaconBlock(db incdb.KeyValueWriter, index uint64, hash common.Hash, v
 		return NewRawdbError(StoreBeaconBlockError, err)
 	}
 
-	fmt.Println("[monitor-db] {StoreBeaconBlock} key:", string(keyHash))
-	fmt.Println("[monitor-db] {StoreBeaconBlock} sizeof(val)", len(val)*int(unsafe.Sizeof(val)))
+	encodeStr := base58.Base58Check{}.Encode(keyHash, common.Base58Version)
+	fmt.Println("[monitor-db] {StoreBeaconBlock} key:", encodeStr)
+	// fmt.Println("[monitor-db] {StoreBeaconBlock} sizeof(val)", len(val)*int(unsafe.Sizeof(val)))
+	fmt.Println("[monitor-db] {StoreBeaconBlock} sizeof(val)", len(val))
 
 	if err := db.Put(keyHash, val); err != nil {
 		return NewRawdbError(StoreBeaconBlockError, err)
@@ -153,8 +155,10 @@ func StoreBeaconBlockIndex(db incdb.KeyValueWriter, index uint64, hash common.Ha
 	key := GetBeaconBlockHashToIndexKey(hash)
 	buf := common.Uint64ToBytes(index)
 
-	fmt.Println("[monitor-db] {StoreBeaconBlockIndex} key:", string(key))
-	fmt.Println("[monitor-db] {StoreBeaconBlockIndex} sizeof(val)", len(buf)*int(unsafe.Sizeof(buf)))
+	encodeStr := base58.Base58Check{}.Encode(key, common.Base58Version)
+	fmt.Println("[monitor-db] {StoreShardBlockIndex} key:", encodeStr)
+	// fmt.Println("[monitor-db] {StoreBeaconBlockIndex} sizeof(val)", len(buf)*int(unsafe.Sizeof(buf)))
+	fmt.Println("[monitor-db] {StoreShardBlockIndex} sizeof(val)", len(buf))
 
 	err := db.Put(key, buf)
 	if err != nil {

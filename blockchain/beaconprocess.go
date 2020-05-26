@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
-	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/incognitochain/incognito-chain/dataaccessobject/rawdbv2"
+	"github.com/incognitochain/incognito-chain/dataaccessobject/statedb"
 
 	"github.com/incognitochain/incognito-chain/blockchain/btc"
 	"github.com/incognitochain/incognito-chain/common"
@@ -1396,6 +1397,9 @@ func (blockchain *BlockChain) processStoreBeaconBlock(
 	//statedb===========================END
 	batch := blockchain.GetBeaconChainDatabase().NewBatch()
 	//State Root Hash
+	//TODO: @tin
+	// Start from here
+	// Increase here
 	if err := rawdbv2.StoreBeaconConsensusStateRootHash(batch, blockHeight, consensusRootHash); err != nil {
 		return NewBlockChainError(StoreBeaconBlockError, err)
 	}
@@ -1414,8 +1418,12 @@ func (blockchain *BlockChain) processStoreBeaconBlock(
 	if err := rawdbv2.StoreBeaconBlock(batch, blockHeight, blockHash, beaconBlock); err != nil {
 		return NewBlockChainError(StoreBeaconBlockError, err)
 	}
+	//Stop Increase here
 
 	//fmt.Printf("debug AddView %s %+v\n", newBestState.Hash().String(), newBestState.BestBlock)
+
+	//TODO: @tin
+	// Decrease here
 	finalView := blockchain.BeaconChain.GetFinalView()
 	blockchain.BeaconChain.multiView.AddView(newBestState)
 	newFinalView := blockchain.BeaconChain.GetFinalView()
@@ -1438,6 +1446,8 @@ func (blockchain *BlockChain) processStoreBeaconBlock(
 			}
 		}
 	}
+	// Stop decrease here
+
 	err = blockchain.BackupBeaconViews(batch)
 	if err != nil {
 		panic("Backup shard view error")
