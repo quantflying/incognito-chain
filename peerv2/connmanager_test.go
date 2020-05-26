@@ -47,6 +47,7 @@ func TestDiscoverHighWay(t *testing.T) {
 
 // TestConnectAtStart makes sure connection is established at start-up time
 func TestConnectAtStart(t *testing.T) {
+	defer configTime()()
 	h, net := setupHost()
 	// net.On("Connectedness", mock.Anything).Return(network.NotConnected).Return(network.Connected)
 	setupConnectedness(net, []network.Connectedness{network.NotConnected, network.Connected})
@@ -61,9 +62,10 @@ func TestConnectAtStart(t *testing.T) {
 		discoverer:       discoverer,
 		stop:             make(chan int),
 		registerRequests: make(chan peer.ID, 1),
+		keeper:           NewAddrKeeper(),
 	}
 	go cm.keepHighwayConnection()
-	time.Sleep(11 * time.Second)
+	time.Sleep(200 * time.Millisecond)
 	close(cm.stop)
 
 	assert.Equal(t, 1, len(cm.registerRequests), "not connect at startup")
@@ -71,6 +73,8 @@ func TestConnectAtStart(t *testing.T) {
 
 // TestConnectWhenMaxedRetry checks if new highway is picked when failing to connect to old highway for some number of times
 func TestConnectWhenMaxedRetry(t *testing.T) {
+	defer configTime()()
+
 	h, net := setupHost()
 	setupConnectedness(net, []network.Connectedness{network.NotConnected, network.Connected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected, network.NotConnected})
 	var err error
@@ -78,15 +82,16 @@ func TestConnectWhenMaxedRetry(t *testing.T) {
 
 	hwAddrs := map[string][]rpcclient.HighwayAddr{"all": []rpcclient.HighwayAddr{rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress}}}
 	discoverer := &mocks.HighwayDiscoverer{}
-	discoverer.On("DiscoverHighway", mock.Anything, mock.Anything).Return(hwAddrs, nil).Times(2)
+	discoverer.On("DiscoverHighway", mock.Anything, mock.Anything).Return(hwAddrs, nil).Times(10)
 	cm := &ConnManager{
 		LocalHost:        &Host{Host: h},
 		discoverer:       discoverer,
 		stop:             make(chan int),
 		registerRequests: make(chan peer.ID, 1),
+		keeper:           NewAddrKeeper(),
 	}
 	go cm.keepHighwayConnection()
-	time.Sleep(10 * ReconnectHighwayTimestep)
+	time.Sleep(1 * time.Second)
 	close(cm.stop)
 
 	discoverer.AssertNumberOfCalls(t, "DiscoverHighway", 2)
@@ -112,6 +117,7 @@ func TestReconnect(t *testing.T) {
 		DiscoverPeersAddress: testHighwayAddress,
 		LocalHost:            &Host{Host: h},
 		registerRequests:     make(chan peer.ID, 5),
+		keeper:               NewAddrKeeper(),
 	}
 	for i := 0; i < 4; i++ {
 		maxed := cm.checkConnection(&peer.AddrInfo{})
@@ -122,31 +128,37 @@ func TestReconnect(t *testing.T) {
 }
 
 func TestPeriodicManageSub(t *testing.T) {
+	defer configTime()()
+
 	sc := new(subscribeCounter)
 	cm := ConnManager{
 		Requester:        &BlockRequester{},
 		stop:             make(chan int),
 		registerRequests: make(chan peer.ID, 10),
 		subscriber:       sc,
+		keeper:           NewAddrKeeper(),
 	}
 	go cm.manageRoleSubscription()
-	time.Sleep(2 * time.Second)
+	time.Sleep(RegisterTimestep + 50*time.Millisecond)
 	close(cm.stop)
 
 	assert.Equal(t, 1, sc.normal, "not subbed")
 }
 
 func TestForcedSub(t *testing.T) {
+	defer configTime()()
+
 	sc := new(subscribeCounter)
 	cm := ConnManager{
 		Requester:        &BlockRequester{},
 		stop:             make(chan int),
 		registerRequests: make(chan peer.ID, 10),
 		subscriber:       sc,
+		keeper:           NewAddrKeeper(),
 	}
 	cm.registerRequests <- peer.ID("") // Sent forced, must sub with forced = True next time
 	go cm.manageRoleSubscription()
-	time.Sleep(2 * time.Second)
+	time.Sleep(RegisterTimestep + 50*time.Millisecond)
 	close(cm.stop)
 
 	assert.Equal(t, 1, sc.forced, "not subbed")
@@ -157,8 +169,11 @@ func TestChooseHighwayFiltered(t *testing.T) {
 		rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress},
 		rpcclient.HighwayAddr{Libp2pAddr: ""},
 	}
+	keeper := NewAddrKeeper()
+	keeper.addrs = hwAddrs
+
 	pid := peer.ID("")
-	_, err := chooseHighway(hwAddrs, pid)
+	_, err := keeper.chooseHighwayFromList(pid)
 	assert.Nil(t, err)
 }
 
@@ -171,8 +186,11 @@ func TestChooseHighwaySorted(t *testing.T) {
 		rpcclient.HighwayAddr{Libp2pAddr: addr2},
 		rpcclient.HighwayAddr{Libp2pAddr: addr3},
 	}
+	keeper := NewAddrKeeper()
+	keeper.addrs = hwAddrs1
+
 	pid := peer.ID("")
-	info1, err := chooseHighway(hwAddrs1, pid)
+	info1, err := keeper.chooseHighwayFromList(pid)
 	assert.Nil(t, err)
 
 	hwAddrs2 := []rpcclient.HighwayAddr{
@@ -180,7 +198,9 @@ func TestChooseHighwaySorted(t *testing.T) {
 		rpcclient.HighwayAddr{Libp2pAddr: addr2},
 		rpcclient.HighwayAddr{Libp2pAddr: addr1},
 	}
-	info2, err := chooseHighway(hwAddrs2, pid)
+	keeper.addrs = hwAddrs2
+
+	info2, err := keeper.chooseHighwayFromList(pid)
 	assert.Nil(t, err)
 	assert.Equal(t, info1, info2)
 }
@@ -209,7 +229,7 @@ func TestGetAllHighways(t *testing.T) {
 	discoverer.On("DiscoverHighway", mock.Anything, mock.Anything).Return(hwAddrs, nil)
 	hws, err := getAllHighways(discoverer, "")
 	assert.Nil(t, err)
-	assert.Equal(t, hwAddrs["all"], hws)
+	assert.Equal(t, addresses(hwAddrs["all"]), hws)
 }
 
 func TestGetHighwayAddrsRandomly(t *testing.T) {
@@ -222,8 +242,11 @@ func TestGetHighwayAddrsRandomly(t *testing.T) {
 		},
 	)
 	hwAddrs := []rpcclient.HighwayAddr{rpcclient.HighwayAddr{RPCUrl: "abc"}, rpcclient.HighwayAddr{RPCUrl: "xyz"}}
+	keeper := NewAddrKeeper()
+	keeper.addrs = hwAddrs
+
 	for i := 0; i < 100; i++ {
-		_, err := getHighwayAddrs(discoverer, hwAddrs)
+		_, err := keeper.getHighwayAddrs(discoverer)
 		assert.Nil(t, err)
 	}
 	assert.Len(t, rpcUsed, 2)
@@ -263,6 +286,22 @@ func setupConnectedness(net *mocks.Network, values []network.Connectedness) {
 		}
 		return values[idx]
 	})
+}
+
+func configTime() func() {
+	reconnectHighwayTimestep := ReconnectHighwayTimestep
+	requesterDialTimestep := RequesterDialTimestep
+	registerTimestep := RegisterTimestep
+	ReconnectHighwayTimestep = 100 * time.Millisecond
+	RequesterDialTimestep = 100 * time.Millisecond
+	RegisterTimestep = 100 * time.Millisecond
+
+	return func() {
+		// Revert time configuration after a test is done
+		ReconnectHighwayTimestep = reconnectHighwayTimestep
+		RequesterDialTimestep = requesterDialTimestep
+		RegisterTimestep = registerTimestep
+	}
 }
 
 func init() {
