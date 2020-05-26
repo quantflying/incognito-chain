@@ -23,4 +23,5 @@ const (
 	defaultMaxBlkReqPerTime   = 900
 
 	IgnoreRPCDuration = 1 * time.Minute
+	IgnoreHWDuration  = 1 * time.Minute
 )

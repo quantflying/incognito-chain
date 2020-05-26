@@ -12,7 +12,7 @@ import (
 	"stathat.com/c/consistent"
 )
 
-type addresses []rpcclient.HighwayAddr
+type addresses []rpcclient.HighwayAddr // short alias
 
 // AddrKeeper stores all highway addresses for ConnManager to choose from.
 // The address can be used to:
@@ -23,8 +23,8 @@ type addresses []rpcclient.HighwayAddr
 // For the 2nd type, caller can manually ignore the chosen address.
 type AddrKeeper struct {
 	addrs          addresses
-	ignoreRPCUntil map[rpcclient.HighwayAddr]time.Time
-	ignoreHWUntil  map[rpcclient.HighwayAddr]time.Time
+	ignoreRPCUntil map[rpcclient.HighwayAddr]time.Time // ignored for RPC call until this time
+	ignoreHWUntil  map[rpcclient.HighwayAddr]time.Time // ignored for making connection until this time
 }
 
 func NewAddrKeeper() *AddrKeeper {
@@ -48,15 +48,22 @@ func (keeper *AddrKeeper) ChooseHighway(discoverer HighwayDiscoverer, ourPID pee
 	Logger.Infof("Updated highway addresses: %+v", keeper.addrs)
 
 	// Choose one and return
-	chosenAddr, err := chooseHighwayFromList(keeper.addrs, ourPID)
+	chosenAddr, err := keeper.chooseHighwayFromList(ourPID)
 	if err != nil {
 		return rpcclient.HighwayAddr{}, err
 	}
 	return chosenAddr, nil
 }
 
+// Add saves a highway address; should only be used at the start for bootnode
+// since there's no usage of mutex
 func (keeper *AddrKeeper) Add(addr rpcclient.HighwayAddr) {
 	keeper.addrs = append(keeper.addrs, addr)
+}
+
+func (keeper *AddrKeeper) IgnoreAddress(addr rpcclient.HighwayAddr) {
+	keeper.ignoreHWUntil[addr] = time.Now().Add(IgnoreHWDuration)
+	Logger.Infof("Ignoring address %v until %s", addr, keeper.ignoreHWUntil[addr].Format(time.RFC3339))
 }
 
 // mergeAddrs finds the union of N lists of highway addresses
@@ -84,18 +91,23 @@ func mergeAddrs(allAddrs ...addresses) addresses {
 	return merged
 }
 
-// chooseHighwayFromList returns a random highway address from a list using consistent hashing; ourPID is the anchor of the hashing
-func chooseHighwayFromList(hwAddrs addresses, ourPID peer.ID) (rpcclient.HighwayAddr, error) {
-	if len(hwAddrs) == 0 {
+// chooseHighwayFromList returns a random highway address from the known list using consistent hashing; ourPID is the anchor of the hashing
+func (keeper *AddrKeeper) chooseHighwayFromList(ourPID peer.ID) (rpcclient.HighwayAddr, error) {
+	if len(keeper.addrs) == 0 {
 		return rpcclient.HighwayAddr{}, errors.New("cannot choose highway from empty list")
 	}
 
 	// Filter out bootnode address (address with only rpcUrl)
 	filterAddrs := addresses{}
-	for _, addr := range hwAddrs {
+	for _, addr := range keeper.addrs {
 		if len(addr.Libp2pAddr) != 0 {
 			filterAddrs = append(filterAddrs, addr)
 		}
+	}
+
+	// Filter out ignored address
+	if addrs := getNonIgnoredAddrs(filterAddrs, keeper.ignoreHWUntil); len(addrs) > 0 {
+		filterAddrs = addrs
 	}
 
 	// Sort first to make sure always choosing the same highway

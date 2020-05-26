@@ -254,8 +254,8 @@ func (cm *ConnManager) keepHighwayConnection() {
 
 			addrInfo, err := getAddressInfo(currentHighway.Libp2pAddr)
 			if err != nil || cm.checkConnection(addrInfo) {
-				currentHighway = nil // Failed retries, connect to new highway next iteration
-				// cm.keeper.IgnoreAddress(*currentHighway)
+				currentHighway = nil                     // Failed retries, connect to new highway next iteration
+				cm.keeper.IgnoreAddress(*currentHighway) // Not reconnect to this address for some time
 			}
 
 		case <-refreshTimestep.C:
