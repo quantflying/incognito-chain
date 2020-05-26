@@ -127,7 +127,7 @@ func (blockchain *BlockChain) NewBlockBeacon(curView *BeaconBestState, version i
 	//============End Build Body================
 	//============Update Beacon Best State================
 	// Process new block with beststate
-	newBeaconBeststate, err := beaconBestState.updateBeaconBestState(beaconBlock, blockchain.config.ChainParams.Epoch, blockchain.config.ChainParams.AssignOffset, blockchain.config.ChainParams.RandomTime, newCommitteeChange())
+	newBeaconBeststate, err := beaconBestState.updateBeaconBestState(beaconBlock, blockchain, newCommitteeChange())
 	if err != nil {
 		return nil, err
 	}

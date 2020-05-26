@@ -68,7 +68,7 @@ CONTINUE_VERIFY:
 		return err
 	}
 	// Update best state with new block
-	newBestState, err := curView.updateBeaconBestState(beaconBlock, blockchain.config.ChainParams.Epoch, blockchain.config.ChainParams.AssignOffset, blockchain.config.ChainParams.RandomTime, committeeChange)
+	newBestState, err := curView.updateBeaconBestState(beaconBlock, blockchain, committeeChange)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (blockchain *BlockChain) InsertBeaconBlock(beaconBlock *BeaconBlock, should
 	Logger.log.Debugf("BEACON | Update BestState With Beacon Block, Beacon Block Height %+v with hash %+v", beaconBlock.Header.Height, blockHash)
 	// Update best state with new beaconBlock
 
-	newBestState, err := curView.updateBeaconBestState(beaconBlock, blockchain.config.ChainParams.Epoch, blockchain.config.ChainParams.AssignOffset, blockchain.config.ChainParams.RandomTime, committeeChange)
+	newBestState, err := curView.updateBeaconBestState(beaconBlock, blockchain, committeeChange)
 	if err != nil {
 		return err
 	}
@@ -682,7 +682,10 @@ func (beaconBestState *BeaconBestState) verifyPostProcessingBeaconBlock(beaconBl
 /*
 	Update Beststate with new Block
 */
-func (oldBestState *BeaconBestState) updateBeaconBestState(beaconBlock *BeaconBlock, chainParamEpoch uint64, chainParamAssignOffset int, randomTime uint64, committeeChange *committeeChange) (*BeaconBestState, error) {
+func (oldBestState *BeaconBestState) updateBeaconBestState(beaconBlock *BeaconBlock, blockchain *BlockChain, committeeChange *committeeChange) (*BeaconBestState, error) {
+	var chainParamEpoch = blockchain.config.ChainParams.Epoch
+	var chainParamAssignOffset = blockchain.config.ChainParams.AssignOffset
+	var randomTime = blockchain.config.ChainParams.RandomTime
 	startTimeUpdateBeaconBestState := time.Now()
 	beaconBestState := NewBeaconBestState()
 	if err := beaconBestState.cloneBeaconBestStateFrom(oldBestState); err != nil {
@@ -732,7 +735,7 @@ func (oldBestState *BeaconBestState) updateBeaconBestState(beaconBlock *BeaconBl
 		snapshotAutoStaking[k] = v
 	}
 	for _, instruction := range beaconBlock.Body.Instructions {
-		err, tempRandomFlag, tempNewBeaconCandidate, tempNewShardCandidate := beaconBestState.processInstruction(instruction, committeeChange, snapshotAutoStaking)
+		err, tempRandomFlag, tempNewBeaconCandidate, tempNewShardCandidate := beaconBestState.processInstruction(instruction, blockchain, committeeChange, snapshotAutoStaking)
 		if err != nil {
 			return nil, err
 		}
@@ -825,7 +828,7 @@ func (oldBestState *BeaconBestState) updateBeaconBestState(beaconBlock *BeaconBl
 	return beaconBestState, nil
 }
 
-func (beaconBestState *BeaconBestState) initBeaconBestState(genesisBeaconBlock *BeaconBlock, db incdb.Database) error {
+func (beaconBestState *BeaconBestState) initBeaconBestState(genesisBeaconBlock *BeaconBlock, blockchain *BlockChain, db incdb.Database) error {
 	var (
 		newBeaconCandidate = []incognitokey.CommitteePublicKey{}
 		newShardCandidate  = []incognitokey.CommitteePublicKey{}
@@ -850,7 +853,7 @@ func (beaconBestState *BeaconBestState) initBeaconBestState(genesisBeaconBlock *
 		snapshotAutoStaking[k] = v
 	}
 	for _, instruction := range genesisBeaconBlock.Body.Instructions {
-		err, _, tempNewBeaconCandidate, tempNewShardCandidate := beaconBestState.processInstruction(instruction, newCommitteeChange(), snapshotAutoStaking)
+		err, _, tempNewBeaconCandidate, tempNewShardCandidate := beaconBestState.processInstruction(instruction, blockchain, newCommitteeChange(), snapshotAutoStaking)
 		if err != nil {
 			return err
 		}
@@ -916,7 +919,7 @@ func (beaconBestState *BeaconBestState) initBeaconBestState(genesisBeaconBlock *
 //  #3 new beacon candidate
 //  #4 new shard candidate
 
-func (beaconBestState *BeaconBestState) processInstruction(instruction []string, committeeChange *committeeChange, autoStaking map[string]bool) (error, bool, []incognitokey.CommitteePublicKey, []incognitokey.CommitteePublicKey) {
+func (beaconBestState *BeaconBestState) processInstruction(instruction []string, blockchain *BlockChain, committeeChange *committeeChange, autoStaking map[string]bool) (error, bool, []incognitokey.CommitteePublicKey, []incognitokey.CommitteePublicKey) {
 	newBeaconCandidates := []incognitokey.CommitteePublicKey{}
 	newShardCandidates := []incognitokey.CommitteePublicKey{}
 	if len(instruction) < 1 {
@@ -952,7 +955,7 @@ func (beaconBestState *BeaconBestState) processInstruction(instruction []string,
 		}
 	}
 	if instruction[0] == SwapAction {
-		if false {
+		if beaconBestState.BeaconHeight/blockchain.config.ChainParams.Epoch == blockchain.config.ChainParams.EpochBreakPointSwapNewKey {
 			err := beaconBestState.processSwapInstructionForKeyListV2(instruction, committeeChange)
 			if err != nil {
 				return err, false, []incognitokey.CommitteePublicKey{}, []incognitokey.CommitteePublicKey{}
