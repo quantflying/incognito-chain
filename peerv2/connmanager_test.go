@@ -84,6 +84,7 @@ func TestConnectWhenMaxedRetry(t *testing.T) {
 	hwAddrs := map[string][]rpcclient.HighwayAddr{
 		"all": []rpcclient.HighwayAddr{
 			rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress},
+			rpcclient.HighwayAddr{Libp2pAddr: testHighwayAddress2},
 		},
 	}
 	discoverer := &mocks.HighwayDiscoverer{}

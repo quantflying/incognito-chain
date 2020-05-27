@@ -158,7 +158,7 @@ func TestChoosePeerConsistent(t *testing.T) {
 	pid := peer.ID("")
 	info, err := choosePeer(hwAddrs, pid)
 	assert.Nil(t, err)
-	assert.Equal(t, hwAddrs[1], info)
+	assert.Equal(t, hwAddrs[2], info)
 }
 
 func TestGetHighwayAddrsRandomly(t *testing.T) {
