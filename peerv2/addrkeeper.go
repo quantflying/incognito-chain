@@ -132,6 +132,7 @@ func (keeper *AddrKeeper) chooseHighwayFromList(ourPID peer.ID) (rpcclient.Highw
 // choosePeer picks a peer from a list using consistent hashing
 func choosePeer(peers addresses, id peer.ID) (rpcclient.HighwayAddr, error) {
 	cst := consistent.New()
+	cst.NumberOfReplicas = 1000
 	for _, p := range peers {
 		cst.Add(p.Libp2pAddr)
 	}
